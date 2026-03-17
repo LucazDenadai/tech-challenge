@@ -131,6 +131,7 @@ logs/
 *.db
 *.sqlite
 *.sqlite3
+init.sql
 
 # Environment variables
 .env
@@ -167,5 +168,13 @@ Desktop.ini
 Migrations/*.cs
 Migrations/*.Designer.cs
 
+# SonarQube
+.sonarqube/
+sonar-project.properties
+sonar/.env
+
 # Docker volumes
 postgres_data/
+sonarqube_data/
+sonarqube_logs/
+sonarqube_extensions/

@@ -26,10 +26,10 @@ public class AuthService : IAuthService
         if (usuario is null || !usuario.Ativo) return null;
         if (!BCrypt.Net.BCrypt.Verify(loginDto.Senha, usuario.SenhaHash)) return null;
 
-        var jwtKey = _config["Jwt:Key"]!;
-        var jwtIssuer = _config["Jwt:Issuer"]!;
-        var jwtAudience = _config["Jwt:Audience"]!;
-        var expiracoMinutos = int.Parse(_config["Jwt:ExpiracaoMinutos"] ?? "60");
+        var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? "";
+        var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "";
+        var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "";
+        var expiracoMinutos = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS") ?? "60");
 
         var claims = new[]
         {

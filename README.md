@@ -46,6 +46,32 @@ src/
 3. **Acesse a aplicação**:
    - API: http://localhost:8080
    - Swagger: http://localhost:8080/swagger
+   - **SonarQube**: http://localhost:9000 (usuário: admin, senha: admin)
+
+### Análise de Código com SonarQube
+
+Para detectar vulnerabilidades, bugs e code smells:
+
+1. **Certifique-se de que o SonarQube está rodando** (porta 9000).
+
+2. **Instale o SonarScanner** (se não tiver):
+   - Baixe de https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/
+   - Ou use via Docker: `docker run --rm -v $(pwd):/usr/src sonarsource/sonar-scanner-cli`
+
+3. **Execute a análise** (o arquivo `sonar-project.properties` já está configurado):
+   ```bash
+   # No diretório raiz do projeto
+   sonar-scanner \
+     -Dsonar.host.url=http://localhost:9000 \
+     -Dsonar.login=admin \
+     -Dsonar.password=admin
+   ```
+
+4. **Visualize os resultados**:
+   - Acesse http://localhost:9000
+   - Vá para "Projects" > "tech-challenge" para ver vulnerabilidades, cobertura, etc.
+
+**Nota**: Na primeira execução, faça login no SonarQube (admin/admin) e gere um token para usar no lugar de login/password.
 
 ### Sem Docker (Desenvolvimento Local)
 
@@ -139,6 +165,11 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
 ```bash
 dotnet test
 ```
+
+### Análise de Segurança e Vulnerabilidades
+- **SonarQube**: Execute a análise conforme descrito acima para detectar vulnerabilidades de segurança, bugs e code smells.
+- **OWASP ZAP** ou **Burp Suite**: Para testes de penetração manuais.
+- **Dependabot** (no GitHub): Configure para alertas automáticos de vulnerabilidades em dependências.
 
 ### Build
 ```bash

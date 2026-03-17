@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  sonarqube:
+    image: sonarqube:community
+    container_name: techchallenge-sonarqube
+    ports:
+      - "9000:9000"
+    env_file:
+      - ./.env
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://db:5432/sonar
+      - SONAR_JDBC_USERNAME=postgres
+      - SONAR_JDBC_PASSWORD=${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./sonar/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: techchallenge-sonar-db
+    environment:
+      POSTGRES_DB: sonar
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - sonar_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  setup:
+    image: curlimages/curl:latest
+    container_name: techchallenge-sonar-setup
+    env_file:
+      - .env
+    depends_on:
+      - sonarqube
+    entrypoint: ["/bin/sh", "-c", "\
+        set -e; \
+        echo 'Waiting for SonarQube to become available...'; \
+        until curl -sSf http://sonarqube:9000/api/system/status | grep -q 'UP'; do \
+          sleep 2; \
+        done; \
+        echo 'SonarQube is up'; \
+        if [ -n \"$SONAR_NEW_ADMIN_PASSWORD\" ]; then \
+          echo 'Setting admin password'; \
+          curl -sS -u admin:admin -X POST http://sonarqube:9000/api/users/change_password \
+            -d login=admin -d previousPassword=admin -d password=$SONAR_NEW_ADMIN_PASSWORD; \
+        fi; \
+        if [ -n \"$SONAR_TOKEN_NAME\" ]; then \
+          echo 'Generating Sonar token'; \
+          curl -sS -u admin:${SONAR_NEW_ADMIN_PASSWORD:-admin} -X POST http://sonarqube:9000/api/user_tokens/generate \
+            -d name=$SONAR_TOKEN_NAME; \
+        fi; \
+        echo 'SonarQube setup complete';" ]
+    restart: "no"
+
+volumes:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
+  sonar_postgres_data:

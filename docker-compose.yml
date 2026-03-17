@@ -8,13 +8,15 @@ services:
     container_name: techchallenge-api
     ports:
       - "8080:8080"
+    env_file:
+      - .env
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=techchallengedb;Username=postgres;Password=postgres123
-      - Jwt__Key=TechChallenge_SuperSecretKey_2024_Oficina_Mecanica!
-      - Jwt__Issuer=TechChallenge.API
-      - Jwt__Audience=TechChallenge.Client
-      - Jwt__ExpiracaoMinutos=60
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=techchallengedb;Username=postgres;Password=${POSTGRES_PASSWORD}
+      - Jwt__Key=${JWT_KEY}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+      - Jwt__ExpiracaoMinutos=${JWT_EXPIRACAO_MINUTOS}
     depends_on:
       db:
         condition: service_healthy
