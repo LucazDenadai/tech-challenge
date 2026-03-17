@@ -21,6 +21,9 @@ FROM build AS publish
 RUN dotnet publish "TechChallenge.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
+RUN adduser --disabled-password appuser
+USER appuser
+
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "TechChallenge.API.dll"]
