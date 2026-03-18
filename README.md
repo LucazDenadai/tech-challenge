@@ -10,16 +10,22 @@ API REST para gerenciamento de oficina mecânica, desenvolvida com arquitetura e
 - **Autenticação**: JWT (JSON Web Tokens)
 - **Documentação**: Swagger/OpenAPI
 - **Containerização**: Docker & Docker Compose
-- **Arquitetura**: DDD (Domain-Driven Design) com camadas separadas (Domain, Application, Infrastructure, API)
+- **Testes**: xUnit, Moq, FluentAssertions, Testcontainers
+- **Cobertura**: coverlet
+- **Arquitetura**: DDD (Domain-Driven Design) com camadas separadas
 
 ## Estrutura do Projeto
 
 ```
 src/
-├── TechChallenge.API/          # Camada de apresentação (Controllers, Program.cs)
-├── TechChallenge.Application/  # Camada de aplicação (Services, DTOs, Interfaces)
-├── TechChallenge.Domain/       # Camada de domínio (Entities, Enums, Interfaces de repositório)
-└── TechChallenge.Infrastructure/ # Camada de infraestrutura (Repositories, DbContext, Migrations)
+├── TechChallenge.API/             # Camada de apresentação (Controllers, Program.cs)
+├── TechChallenge.Application/     # Camada de aplicação (Services, DTOs, Interfaces)
+├── TechChallenge.Domain/          # Camada de domínio (Entities, Enums, Interfaces de repositório)
+└── TechChallenge.Infrastructure/  # Camada de infraestrutura (Repositories, DbContext, Migrations)
+
+tests/
+├── TechChallenge.UnitTests/       # Testes unitários (domínio e serviços de aplicação)
+└── TechChallenge.IntegrationTests/ # Testes de integração E2E (HTTP + PostgreSQL real)
 ```
 
 ## Pré-requisitos
@@ -46,32 +52,8 @@ src/
 3. **Acesse a aplicação**:
    - API: http://localhost:8080
    - Swagger: http://localhost:8080/swagger
-   - **SonarQube**: http://localhost:9000 (usuário: admin, senha: admin)
 
-### Análise de Código com SonarQube
-
-Para detectar vulnerabilidades, bugs e code smells:
-
-1. **Certifique-se de que o SonarQube está rodando** (porta 9000).
-
-2. **Instale o SonarScanner** (se não tiver):
-   - Baixe de https://docs.sonarsource.com/sonarqube/latest/analyzing-source-code/scanners/sonarscanner/
-   - Ou use via Docker: `docker run --rm -v $(pwd):/usr/src sonarsource/sonar-scanner-cli`
-
-3. **Execute a análise** (o arquivo `sonar-project.properties` já está configurado):
-   ```bash
-   # No diretório raiz do projeto
-   sonar-scanner \
-     -Dsonar.host.url=http://localhost:9000 \
-     -Dsonar.login=admin \
-     -Dsonar.password=admin
-   ```
-
-4. **Visualize os resultados**:
-   - Acesse http://localhost:9000
-   - Vá para "Projects" > "tech-challenge" para ver vulnerabilidades, cobertura, etc.
-
-**Nota**: Na primeira execução, faça login no SonarQube (admin/admin) e gere um token para usar no lugar de login/password.
+> **Nota sobre SonarQube**: O `docker-compose.yml` inclui o SonarQube (http://localhost:9000), mas ele **não é iniciado por padrão** porque seu download é pesado (~1 GB de imagens). Para habilitá-lo, veja a seção [Análise de Qualidade com SonarQube](#análise-de-qualidade-com-sonarqube) abaixo.
 
 ### Sem Docker (Desenvolvimento Local)
 
@@ -92,12 +74,60 @@ Para detectar vulnerabilidades, bugs e code smells:
 
 4. **Execute a aplicação**:
    ```bash
-   dotnet run --project TechChallenge.API
+   dotnet run --project src/TechChallenge.API
    ```
 
 5. **Acesse**:
    - API: http://localhost:5121 (porta padrão do launchSettings.json)
    - Swagger: http://localhost:5121/swagger
+
+## Testes
+
+### Testes Unitários
+
+Testam a lógica de negócio isolada (domínio e serviços de aplicação) **sem dependência de banco de dados**.
+
+```bash
+dotnet test tests/TechChallenge.UnitTests/
+```
+
+Cobertura:
+- **Domínio**: `OrdemServico` (status, ValorTotal), `Peca` (estoque), `Cliente`
+- **Services**: `ClienteService`, `PecaService`, `OrdemServicoService`, `AuthService`
+
+### Testes de Integração
+
+Testam o fluxo completo HTTP → Controller → Service → Repository → **PostgreSQL real** via [Testcontainers](https://testcontainers.com/).
+
+> **Requer Docker instalado e em execução.** O container PostgreSQL é iniciado e destruído automaticamente.
+
+```bash
+dotnet test tests/TechChallenge.IntegrationTests/
+```
+
+Cobertura:
+- **Auth**: login válido, senha errada, usuário inexistente, perfis
+- **Clientes**: CRUD completo, CPF duplicado, 401 sem auth, 404
+- **Peças**: CRUD completo, listagem seeded
+
+### Todos os testes
+
+```bash
+dotnet test
+```
+
+### Com relatório de cobertura
+
+```bash
+dotnet test --collect:"XPlat Code Coverage"
+```
+
+Os relatórios XML são gerados em `TestResults/`. Para visualização HTML, use [ReportGenerator](https://reportgenerator.io/):
+
+```bash
+dotnet tool install -g dotnet-reportgenerator-globaltool
+reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"coverage-report" -reporttypes:Html
+```
 
 ## Autenticação
 
@@ -115,9 +145,11 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
 
 ### Usuários de Teste (Seeded)
 
-- **Admin**: admin@oficina.com / Admin@123
-- **Mecânico**: mecanico@oficina.com / Mec@123
-- **Atendente**: atendente@oficina.com / Ate@123
+| Perfil     | Email                      | Senha       |
+|------------|---------------------------|-------------|
+| Admin      | admin@oficina.com         | Admin@123   |
+| Mecânico   | mecanico@oficina.com      | Mec@123     |
+| Atendente  | atendente@oficina.com     | Ate@123     |
 
 ## Endpoints Principais
 
@@ -156,20 +188,36 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
 - `GET /api/ordensservico` - Listar todas as ordens
 - `GET /api/ordensservico/{id}` - Obter ordem por ID
 - `POST /api/ordensservico` - Criar nova ordem
-- `PUT /api/ordensservico/{id}` - Atualizar ordem
-- `DELETE /api/ordensservico/{id}` - Cancelar ordem
+- `PUT /api/ordensservico/{id}/status` - Avançar status
+- `POST /api/ordensservico/{id}/servicos` - Adicionar item de serviço
+- `POST /api/ordensservico/{id}/pecas` - Adicionar item de peça
+
+## Análise de Qualidade com SonarQube
+
+O projeto possui configuração do SonarQube, mas o serviço **fica separado do docker-compose principal** pelo tamanho do download (~1 GB de imagens Docker). Para utilizá-lo:
+
+1. **Suba o SonarQube manualmente**:
+   ```bash
+   docker run -d --name sonarqube -p 9000:9000 sonarqube:community
+   ```
+
+2. **Aguarde o SonarQube inicializar** (pode levar 1-2 minutos) e acesse http://localhost:9000 (admin/admin).
+
+3. **Instale o SonarScanner** (se não tiver):
+   ```bash
+   dotnet tool install -g dotnet-sonarscanner
+   ```
+
+4. **Execute a análise** (o arquivo `sonar-project.properties` já está configurado):
+   ```bash
+   dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="http://localhost:9000" /d:sonar.login="admin" /d:sonar.password="admin"
+   dotnet build
+   dotnet sonarscanner end /d:sonar.login="admin" /d:sonar.password="admin"
+   ```
+
+5. **Visualize os resultados** em http://localhost:9000/projects.
 
 ## Desenvolvimento
-
-### Executar Testes
-```bash
-dotnet test
-```
-
-### Análise de Segurança e Vulnerabilidades
-- **SonarQube**: Execute a análise conforme descrito acima para detectar vulnerabilidades de segurança, bugs e code smells.
-- **OWASP ZAP** ou **Burp Suite**: Para testes de penetração manuais.
-- **Dependabot** (no GitHub): Configure para alertas automáticos de vulnerabilidades em dependências.
 
 ### Build
 ```bash
@@ -193,4 +241,4 @@ dotnet ef database update
 
 ## Licença
 
-Este projeto é parte do Tech Challenge e está sob licença MIT.
+Este projeto é parte do Tech Challenge da FIAP e está sob licença MIT.
