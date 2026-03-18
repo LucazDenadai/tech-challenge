@@ -5,4 +5,8 @@
     <Project Path="src/TechChallenge.Domain/TechChallenge.Domain.csproj" />
     <Project Path="src/TechChallenge.Infrastructure/TechChallenge.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TechChallenge.UnitTests/TechChallenge.UnitTests.csproj" />
+    <Project Path="tests/TechChallenge.IntegrationTests/TechChallenge.IntegrationTests.csproj" />
+  </Folder>
 </Solution>
