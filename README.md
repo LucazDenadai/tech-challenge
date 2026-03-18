@@ -11,7 +11,8 @@ API REST para gerenciamento de oficina mecânica, desenvolvida com arquitetura e
 - **Documentação**: Swagger/OpenAPI
 - **Containerização**: Docker & Docker Compose
 - **Testes**: xUnit, Moq, FluentAssertions, Testcontainers
-- **Cobertura**: coverlet
+- **Cobertura**: coverlet (formato OpenCover)
+- **Lint**: .editorconfig + `dotnet format`
 - **Arquitetura**: DDD (Domain-Driven Design) com camadas separadas
 
 ## Estrutura do Projeto
@@ -118,15 +119,18 @@ dotnet test
 
 ### Com relatório de cobertura
 
+O arquivo `coverlet.runsettings` gera o formato **OpenCover** (necessário para o SonarQube):
+
 ```bash
-dotnet test --collect:"XPlat Code Coverage"
+dotnet test --settings coverlet.runsettings
 ```
 
-Os relatórios XML são gerados em `TestResults/`. Para visualização HTML, use [ReportGenerator](https://reportgenerator.io/):
+Os XMLs são gerados em `tests/**/TestResults/**/coverage.opencover.xml`. Para visualização HTML local, use [ReportGenerator](https://reportgenerator.io/):
 
 ```bash
 dotnet tool install -g dotnet-reportgenerator-globaltool
-reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"coverage-report" -reporttypes:Html
+reportgenerator -reports:"**/coverage.opencover.xml" -targetdir:"coverage-report" -reporttypes:Html
+open coverage-report/index.html
 ```
 
 ## Autenticação
@@ -192,30 +196,59 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
 - `POST /api/ordensservico/{id}/servicos` - Adicionar item de serviço
 - `POST /api/ordensservico/{id}/pecas` - Adicionar item de peça
 
+## Lint
+
+O projeto usa `.editorconfig` como fonte de regras de estilo. Para verificar ou corrigir formatação localmente:
+
+```bash
+# Verificar sem alterar (modo CI)
+dotnet format --verify-no-changes
+
+# Corrigir automaticamente
+dotnet format
+```
+
 ## Análise de Qualidade com SonarQube
 
-O projeto possui configuração do SonarQube, mas o serviço **fica separado do docker-compose principal** pelo tamanho do download (~1 GB de imagens Docker). Para utilizá-lo:
+O SonarQube **fica separado do docker-compose principal** pelo tamanho do download (~1 GB de imagens Docker).
 
-1. **Suba o SonarQube manualmente**:
-   ```bash
-   docker run -d --name sonarqube -p 9000:9000 sonarqube:community
-   ```
+### Subindo o SonarQube
 
-2. **Aguarde o SonarQube inicializar** (pode levar 1-2 minutos) e acesse http://localhost:9000 (admin/admin).
+```bash
+cd sonar
+docker compose up -d
+```
 
-3. **Instale o SonarScanner** (se não tiver):
-   ```bash
-   dotnet tool install -g dotnet-sonarscanner
-   ```
+Aguarde 1-2 minutos e acesse http://localhost:9000 (admin/admin na primeira vez).
 
-4. **Execute a análise** (o arquivo `sonar-project.properties` já está configurado):
-   ```bash
-   dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="http://localhost:9000" /d:sonar.login="admin" /d:sonar.password="admin"
-   dotnet build
-   dotnet sonarscanner end /d:sonar.login="admin" /d:sonar.password="admin"
-   ```
+### Executando a análise com cobertura
 
-5. **Visualize os resultados** em http://localhost:9000/projects.
+> **Importante**: o `dotnet test` com cobertura deve rodar **entre** o `begin` e o `end` do sonarscanner para que o Sonar processe os relatórios corretamente.
+
+```bash
+# 1. Instale o sonarscanner (uma vez)
+dotnet tool install -g dotnet-sonarscanner
+
+# 2. Inicia a sessão de análise (passa o path de cobertura aqui)
+dotnet sonarscanner begin \
+  /k:"tech-challenge" \
+  /d:sonar.host.url="http://localhost:9000" \
+  /d:sonar.login="admin" \
+  /d:sonar.password="admin" \
+  /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" \
+  /d:sonar.coverage.exclusions="**/Program.cs,**/*Tests.cs,**/Migrations/**"
+
+# 3. Build
+dotnet build
+
+# 4. Testes com cobertura (gera os XMLs que o Sonar vai ler)
+dotnet test --settings coverlet.runsettings
+
+# 5. Finaliza e envia os resultados
+dotnet sonarscanner end /d:sonar.login="admin" /d:sonar.password="admin"
+```
+
+Visualize os resultados em http://localhost:9000/projects.
 
 ## Desenvolvimento
 
