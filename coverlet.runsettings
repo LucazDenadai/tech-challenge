@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <!-- Formato OpenCover necessário para o SonarQube C# analyzer -->
+          <Format>opencover</Format>
+          <!-- Exclui código gerado, migrations e entry point da cobertura -->
+          <ExcludeByFile>**/Migrations/*.cs,**/Program.cs,**/*.g.cs</ExcludeByFile>
+          <!-- Exclui os próprios projetos de teste (só mede cobertura do código de produção) -->
+          <Exclude>[TechChallenge.UnitTests]*,[TechChallenge.IntegrationTests]*</Exclude>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

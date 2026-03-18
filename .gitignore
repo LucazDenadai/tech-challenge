@@ -149,6 +149,7 @@ yarn-error.log*
 # Coverage
 coverage/
 *.lcov
+TestResults/
 
 # JetBrains Rider
 .idea/
@@ -170,7 +171,7 @@ Migrations/*.Designer.cs
 
 # SonarQube
 .sonarqube/
-sonar-project.properties
+/sonar-project.properties
 sonar/.env
 
 # Docker volumes
