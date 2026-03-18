@@ -8,8 +8,8 @@ public class ItemServico : EntityBase
     public decimal ValorUnitario { get; private set; }
     public decimal ValorTotal => Quantidade * ValorUnitario;
 
-    public Servico? Servico { get; private set; }
-    public OrdemServico? OrdemServico { get; private set; }
+    public Servico? Servico { get; protected set; }
+    public OrdemServico? OrdemServico { get; protected set; }
 
     protected ItemServico() { }
 

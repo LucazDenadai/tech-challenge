@@ -1,7 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using TechChallenge.Application.DTOs.Auth;
 using TechChallenge.Application.Interfaces;
@@ -12,12 +11,10 @@ namespace TechChallenge.Application.Services;
 public class AuthService : IAuthService
 {
     private readonly IUsuarioRepository _repo;
-    private readonly IConfiguration _config;
 
-    public AuthService(IUsuarioRepository repo, IConfiguration config)
+    public AuthService(IUsuarioRepository repo)
     {
         _repo = repo;
-        _config = config;
     }
 
     public async Task<TokenResponseDto?> LoginAsync(LoginDto loginDto)
@@ -29,7 +26,7 @@ public class AuthService : IAuthService
         var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? "";
         var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "";
         var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "";
-        var expiracoMinutos = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS") ?? "60");
+        var expiracaoMinutos = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS") ?? "60");
 
         var claims = new[]
         {
@@ -42,7 +39,7 @@ public class AuthService : IAuthService
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expiracao = DateTime.UtcNow.AddMinutes(expiracoMinutos);
+        var expiracao = DateTime.UtcNow.AddMinutes(expiracaoMinutos);
 
         var token = new JwtSecurityToken(
             issuer: jwtIssuer,

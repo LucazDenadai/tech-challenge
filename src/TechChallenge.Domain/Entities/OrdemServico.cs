@@ -12,8 +12,8 @@ public class OrdemServico : EntityBase
     public DateTime DataAbertura { get; private set; } = DateTime.UtcNow;
     public DateTime? DataFechamento { get; private set; }
 
-    public Cliente? Cliente { get; private set; }
-    public Veiculo? Veiculo { get; private set; }
+    public Cliente? Cliente { get; protected set; }
+    public Veiculo? Veiculo { get; protected set; }
 
     private readonly List<ItemServico> _itensServico = new();
     public IReadOnlyCollection<ItemServico> ItensServico => _itensServico.AsReadOnly();

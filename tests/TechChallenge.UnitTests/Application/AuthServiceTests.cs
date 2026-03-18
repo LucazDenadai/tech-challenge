@@ -25,7 +25,7 @@ public class AuthServiceTests : IDisposable
         Environment.SetEnvironmentVariable("JWT_AUDIENCE", JwtAudience);
         Environment.SetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS", "60");
 
-        _sut = new AuthService(_repoMock.Object, null!);
+        _sut = new AuthService(_repoMock.Object);
     }
 
     public void Dispose()

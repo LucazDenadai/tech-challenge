@@ -9,7 +9,7 @@ public class Veiculo : EntityBase
     public int Ano { get; private set; }
     public string Cor { get; private set; } = string.Empty;
 
-    public Cliente? Cliente { get; private set; }
+    public Cliente? Cliente { get; protected set; }
 
     protected Veiculo() { }
 
