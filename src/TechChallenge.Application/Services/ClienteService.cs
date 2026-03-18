@@ -53,7 +53,13 @@ public class ClienteService : IClienteService
 
     private static ClienteDto MapDto(Cliente c) => new()
     {
-        Id = c.Id, Nome = c.Nome, Cpf = c.Cpf, Email = c.Email,
-        Telefone = c.Telefone, Endereco = c.Endereco, Ativo = c.Ativo, CriadoEm = c.CriadoEm
+        Id = c.Id,
+        Nome = c.Nome,
+        Cpf = c.Cpf,
+        Email = c.Email,
+        Telefone = c.Telefone,
+        Endereco = c.Endereco,
+        Ativo = c.Ativo,
+        CriadoEm = c.CriadoEm
     };
 }

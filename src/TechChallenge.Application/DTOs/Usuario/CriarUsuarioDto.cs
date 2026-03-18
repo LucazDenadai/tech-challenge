@@ -5,13 +5,16 @@ namespace TechChallenge.Application.DTOs.Usuario;
 
 public class CriarUsuarioDto
 {
-    [Required] [MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string Nome { get; set; } = string.Empty;
 
-    [Required] [EmailAddress]
+    [Required]
+    [EmailAddress]
     public string Email { get; set; } = string.Empty;
 
-    [Required] [MinLength(6)]
+    [Required]
+    [MinLength(6)]
     public string Senha { get; set; } = string.Empty;
 
     [Required]

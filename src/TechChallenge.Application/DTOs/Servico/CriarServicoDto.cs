@@ -4,7 +4,8 @@ namespace TechChallenge.Application.DTOs.Servico;
 
 public class CriarServicoDto
 {
-    [Required] [MaxLength(100)]
+    [Required]
+    [MaxLength(100)]
     public string Nome { get; set; } = string.Empty;
 
     [MaxLength(500)]

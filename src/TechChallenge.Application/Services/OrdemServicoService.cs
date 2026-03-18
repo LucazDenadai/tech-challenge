@@ -102,13 +102,21 @@ public class OrdemServicoService : IOrdemServicoService
         ValorTotal = os.ValorTotal,
         ItensServico = os.ItensServico.Select(i => new ItemServicoDto
         {
-            Id = i.Id, ServicoId = i.ServicoId, NomeServico = i.Servico?.Nome ?? "",
-            Quantidade = i.Quantidade, ValorUnitario = i.ValorUnitario, ValorTotal = i.ValorTotal
+            Id = i.Id,
+            ServicoId = i.ServicoId,
+            NomeServico = i.Servico?.Nome ?? "",
+            Quantidade = i.Quantidade,
+            ValorUnitario = i.ValorUnitario,
+            ValorTotal = i.ValorTotal
         }).ToList(),
         ItensPeca = os.ItensPeca.Select(i => new ItemPecaDto
         {
-            Id = i.Id, PecaId = i.PecaId, NomePeca = i.Peca?.Nome ?? "",
-            Quantidade = i.Quantidade, ValorUnitario = i.ValorUnitario, ValorTotal = i.ValorTotal
+            Id = i.Id,
+            PecaId = i.PecaId,
+            NomePeca = i.Peca?.Nome ?? "",
+            Quantidade = i.Quantidade,
+            ValorUnitario = i.ValorUnitario,
+            ValorTotal = i.ValorTotal
         }).ToList()
     };
 }

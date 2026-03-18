@@ -49,7 +49,11 @@ public class ServicoService : IServicoService
 
     private static ServicoDto MapDto(Servico s) => new()
     {
-        Id = s.Id, Nome = s.Nome, Descricao = s.Descricao,
-        Preco = s.Preco, TempoConclusaoMinutos = s.TempoConclusaoMinutos, Ativo = s.Ativo
+        Id = s.Id,
+        Nome = s.Nome,
+        Descricao = s.Descricao,
+        Preco = s.Preco,
+        TempoConclusaoMinutos = s.TempoConclusaoMinutos,
+        Ativo = s.Ativo
     };
 }

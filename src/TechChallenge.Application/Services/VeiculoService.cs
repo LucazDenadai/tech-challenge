@@ -60,7 +60,13 @@ public class VeiculoService : IVeiculoService
 
     private static VeiculoDto MapDto(Veiculo v) => new()
     {
-        Id = v.Id, ClienteId = v.ClienteId, NomeCliente = v.Cliente?.Nome ?? "",
-        Placa = v.Placa, Marca = v.Marca, Modelo = v.Modelo, Ano = v.Ano, Cor = v.Cor
+        Id = v.Id,
+        ClienteId = v.ClienteId,
+        NomeCliente = v.Cliente?.Nome ?? "",
+        Placa = v.Placa,
+        Marca = v.Marca,
+        Modelo = v.Modelo,
+        Ano = v.Ano,
+        Cor = v.Cor
     };
 }

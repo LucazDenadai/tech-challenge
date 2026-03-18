@@ -50,7 +50,11 @@ public class PecaService : IPecaService
 
     private static PecaDto MapDto(Peca p) => new()
     {
-        Id = p.Id, Nome = p.Nome, Descricao = p.Descricao,
-        Preco = p.Preco, QuantidadeEstoque = p.QuantidadeEstoque, Ativo = p.Ativo
+        Id = p.Id,
+        Nome = p.Nome,
+        Descricao = p.Descricao,
+        Preco = p.Preco,
+        QuantidadeEstoque = p.QuantidadeEstoque,
+        Ativo = p.Ativo
     };
 }
