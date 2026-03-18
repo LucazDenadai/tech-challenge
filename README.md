@@ -225,18 +225,14 @@ Aguarde 1-2 minutos e acesse http://localhost:9000 (admin/admin na primeira vez)
 
 > **Importante**: o `dotnet test` com cobertura deve rodar **entre** o `begin` e o `end` do sonarscanner para que o Sonar processe os relatórios corretamente.
 
-```bash
+> **PowerShell**: use `` ` `` (backtick) para quebrar linhas. Os comandos abaixo estão em uma linha só para facilitar o copy-paste.
+
+```powershell
 # 1. Instale o sonarscanner (uma vez)
 dotnet tool install -g dotnet-sonarscanner
 
-# 2. Inicia a sessão de análise (passa o path de cobertura aqui)
-dotnet sonarscanner begin \
-  /k:"tech-challenge" \
-  /d:sonar.host.url="http://localhost:9000" \
-  /d:sonar.login="admin" \
-  /d:sonar.password="admin" \
-  /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" \
-  /d:sonar.coverage.exclusions="**/Program.cs,**/*Tests.cs,**/Migrations/**"
+# 2. Inicia a sessão de análise
+dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="http://localhost:9000" /d:sonar.login="admin" /d:sonar.password="admin" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/Program.cs,**/*Tests.cs,**/Migrations/**"
 
 # 3. Build
 dotnet build
