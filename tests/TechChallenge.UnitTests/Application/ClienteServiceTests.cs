@@ -112,6 +112,25 @@ public class ClienteServiceTests
     }
 
     [Fact]
+    public async Task AtualizarAsync_DadosValidos_DeveAtualizarERetornarDto()
+    {
+        var id = Guid.NewGuid();
+        var cliente = new Cliente("João", "11111111111", "j@e.com", "11999", "Rua A");
+        var dto = new CriarClienteDto { Nome = "João Atualizado", Cpf = "11111111111", Email = "j2@e.com", Telefone = "11888", Endereco = "Rua B" };
+        _repoMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync(cliente);
+        _repoMock.Setup(r => r.CpfExisteAsync(dto.Cpf, id)).ReturnsAsync(false);
+        _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<Cliente>())).Returns(Task.CompletedTask);
+        _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
+
+        var resultado = await _sut.AtualizarAsync(id, dto);
+
+        resultado.Nome.Should().Be("João Atualizado");
+        resultado.Email.Should().Be("j2@e.com");
+        _repoMock.Verify(r => r.AtualizarAsync(cliente), Times.Once);
+        _repoMock.Verify(r => r.SalvarAsync(), Times.Once);
+    }
+
+    [Fact]
     public async Task DesativarAsync_ClienteNaoEncontrado_DeveLancarExcecao()
     {
         _repoMock.Setup(r => r.ObterPorIdAsync(It.IsAny<Guid>())).ReturnsAsync((Cliente?)null);

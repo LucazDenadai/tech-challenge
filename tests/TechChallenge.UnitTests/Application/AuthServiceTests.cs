@@ -34,6 +34,7 @@ public class AuthServiceTests : IDisposable
         Environment.SetEnvironmentVariable("JWT_ISSUER", null);
         Environment.SetEnvironmentVariable("JWT_AUDIENCE", null);
         Environment.SetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS", null);
+        GC.SuppressFinalize(this);
     }
 
     [Fact]

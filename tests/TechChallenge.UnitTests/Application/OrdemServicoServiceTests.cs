@@ -22,6 +22,76 @@ public class OrdemServicoServiceTests
     }
 
     [Fact]
+    public async Task ObterTodosAsync_DeveRetornarListaMapeada()
+    {
+        var lista = new[]
+        {
+            new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), ""),
+            new OrdemServico("OS-002", Guid.NewGuid(), Guid.NewGuid(), ""),
+        };
+        _repoMock.Setup(r => r.ObterTodosAsync()).ReturnsAsync(lista);
+
+        var resultado = await _sut.ObterTodosAsync();
+
+        resultado.Should().HaveCount(2);
+        resultado.First().Numero.Should().Be("OS-001");
+    }
+
+    [Fact]
+    public async Task ObterPorIdAsync_OrdemExiste_DeveRetornarDto()
+    {
+        var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
+        _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
+
+        var resultado = await _sut.ObterPorIdAsync(os.Id);
+
+        resultado.Should().NotBeNull();
+        resultado!.Numero.Should().Be("OS-001");
+    }
+
+    [Fact]
+    public async Task ObterPorIdAsync_OrdemNaoExiste_DeveRetornarNull()
+    {
+        _repoMock.Setup(r => r.ObterComDetalhesAsync(It.IsAny<Guid>())).ReturnsAsync((OrdemServico?)null);
+
+        var resultado = await _sut.ObterPorIdAsync(Guid.NewGuid());
+
+        resultado.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ObterPorClienteAsync_DeveRetornarOrdensDoCliente()
+    {
+        var clienteId = Guid.NewGuid();
+        var lista = new[]
+        {
+            new OrdemServico("OS-001", clienteId, Guid.NewGuid(), ""),
+            new OrdemServico("OS-002", clienteId, Guid.NewGuid(), ""),
+        };
+        _repoMock.Setup(r => r.ObterPorClienteAsync(clienteId)).ReturnsAsync(lista);
+
+        var resultado = await _sut.ObterPorClienteAsync(clienteId);
+
+        resultado.Should().HaveCount(2);
+        resultado.Should().AllSatisfy(o => o.ClienteId.Should().Be(clienteId));
+    }
+
+    [Fact]
+    public async Task ObterPorStatusAsync_DeveRetornarOrdensFiltradas()
+    {
+        var lista = new[]
+        {
+            new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), ""),
+        };
+        _repoMock.Setup(r => r.ObterPorStatusAsync(StatusOrdemServico.Recebida)).ReturnsAsync(lista);
+
+        var resultado = await _sut.ObterPorStatusAsync(StatusOrdemServico.Recebida);
+
+        resultado.Should().HaveCount(1);
+        resultado.First().Status.Should().Be(StatusOrdemServico.Recebida);
+    }
+
+    [Fact]
     public async Task CriarAsync_DadosValidos_DeveCriarERetornarDto()
     {
         var dto = new CriarOrdemServicoDto

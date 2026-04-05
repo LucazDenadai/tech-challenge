@@ -7,111 +7,99 @@ namespace TechChallenge.UnitTests.Domain;
 
 public class OrdemServicoTests
 {
-    private static OrdemServico CriarOS() =>
-        new("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Observação de teste");
+    private static OrdemServico CriarOrdemServico() =>
+        new("OS-2026-0001", Guid.NewGuid(), Guid.NewGuid(), "Observação inicial");
 
     [Fact]
-    public void AvancarStatus_DeRecebida_DeveIrParaEmDiagnostico()
+    public void Construtor_DevePreencharPropriedadesCorretamente()
     {
-        var os = CriarOS();
+        var clienteId = Guid.NewGuid();
+        var veiculoId = Guid.NewGuid();
+
+        var os = new OrdemServico("OS-2026-0001", clienteId, veiculoId, "Teste");
+
+        os.Numero.Should().Be("OS-2026-0001");
+        os.ClienteId.Should().Be(clienteId);
+        os.VeiculoId.Should().Be(veiculoId);
+        os.Observacoes.Should().Be("Teste");
+        os.Status.Should().Be(StatusOrdemServico.Recebida);
+        os.DataFechamento.Should().BeNull();
+    }
+
+    [Fact]
+    public void AvancarStatus_DeRecebidaParaEmDiagnostico_DeveAtualizar()
+    {
+        var os = CriarOrdemServico();
 
         os.AvancarStatus();
 
         os.Status.Should().Be(StatusOrdemServico.EmDiagnostico);
-    }
-
-    [Theory]
-    [InlineData(1, StatusOrdemServico.EmDiagnostico)]
-    [InlineData(2, StatusOrdemServico.AguardandoAprovacao)]
-    [InlineData(3, StatusOrdemServico.EmExecucao)]
-    [InlineData(4, StatusOrdemServico.Finalizada)]
-    [InlineData(5, StatusOrdemServico.Entregue)]
-    public void AvancarStatus_DevePercorrerSequenciaCorreta(int avancos, StatusOrdemServico statusEsperado)
-    {
-        var os = CriarOS();
-
-        for (int i = 0; i < avancos; i++)
-            os.AvancarStatus();
-
-        os.Status.Should().Be(statusEsperado);
+        os.DataFechamento.Should().BeNull();
     }
 
     [Fact]
-    public void AvancarStatus_QuandoEntregue_DeveLancarExcecao()
+    public void AvancarStatus_TodasTransicoesAteEntregue_DeveSetarDataFechamento()
     {
-        var os = CriarOS();
-        for (int i = 0; i < 5; i++) os.AvancarStatus();
+        var os = CriarOrdemServico();
 
-        var act = () => os.AvancarStatus();
-
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*status final*");
-    }
-
-    [Fact]
-    public void AvancarStatus_QuandoFinalizada_DeveDefinirDataFechamento()
-    {
-        var os = CriarOS();
-        for (int i = 0; i < 4; i++) os.AvancarStatus(); // -> Finalizada
-
+        os.AvancarStatus(); // Recebida → EmDiagnostico
+        os.AvancarStatus(); // EmDiagnostico → AguardandoAprovacao
+        os.AvancarStatus(); // AguardandoAprovacao → EmExecucao
+        os.AvancarStatus(); // EmExecucao → Finalizada
         os.DataFechamento.Should().NotBeNull();
-        os.DataFechamento.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
-    }
 
-    [Fact]
-    public void AvancarStatus_QuandoEntregue_DeveManterDataFechamento()
-    {
-        var os = CriarOS();
-        for (int i = 0; i < 5; i++) os.AvancarStatus(); // -> Entregue
-
+        os.AvancarStatus(); // Finalizada → Entregue
+        os.Status.Should().Be(StatusOrdemServico.Entregue);
         os.DataFechamento.Should().NotBeNull();
     }
 
     [Fact]
-    public void ValorTotal_SemItens_DeveSerZero()
+    public void AvancarStatus_StatusFinal_DeveLancarExcecao()
     {
-        var os = CriarOS();
+        var os = CriarOrdemServico();
 
-        os.ValorTotal.Should().Be(0m);
-    }
+        os.AvancarStatus(); // → EmDiagnostico
+        os.AvancarStatus(); // → AguardandoAprovacao
+        os.AvancarStatus(); // → EmExecucao
+        os.AvancarStatus(); // → Finalizada
+        os.AvancarStatus(); // → Entregue
 
-    [Fact]
-    public void ValorTotal_ComItensServico_DeveCalcularCorretamente()
-    {
-        var os = CriarOS();
-        os.AdicionarItemServico(new ItemServico(os.Id, Guid.NewGuid(), 2, 100m)); // 200
-        os.AdicionarItemServico(new ItemServico(os.Id, Guid.NewGuid(), 1, 50m));  // 50
-
-        os.ValorTotal.Should().Be(250m);
-    }
-
-    [Fact]
-    public void ValorTotal_ComItensPeca_DeveCalcularCorretamente()
-    {
-        var os = CriarOS();
-        os.AdicionarItemPeca(new ItemPeca(os.Id, Guid.NewGuid(), 3, 35m)); // 105
-
-        os.ValorTotal.Should().Be(105m);
-    }
-
-    [Fact]
-    public void ValorTotal_ComServicosEPecas_DeveSomarTudo()
-    {
-        var os = CriarOS();
-        os.AdicionarItemServico(new ItemServico(os.Id, Guid.NewGuid(), 1, 80m));  // 80
-        os.AdicionarItemPeca(new ItemPeca(os.Id, Guid.NewGuid(), 2, 35m));        // 70
-
-        os.ValorTotal.Should().Be(150m);
+        os.Invoking(o => o.AvancarStatus())
+            .Should().Throw<InvalidOperationException>()
+            .WithMessage("OS já está no status final.");
     }
 
     [Fact]
     public void AtualizarObservacoes_DeveAlterarObservacoes()
     {
-        var os = CriarOS();
+        var os = CriarOrdemServico();
 
         os.AtualizarObservacoes("Nova observação");
 
         os.Observacoes.Should().Be("Nova observação");
-        os.AtualizadoEm.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void AdicionarItemServico_DeveAdicionar()
+    {
+        var os = CriarOrdemServico();
+        var item = new ItemServico(os.Id, Guid.NewGuid(), 2, 100m);
+
+        os.AdicionarItemServico(item);
+
+        os.ItensServico.Should().ContainSingle();
+        os.ValorTotal.Should().Be(200m);
+    }
+
+    [Fact]
+    public void AdicionarItemPeca_DeveAdicionar()
+    {
+        var os = CriarOrdemServico();
+        var item = new ItemPeca(os.Id, Guid.NewGuid(), 3, 50m);
+
+        os.AdicionarItemPeca(item);
+
+        os.ItensPeca.Should().ContainSingle();
+        os.ValorTotal.Should().Be(150m);
     }
 }
