@@ -108,4 +108,25 @@ public class PecasControllerTests
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
+
+    [Fact]
+    public async Task Atualizar_IdInexistente_DeveRetornar404()
+    {
+        var client = await CriarClienteAutenticadoAsync();
+        var dto = new CriarPecaDto { Nome = "X", Descricao = "X", Preco = 1m, QuantidadeEstoque = 0 };
+
+        var response = await client.PutAsJsonAsync($"/api/pecas/{Guid.NewGuid()}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Desativar_IdInexistente_DeveRetornar404()
+    {
+        var client = await CriarClienteAutenticadoAsync();
+
+        var response = await client.DeleteAsync($"/api/pecas/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

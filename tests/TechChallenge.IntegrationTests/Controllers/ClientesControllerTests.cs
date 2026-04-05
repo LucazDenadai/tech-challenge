@@ -109,6 +109,50 @@ public class ClientesControllerTests
     }
 
     [Fact]
+    public async Task Atualizar_ClienteExiste_DeveRetornar200()
+    {
+        var client = await CriarClienteAutenticadoAsync();
+
+        // Criar cliente para atualizar
+        var criar = new CriarClienteDto
+        {
+            Nome = "Para Atualizar",
+            Cpf = "11122233300",
+            Email = "atualizar@teste.com",
+            Telefone = "11900001234",
+            Endereco = "Rua Velha, 1"
+        };
+        var createResponse = await client.PostAsJsonAsync("/api/clientes", criar);
+        var criado = await createResponse.Content.ReadFromJsonAsync<ClienteDto>();
+
+        var dto = new CriarClienteDto
+        {
+            Nome = "Nome Atualizado",
+            Cpf = "11122233300",
+            Email = "atualizado@teste.com",
+            Telefone = "11900009999",
+            Endereco = "Rua Nova, 2"
+        };
+
+        var response = await client.PutAsJsonAsync($"/api/clientes/{criado!.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var atualizado = await response.Content.ReadFromJsonAsync<ClienteDto>();
+        atualizado!.Nome.Should().Be("Nome Atualizado");
+    }
+
+    [Fact]
+    public async Task Atualizar_IdInexistente_DeveRetornar404()
+    {
+        var client = await CriarClienteAutenticadoAsync();
+        var dto = new CriarClienteDto { Nome = "X", Cpf = "00000000001", Email = "x@x.com", Telefone = "11900000000", Endereco = "X" };
+
+        var response = await client.PutAsJsonAsync($"/api/clientes/{Guid.NewGuid()}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task FluxoCompleto_CriarObterDesativar_DevePassar()
     {
         var client = await CriarClienteAutenticadoAsync();
