@@ -64,9 +64,7 @@ public class OrdensServicoController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<IActionResult> AvancarStatus(Guid id)
     {
-        try { return Ok(await _service.AvancarStatusAsync(id)); }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        return Ok(await _service.AvancarStatusAsync(id));
     }
 
     /// <summary>Adicionar serviço à ordem</summary>
@@ -75,8 +73,7 @@ public class OrdensServicoController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> AdicionarServico(Guid id, [FromBody] AdicionarItemServicoDto dto)
     {
-        try { return Ok(await _service.AdicionarItemServicoAsync(id, dto)); }
-        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        return Ok(await _service.AdicionarItemServicoAsync(id, dto));
     }
 
     /// <summary>Adicionar peça à ordem</summary>
@@ -86,8 +83,6 @@ public class OrdensServicoController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<IActionResult> AdicionarPeca(Guid id, [FromBody] AdicionarItemPecaDto dto)
     {
-        try { return Ok(await _service.AdicionarItemPecaAsync(id, dto)); }
-        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        return Ok(await _service.AdicionarItemPecaAsync(id, dto));
     }
 }

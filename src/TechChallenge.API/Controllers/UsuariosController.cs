@@ -39,12 +39,8 @@ public class UsuariosController : ControllerBase
     [ProducesResponseType(400)]
     public async Task<IActionResult> Criar([FromBody] CriarUsuarioDto dto)
     {
-        try
-        {
-            var criado = await _service.CriarAsync(dto);
-            return CreatedAtAction(nameof(ObterPorId), new { id = criado.Id }, criado);
-        }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        var criado = await _service.CriarAsync(dto);
+        return CreatedAtAction(nameof(ObterPorId), new { id = criado.Id }, criado);
     }
 
     /// <summary>Atualizar usuário</summary>
@@ -54,12 +50,7 @@ public class UsuariosController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> Atualizar(Guid id, [FromBody] CriarUsuarioDto dto)
     {
-        try
-        {
-            return Ok(await _service.AtualizarAsync(id, dto));
-        }
-        catch (KeyNotFoundException) { return NotFound(); }
-        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        return Ok(await _service.AtualizarAsync(id, dto));
     }
 
     /// <summary>Desativar usuário</summary>
@@ -69,11 +60,7 @@ public class UsuariosController : ControllerBase
     [ProducesResponseType(404)]
     public async Task<IActionResult> Desativar(Guid id)
     {
-        try
-        {
-            await _service.DesativarAsync(id);
-            return NoContent();
-        }
-        catch (KeyNotFoundException) { return NotFound(); }
+        await _service.DesativarAsync(id);
+        return NoContent();
     }
 }

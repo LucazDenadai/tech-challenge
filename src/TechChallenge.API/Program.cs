@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using TechChallenge.API.Filters;
 using TechChallenge.Application.Interfaces;
 using TechChallenge.Application.Services;
 using TechChallenge.Domain.Interfaces;
@@ -58,7 +59,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Tech Challenge - Oficina Mecânica",
+        Title = "Tech Challenge - Oficina Mecânica - Simas turbo",
         Version = "v1",
         Description = "API REST para gerenciamento de oficina mecânica com DDD e arquitetura em camadas.",
         Contact = new OpenApiContact { Name = "Tech Challenge", Email = "suporte@oficina.com" }
