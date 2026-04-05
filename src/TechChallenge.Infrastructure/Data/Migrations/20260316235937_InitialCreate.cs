@@ -2,17 +2,22 @@ using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
+// Sonar rule S1192 (repeated string literals) is not relevant for generated migration files.
+#pragma warning disable S1192
 
 namespace TechChallenge.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
     public partial class InitialCreate : Migration
     {
+        private const string TableItensPeca = "ItensPeca";
+        private const string TableItensServico = "ItensServico";
+
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Clientes",
+            name: "Clientes",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -142,7 +147,7 @@ namespace TechChallenge.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ItensPeca",
+                name: TableItensPeca,
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -171,7 +176,7 @@ namespace TechChallenge.Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ItensServico",
+                name: TableItensServico,
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -207,17 +212,17 @@ namespace TechChallenge.Infrastructure.Data.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_ItensPeca_OrdemServicoId",
-                table: "ItensPeca",
+                table: TableItensPeca,
                 column: "OrdemServicoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ItensPeca_PecaId",
-                table: "ItensPeca",
+                table: TableItensPeca,
                 column: "PecaId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ItensServico_OrdemServicoId",
-                table: "ItensServico",
+                table: TableItensServico,
                 column: "OrdemServicoId");
 
             migrationBuilder.CreateIndex(
@@ -288,3 +293,5 @@ namespace TechChallenge.Infrastructure.Data.Migrations
         }
     }
 }
+
+#pragma warning restore S1192
