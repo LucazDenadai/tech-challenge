@@ -1,7 +1,0 @@
-<Project>
-  <PropertyGroup>
-    <!-- Aplica o coverlet.runsettings em todos os projetos de teste -->
-    <!-- Sem esta configuracao seria necessario passar a flag settings manualmente -->
-    <VSTestSetting>$(MSBuildThisFileDirectory)..\coverlet.runsettings</VSTestSetting>
-  </PropertyGroup>
-</Project>

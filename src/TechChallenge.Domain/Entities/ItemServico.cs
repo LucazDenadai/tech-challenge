@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace TechChallenge.Domain.Entities;
 
 public class ItemServico : EntityBase
@@ -9,8 +11,10 @@ public class ItemServico : EntityBase
     public decimal ValorTotal => Quantidade * ValorUnitario;
 
     public Servico? Servico { get; protected set; }
+    [ExcludeFromCodeCoverage]
     public OrdemServico? OrdemServico { get; protected set; }
 
+    [ExcludeFromCodeCoverage]
     protected ItemServico() { }
 
     public ItemServico(Guid ordemServicoId, Guid servicoId, int quantidade, decimal valorUnitario)

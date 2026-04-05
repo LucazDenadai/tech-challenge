@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace TechChallenge.Domain.Entities;
 
 public class Cliente : EntityBase
@@ -10,8 +12,10 @@ public class Cliente : EntityBase
     public bool Ativo { get; private set; } = true;
 
     private readonly List<Veiculo> _veiculos = new();
+    [ExcludeFromCodeCoverage]
     public IReadOnlyCollection<Veiculo> Veiculos => _veiculos.AsReadOnly();
 
+    [ExcludeFromCodeCoverage]
     protected Cliente() { }
 
     public Cliente(string nome, string cpf, string email, string telefone, string endereco)

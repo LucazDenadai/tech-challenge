@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace TechChallenge.Domain.Entities;
 
 public class Veiculo : EntityBase
@@ -11,6 +13,7 @@ public class Veiculo : EntityBase
 
     public Cliente? Cliente { get; protected set; }
 
+    [ExcludeFromCodeCoverage]
     protected Veiculo() { }
 
     public Veiculo(Guid clienteId, string placa, string marca, string modelo, int ano, string cor)

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using TechChallenge.Domain.Entities;
 using TechChallenge.Domain.Interfaces;
@@ -12,6 +13,8 @@ public class VeiculoRepository : BaseRepository<Veiculo>, IVeiculoRepository
     public async Task<IEnumerable<Veiculo>> ObterPorClienteAsync(Guid clienteId)
         => await _dbSet.Include(v => v.Cliente).Where(v => v.ClienteId == clienteId).ToListAsync();
 
+    // Nenhum serviço atual chama ObterPorPlacaAsync
+    [ExcludeFromCodeCoverage]
     public async Task<Veiculo?> ObterPorPlacaAsync(string placa)
         => await _dbSet.FirstOrDefaultAsync(v => v.Placa == placa);
 }

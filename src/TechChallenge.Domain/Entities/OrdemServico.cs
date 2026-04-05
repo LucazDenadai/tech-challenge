@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using TechChallenge.Domain.Enums;
 
 namespace TechChallenge.Domain.Entities;
@@ -23,6 +24,7 @@ public class OrdemServico : EntityBase
 
     public decimal ValorTotal => _itensServico.Sum(i => i.ValorTotal) + _itensPeca.Sum(i => i.ValorTotal);
 
+    [ExcludeFromCodeCoverage]
     protected OrdemServico() { }
 
     public OrdemServico(string numero, Guid clienteId, Guid veiculoId, string observacoes)

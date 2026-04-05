@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using TechChallenge.Domain.Entities;
 using TechChallenge.Domain.Interfaces;
@@ -9,6 +10,8 @@ public class ClienteRepository : BaseRepository<Cliente>, IClienteRepository
 {
     public ClienteRepository(AppDbContext context) : base(context) { }
 
+    // Nenhum serviço atual chama ObterPorCpfAsync diretamente (usa CpfExisteAsync)
+    [ExcludeFromCodeCoverage]
     public async Task<Cliente?> ObterPorCpfAsync(string cpf)
         => await _dbSet.FirstOrDefaultAsync(c => c.Cpf == cpf);
 

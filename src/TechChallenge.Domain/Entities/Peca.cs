@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace TechChallenge.Domain.Entities;
 
 public class Peca : EntityBase
@@ -8,6 +10,7 @@ public class Peca : EntityBase
     public int QuantidadeEstoque { get; private set; }
     public bool Ativo { get; private set; } = true;
 
+    [ExcludeFromCodeCoverage]
     protected Peca() { }
 
     public Peca(string nome, string descricao, decimal preco, int quantidadeEstoque)

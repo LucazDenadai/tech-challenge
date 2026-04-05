@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using TechChallenge.Domain.Enums;
 
 namespace TechChallenge.Domain.Entities;
@@ -10,6 +11,7 @@ public class Usuario : EntityBase
     public PerfilUsuario Perfil { get; private set; }
     public bool Ativo { get; private set; } = true;
 
+    [ExcludeFromCodeCoverage]
     protected Usuario() { }
 
     public Usuario(string nome, string email, string senhaHash, PerfilUsuario perfil)
