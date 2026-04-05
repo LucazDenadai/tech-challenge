@@ -148,8 +148,10 @@ yarn-error.log*
 
 # Coverage
 coverage/
+coverage-report/
 *.lcov
 TestResults/
+**/coverlet copy.runsettings
 
 # JetBrains Rider
 .idea/
