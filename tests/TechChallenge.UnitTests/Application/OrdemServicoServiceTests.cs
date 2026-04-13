@@ -14,11 +14,18 @@ public class OrdemServicoServiceTests
     private readonly Mock<IOrdemServicoRepository> _repoMock = new();
     private readonly Mock<IServicoRepository> _servicoRepoMock = new();
     private readonly Mock<IPecaRepository> _pecaRepoMock = new();
+    private readonly Mock<IClienteRepository> _clienteRepoMock = new();
+    private readonly Mock<IVeiculoRepository> _veiculoRepoMock = new();
     private readonly OrdemServicoService _sut;
 
     public OrdemServicoServiceTests()
     {
-        _sut = new OrdemServicoService(_repoMock.Object, _servicoRepoMock.Object, _pecaRepoMock.Object);
+        _sut = new OrdemServicoService(
+            _repoMock.Object,
+            _servicoRepoMock.Object,
+            _pecaRepoMock.Object,
+            _clienteRepoMock.Object,
+            _veiculoRepoMock.Object);
     }
 
     [Fact]
@@ -94,119 +101,166 @@ public class OrdemServicoServiceTests
     [Fact]
     public async Task CriarAsync_DadosValidos_DeveCriarERetornarDto()
     {
+        var cliente = new Cliente("Carlos", "12345678901", "c@c.com", "11999999999", "Rua A");
+        var veiculo = new Veiculo(cliente.Id, "ABC1234", "Toyota", "Corolla", 2020, "Prata");
         var dto = new CriarOrdemServicoDto
         {
-            ClienteId = Guid.NewGuid(),
-            VeiculoId = Guid.NewGuid(),
+            ClienteId = cliente.Id,
+            VeiculoId = veiculo.Id,
             Observacoes = "Revisão geral"
         };
-        _repoMock.Setup(r => r.GerarNumeroAsync()).ReturnsAsync("OS-2024-001");
+
+        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(cliente.Id)).ReturnsAsync(cliente);
+        _veiculoRepoMock.Setup(r => r.ObterPorIdAsync(veiculo.Id)).ReturnsAsync(veiculo);
+        _repoMock.Setup(r => r.GerarNumeroAsync()).ReturnsAsync("OS-2026-0001");
         _repoMock.Setup(r => r.AdicionarAsync(It.IsAny<OrdemServico>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
 
         var resultado = await _sut.CriarAsync(dto);
 
         resultado.Should().NotBeNull();
-        resultado.Numero.Should().Be("OS-2024-001");
-        resultado.ClienteId.Should().Be(dto.ClienteId);
+        resultado.Numero.Should().Be("OS-2026-0001");
     }
 
     [Fact]
-    public async Task AvancarStatusAsync_OrdemNaoEncontrada_DeveLancarExcecao()
+    public async Task CriarAsync_ClienteNaoEncontrado_DeveLancarExcecao()
+    {
+        var dto = new CriarOrdemServicoDto { ClienteId = Guid.NewGuid(), VeiculoId = Guid.NewGuid() };
+        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(dto.ClienteId)).ReturnsAsync((Cliente?)null);
+
+        var act = async () => await _sut.CriarAsync(dto);
+
+        await act.Should().ThrowAsync<KeyNotFoundException>().WithMessage("*Cliente*");
+    }
+
+    [Fact]
+    public async Task CriarAsync_VeiculoNaoPertenceAoCliente_DeveLancarExcecao()
+    {
+        var clienteId = Guid.NewGuid();
+        var outroClienteId = Guid.NewGuid();
+        var cliente = new Cliente("Carlos", "12345678901", "c@c.com", "11999999999", "Rua A");
+        var veiculo = new Veiculo(outroClienteId, "ABC1234", "Toyota", "Corolla", 2020, "Prata");
+        var dto = new CriarOrdemServicoDto { ClienteId = clienteId, VeiculoId = Guid.NewGuid() };
+
+        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(dto.ClienteId)).ReturnsAsync(cliente);
+        _veiculoRepoMock.Setup(r => r.ObterPorIdAsync(dto.VeiculoId)).ReturnsAsync(veiculo);
+
+        var act = async () => await _sut.CriarAsync(dto);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*veículo*");
+    }
+
+    [Fact]
+    public async Task AlterarStatusAsync_OrdemNaoEncontrada_DeveLancarExcecao()
     {
         _repoMock.Setup(r => r.ObterComDetalhesAsync(It.IsAny<Guid>())).ReturnsAsync((OrdemServico?)null);
 
-        var act = async () => await _sut.AvancarStatusAsync(Guid.NewGuid());
+        var act = async () => await _sut.AlterarStatusAsync(Guid.NewGuid(), new AlterarStatusDto { NovoStatus = StatusOrdemServico.EmDiagnostico });
 
         await act.Should().ThrowAsync<KeyNotFoundException>()
             .WithMessage("*Ordem de Serviço não encontrada*");
     }
 
     [Fact]
-    public async Task AvancarStatusAsync_OrdemExiste_DeveAvancarStatus()
+    public async Task AlterarStatusAsync_OrdemExiste_DeveAlterarStatus()
     {
         var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
         _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
         _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<OrdemServico>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
 
-        var resultado = await _sut.AvancarStatusAsync(os.Id);
-        resultado.Status.Should().Be(StatusOrdemServico.EmDiagnostico);
+        var resultado = await _sut.AlterarStatusAsync(os.Id, new AlterarStatusDto { NovoStatus = StatusOrdemServico.EmDiagnostico });
+
         resultado.Status.Should().Be(StatusOrdemServico.EmDiagnostico);
     }
 
     [Fact]
-    public async Task AdicionarItemServicoAsync_OrdemNaoEncontrada_DeveLancarExcecao()
+    public async Task AlterarStatusAsync_StatusInvalido_DeveLancarExcecao()
+    {
+        var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
+        _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
+
+        var act = async () => await _sut.AlterarStatusAsync(os.Id, new AlterarStatusDto { NovoStatus = StatusOrdemServico.Entregue });
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task AdicionarItemAsync_OrdemNaoEncontrada_DeveLancarExcecao()
     {
         _repoMock.Setup(r => r.ObterComDetalhesAsync(It.IsAny<Guid>())).ReturnsAsync((OrdemServico?)null);
 
-        var act = async () => await _sut.AdicionarItemServicoAsync(Guid.NewGuid(), new AdicionarItemServicoDto());
+        var act = async () => await _sut.AdicionarItemAsync(Guid.NewGuid(), new AdicionarItemDto { Tipo = TipoItem.Servico });
 
         await act.Should().ThrowAsync<KeyNotFoundException>()
             .WithMessage("*Ordem de Serviço não encontrada*");
     }
 
     [Fact]
-    public async Task AdicionarItemServicoAsync_ServicoNaoEncontrado_DeveLancarExcecao()
+    public async Task AdicionarItemAsync_TipoServico_ServicoNaoEncontrado_DeveLancarExcecao()
     {
         var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
-        var dto = new AdicionarItemServicoDto { ServicoId = Guid.NewGuid(), Quantidade = 1 };
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        var dto = new AdicionarItemDto { Tipo = TipoItem.Servico, ItemId = Guid.NewGuid(), Quantidade = 1 };
         _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
-        _servicoRepoMock.Setup(r => r.ObterPorIdAsync(dto.ServicoId)).ReturnsAsync((Servico?)null);
+        _servicoRepoMock.Setup(r => r.ObterPorIdAsync(dto.ItemId)).ReturnsAsync((Servico?)null);
 
-        var act = async () => await _sut.AdicionarItemServicoAsync(os.Id, dto);
+        var act = async () => await _sut.AdicionarItemAsync(os.Id, dto);
 
         await act.Should().ThrowAsync<KeyNotFoundException>()
             .WithMessage("*Serviço não encontrado*");
     }
 
     [Fact]
-    public async Task AdicionarItemServicoAsync_DadosValidos_DeveAdicionarItem()
+    public async Task AdicionarItemAsync_TipoServico_DadosValidos_DeveAdicionarItem()
     {
         var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
         var servico = new Servico("Troca de Óleo", "Desc", 80m, 30);
-        var dto = new AdicionarItemServicoDto { ServicoId = servico.Id, Quantidade = 2 };
+        var dto = new AdicionarItemDto { Tipo = TipoItem.Servico, ItemId = servico.Id, Quantidade = 2 };
         _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
         _servicoRepoMock.Setup(r => r.ObterPorIdAsync(servico.Id)).ReturnsAsync(servico);
         _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<OrdemServico>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
 
-        var resultado = await _sut.AdicionarItemServicoAsync(os.Id, dto);
+        var resultado = await _sut.AdicionarItemAsync(os.Id, dto);
 
         resultado.ItensServico.Should().HaveCount(1);
-        resultado.ValorTotal.Should().Be(160m); // 2 * 80
+        resultado.ValorTotal.Should().Be(160m);
     }
 
     [Fact]
-    public async Task AdicionarItemPecaAsync_EstoqueInsuficiente_DeveLancarExcecao()
+    public async Task AdicionarItemAsync_TipoPeca_EstoqueInsuficiente_DeveLancarExcecao()
     {
         var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
         var peca = new Peca("Filtro", "Desc", 35m, 1);
-        var dto = new AdicionarItemPecaDto { PecaId = peca.Id, Quantidade = 5 };
+        var dto = new AdicionarItemDto { Tipo = TipoItem.Peca, ItemId = peca.Id, Quantidade = 5 };
         _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
         _pecaRepoMock.Setup(r => r.ObterPorIdAsync(peca.Id)).ReturnsAsync(peca);
 
-        var act = async () => await _sut.AdicionarItemPecaAsync(os.Id, dto);
+        var act = async () => await _sut.AdicionarItemAsync(os.Id, dto);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*Estoque insuficiente*");
     }
 
     [Fact]
-    public async Task AdicionarItemPecaAsync_DadosValidos_DeveAdicionarEConsumirEstoque()
+    public async Task AdicionarItemAsync_TipoPeca_DadosValidos_DeveAdicionarEConsumirEstoque()
     {
         var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
         var peca = new Peca("Filtro", "Desc", 35m, 10);
-        var dto = new AdicionarItemPecaDto { PecaId = peca.Id, Quantidade = 3 };
+        var dto = new AdicionarItemDto { Tipo = TipoItem.Peca, ItemId = peca.Id, Quantidade = 3 };
         _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
         _pecaRepoMock.Setup(r => r.ObterPorIdAsync(peca.Id)).ReturnsAsync(peca);
         _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<OrdemServico>())).Returns(Task.CompletedTask);
         _pecaRepoMock.Setup(r => r.AtualizarAsync(It.IsAny<Peca>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
 
-        var resultado = await _sut.AdicionarItemPecaAsync(os.Id, dto);
+        var resultado = await _sut.AdicionarItemAsync(os.Id, dto);
 
         resultado.ItensPeca.Should().HaveCount(1);
-        peca.QuantidadeEstoque.Should().Be(7); // 10 - 3
+        peca.QuantidadeEstoque.Should().Be(7);
     }
 }

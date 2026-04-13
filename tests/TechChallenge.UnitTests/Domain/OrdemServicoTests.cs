@@ -27,46 +27,82 @@ public class OrdemServicoTests
     }
 
     [Fact]
-    public void AvancarStatus_DeRecebidaParaEmDiagnostico_DeveAtualizar()
+    public void AlterarStatus_DeRecebidaParaEmDiagnostico_DeveAtualizar()
     {
         var os = CriarOrdemServico();
 
-        os.AvancarStatus();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
 
         os.Status.Should().Be(StatusOrdemServico.EmDiagnostico);
         os.DataFechamento.Should().BeNull();
     }
 
     [Fact]
-    public void AvancarStatus_TodasTransicoesAteEntregue_DeveSetarDataFechamento()
+    public void AlterarStatus_TodasTransicoesAteEntregue_DeveSetarDataFechamento()
     {
         var os = CriarOrdemServico();
 
-        os.AvancarStatus(); // Recebida → EmDiagnostico
-        os.AvancarStatus(); // EmDiagnostico → AguardandoAprovacao
-        os.AvancarStatus(); // AguardandoAprovacao → EmExecucao
-        os.AvancarStatus(); // EmExecucao → Finalizada
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        os.AlterarStatus(StatusOrdemServico.AguardandoAprovacao);
+        os.AlterarStatus(StatusOrdemServico.EmExecucao);
+        os.AlterarStatus(StatusOrdemServico.Finalizada);
         os.DataFechamento.Should().NotBeNull();
 
-        os.AvancarStatus(); // Finalizada → Entregue
+        os.AlterarStatus(StatusOrdemServico.Entregue);
         os.Status.Should().Be(StatusOrdemServico.Entregue);
         os.DataFechamento.Should().NotBeNull();
     }
 
     [Fact]
-    public void AvancarStatus_StatusFinal_DeveLancarExcecao()
+    public void AlterarStatus_StatusFinal_DeveLancarExcecao()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        os.AlterarStatus(StatusOrdemServico.AguardandoAprovacao);
+        os.AlterarStatus(StatusOrdemServico.EmExecucao);
+        os.AlterarStatus(StatusOrdemServico.Finalizada);
+        os.AlterarStatus(StatusOrdemServico.Entregue);
+
+        os.Invoking(o => o.AlterarStatus(StatusOrdemServico.EmDiagnostico))
+            .Should().Throw<InvalidOperationException>()
+            .WithMessage("*não pode ser alterada*");
+    }
+
+    [Fact]
+    public void AlterarStatus_Cancelada_DeveSetarDataFechamentoEImpedirNovasAlteracoes()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+
+        os.AlterarStatus(StatusOrdemServico.Cancelada);
+
+        os.Status.Should().Be(StatusOrdemServico.Cancelada);
+        os.DataFechamento.Should().NotBeNull();
+
+        os.Invoking(o => o.AlterarStatus(StatusOrdemServico.EmDiagnostico))
+            .Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void AlterarStatus_StatusNaoSequencial_DeveLancarExcecao()
     {
         var os = CriarOrdemServico();
 
-        os.AvancarStatus(); // → EmDiagnostico
-        os.AvancarStatus(); // → AguardandoAprovacao
-        os.AvancarStatus(); // → EmExecucao
-        os.AvancarStatus(); // → Finalizada
-        os.AvancarStatus(); // → Entregue
-
-        os.Invoking(o => o.AvancarStatus())
+        os.Invoking(o => o.AlterarStatus(StatusOrdemServico.Entregue))
             .Should().Throw<InvalidOperationException>()
-            .WithMessage("OS já está no status final.");
+            .WithMessage("*próximo status esperado*");
+    }
+
+    [Fact]
+    public void AlterarStatus_DeveRegistrarHistorico()
+    {
+        var os = CriarOrdemServico();
+
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+
+        os.Historico.Should().ContainSingle();
+        os.Historico.First().StatusAnterior.Should().Be(StatusOrdemServico.Recebida);
+        os.Historico.First().StatusNovo.Should().Be(StatusOrdemServico.EmDiagnostico);
     }
 
     [Fact]
@@ -80,9 +116,10 @@ public class OrdemServicoTests
     }
 
     [Fact]
-    public void AdicionarItemServico_DeveAdicionar()
+    public void AdicionarItemServico_EmDiagnostico_DeveAdicionar()
     {
         var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
         var item = new ItemServico(os.Id, Guid.NewGuid(), 2, 100m);
 
         os.AdicionarItemServico(item);
@@ -92,14 +129,35 @@ public class OrdemServicoTests
     }
 
     [Fact]
-    public void AdicionarItemPeca_DeveAdicionar()
+    public void AdicionarItemServico_StatusInvalido_DeveLancarExcecao()
     {
         var os = CriarOrdemServico();
+        var item = new ItemServico(os.Id, Guid.NewGuid(), 1, 100m);
+
+        os.Invoking(o => o.AdicionarItemServico(item))
+            .Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void AdicionarItemPeca_EmDiagnostico_DeveAdicionar()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
         var item = new ItemPeca(os.Id, Guid.NewGuid(), 3, 50m);
 
         os.AdicionarItemPeca(item);
 
         os.ItensPeca.Should().ContainSingle();
         os.ValorTotal.Should().Be(150m);
+    }
+
+    [Fact]
+    public void AdicionarItemPeca_StatusInvalido_DeveLancarExcecao()
+    {
+        var os = CriarOrdemServico();
+        var item = new ItemPeca(os.Id, Guid.NewGuid(), 1, 50m);
+
+        os.Invoking(o => o.AdicionarItemPeca(item))
+            .Should().Throw<InvalidOperationException>();
     }
 }

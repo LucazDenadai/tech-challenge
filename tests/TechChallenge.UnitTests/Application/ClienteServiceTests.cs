@@ -21,12 +21,12 @@ public class ClienteServiceTests
     [Fact]
     public async Task ObterTodosAsync_DeveRetornarListaMapeada()
     {
-        var clientes = new[]
+        IEnumerable<(Cliente Cliente, int TotalOrdens)> clientes = new[]
         {
-            new Cliente("João", "11111111111", "joao@email.com", "11999999999", "Rua A"),
-            new Cliente("Maria", "22222222222", "maria@email.com", "11888888888", "Rua B"),
+            (new Cliente("João", "11111111111", "joao@email.com", "11999999999", "Rua A"), 2),
+            (new Cliente("Maria", "22222222222", "maria@email.com", "11888888888", "Rua B"), 0),
         };
-        _repoMock.Setup(r => r.ObterTodosAsync()).ReturnsAsync(clientes);
+        _repoMock.Setup(r => r.ObterTodosComDetalhesAsync()).ReturnsAsync(clientes);
 
         var resultado = await _sut.ObterTodosAsync();
 

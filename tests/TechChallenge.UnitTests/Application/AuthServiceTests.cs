@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using TechChallenge.Application.DTOs.Auth;
 using TechChallenge.Application.Services;
@@ -9,7 +10,7 @@ using Xunit;
 
 namespace TechChallenge.UnitTests.Application;
 
-public class AuthServiceTests : IDisposable
+public class AuthServiceTests
 {
     private readonly Mock<IUsuarioRepository> _repoMock = new();
     private readonly AuthService _sut;
@@ -20,21 +21,17 @@ public class AuthServiceTests : IDisposable
 
     public AuthServiceTests()
     {
-        Environment.SetEnvironmentVariable("JWT_KEY", JwtKey);
-        Environment.SetEnvironmentVariable("JWT_ISSUER", JwtIssuer);
-        Environment.SetEnvironmentVariable("JWT_AUDIENCE", JwtAudience);
-        Environment.SetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS", "60");
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Jwt:Key"] = JwtKey,
+                ["Jwt:Issuer"] = JwtIssuer,
+                ["Jwt:Audience"] = JwtAudience,
+                ["Jwt:ExpiracaoMinutos"] = "60"
+            })
+            .Build();
 
-        _sut = new AuthService(_repoMock.Object);
-    }
-
-    public void Dispose()
-    {
-        Environment.SetEnvironmentVariable("JWT_KEY", null);
-        Environment.SetEnvironmentVariable("JWT_ISSUER", null);
-        Environment.SetEnvironmentVariable("JWT_AUDIENCE", null);
-        Environment.SetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS", null);
-        GC.SuppressFinalize(this);
+        _sut = new AuthService(_repoMock.Object, config);
     }
 
     [Fact]
