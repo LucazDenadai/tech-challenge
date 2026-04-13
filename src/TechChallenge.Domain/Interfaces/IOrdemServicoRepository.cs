@@ -10,4 +10,5 @@ public interface IOrdemServicoRepository : IRepository<OrdemServico>
     Task<IEnumerable<OrdemServico>> ObterPorStatusAsync(StatusOrdemServico status);
     Task<IEnumerable<OrdemServico>> FiltrarAsync(Guid? clienteId, StatusOrdemServico? status);
     Task<string> GerarNumeroAsync();
+    Task<(double TempoMedioHoras, int Total)> ObterTempoMedioExecucaoAsync();
 }

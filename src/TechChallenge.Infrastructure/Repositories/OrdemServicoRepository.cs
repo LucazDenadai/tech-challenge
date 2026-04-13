@@ -69,6 +69,21 @@ public class OrdemServicoRepository : BaseRepository<OrdemServico>, IOrdemServic
                      && (status == null || o.Status == status))
             .ToListAsync();
 
+    public async Task<(double TempoMedioHoras, int Total)> ObterTempoMedioExecucaoAsync()
+    {
+        var ordensFinalizadas = await _dbSet
+            .Where(o => (o.Status == StatusOrdemServico.Finalizada || o.Status == StatusOrdemServico.Entregue)
+                     && o.DataFechamento != null)
+            .Select(o => new { o.DataAbertura, DataFechamento = o.DataFechamento!.Value })
+            .ToListAsync();
+
+        if (ordensFinalizadas.Count == 0)
+            return (0, 0);
+
+        var tempoMedio = ordensFinalizadas.Average(o => (o.DataFechamento - o.DataAbertura).TotalHours);
+        return (Math.Round(tempoMedio, 2), ordensFinalizadas.Count);
+    }
+
     public async Task<string> GerarNumeroAsync()
     {
         var ano = DateTime.UtcNow.Year;

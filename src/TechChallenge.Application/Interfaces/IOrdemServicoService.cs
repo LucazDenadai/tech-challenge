@@ -14,4 +14,5 @@ public interface IOrdemServicoService
     Task<OrdemServicoDto> AlterarStatusAsync(Guid id, AlterarStatusDto dto);
     Task<OrdemServicoDto> AdicionarItemAsync(Guid ordemId, AdicionarItemDto dto);
     Task<OrdemServicoDto> CancelarItemAsync(Guid ordemId, Guid itemId);
+    Task<TempoMedioExecucaoDto> ObterTempoMedioExecucaoAsync();
 }

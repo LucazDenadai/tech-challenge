@@ -127,6 +127,12 @@ public class OrdemServicoService : IOrdemServicoService
         return MapDto(os);
     }
 
+    public async Task<TempoMedioExecucaoDto> ObterTempoMedioExecucaoAsync()
+    {
+        var (tempoMedio, total) = await _repo.ObterTempoMedioExecucaoAsync();
+        return new TempoMedioExecucaoDto { TempoMedioHoras = tempoMedio, TotalOrdensAnalisadas = total };
+    }
+
     private static OrdemServicoDto MapDto(OrdemServico os) => new()
     {
         Id = os.Id,

@@ -71,6 +71,12 @@ public class OrdensServicoController : ControllerBase
     public async Task<IActionResult> AdicionarItem(Guid id, [FromBody] AdicionarItemDto dto)
         => Ok(await _service.AdicionarItemAsync(id, dto));
 
+    /// <summary>Tempo médio de execução das ordens finalizadas (em horas)</summary>
+    [HttpGet("tempo-medio")]
+    [ProducesResponseType(typeof(TempoMedioExecucaoDto), 200)]
+    public async Task<IActionResult> ObterTempoMedio()
+        => Ok(await _service.ObterTempoMedioExecucaoAsync());
+
     /// <summary>Cancelar item da ordem (só em EmDiagnostico)</summary>
     [HttpDelete("{id:guid}/itens/{itemId:guid}")]
     [ProducesResponseType(typeof(OrdemServicoDto), 200)]
