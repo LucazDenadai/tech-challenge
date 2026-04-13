@@ -12,7 +12,10 @@ public class ClienteService : IClienteService
     public ClienteService(IClienteRepository repo) => _repo = repo;
 
     public async Task<IEnumerable<ClienteDto>> ObterTodosAsync()
-        => (await _repo.ObterTodosAsync()).Select(MapDto);
+        => (await _repo.ObterTodosComDetalhesAsync()).Select(r => MapDto(r.Cliente, r.TotalOrdens));
+
+    public async Task<IEnumerable<ClienteDto>> BuscarAsync(string termo)
+        => (await _repo.BuscarComDetalhesAsync(termo)).Select(r => MapDto(r.Cliente, r.TotalOrdens));
 
     public async Task<ClienteDto?> ObterPorIdAsync(Guid id)
     {
@@ -51,7 +54,7 @@ public class ClienteService : IClienteService
         await _repo.SalvarAsync();
     }
 
-    private static ClienteDto MapDto(Cliente c) => new()
+    private static ClienteDto MapDto(Cliente c, int totalOrdens = 0) => new()
     {
         Id = c.Id,
         Nome = c.Nome,
@@ -60,6 +63,16 @@ public class ClienteService : IClienteService
         Telefone = c.Telefone,
         Endereco = c.Endereco,
         Ativo = c.Ativo,
-        CriadoEm = c.CriadoEm
+        CriadoEm = c.CriadoEm,
+        TotalOrdensServico = totalOrdens,
+        Veiculos = c.Veiculos.Select(v => new VeiculoResumoDto
+        {
+            Id = v.Id,
+            Placa = v.Placa,
+            Marca = v.Marca,
+            Modelo = v.Modelo,
+            Ano = v.Ano,
+            Cor = v.Cor
+        })
     };
 }

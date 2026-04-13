@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using TechChallenge.Application.DTOs.Auth;
 using TechChallenge.Application.Interfaces;
@@ -11,10 +12,12 @@ namespace TechChallenge.Application.Services;
 public class AuthService : IAuthService
 {
     private readonly IUsuarioRepository _repo;
+    private readonly IConfiguration _config;
 
-    public AuthService(IUsuarioRepository repo)
+    public AuthService(IUsuarioRepository repo, IConfiguration config)
     {
         _repo = repo;
+        _config = config;
     }
 
     public async Task<TokenResponseDto?> LoginAsync(LoginDto loginDto)
@@ -23,10 +26,10 @@ public class AuthService : IAuthService
         if (usuario is null || !usuario.Ativo) return null;
         if (!BCrypt.Net.BCrypt.Verify(loginDto.Senha, usuario.SenhaHash)) return null;
 
-        var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY") ?? "";
-        var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "";
-        var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "";
-        var expiracaoMinutos = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS") ?? "60");
+        var jwtKey = _config["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "";
+        var jwtIssuer = _config["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "";
+        var jwtAudience = _config["Jwt:Audience"] ?? Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "";
+        var expiracaoMinutos = int.Parse(_config["Jwt:ExpiracaoMinutos"] ?? Environment.GetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS") ?? "60");
 
         var claims = new[]
         {

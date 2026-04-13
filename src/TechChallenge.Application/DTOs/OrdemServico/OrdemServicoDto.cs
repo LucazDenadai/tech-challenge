@@ -10,6 +10,9 @@ public class OrdemServicoDto
     public string NomeCliente { get; set; } = string.Empty;
     public Guid VeiculoId { get; set; }
     public string PlacaVeiculo { get; set; } = string.Empty;
+    public string MarcaVeiculo { get; set; } = string.Empty;
+    public string ModeloVeiculo { get; set; } = string.Empty;
+    public int AnoVeiculo { get; set; }
     public StatusOrdemServico Status { get; set; }
     public string StatusDescricao { get; set; } = string.Empty;
     public string Observacoes { get; set; } = string.Empty;
@@ -18,6 +21,7 @@ public class OrdemServicoDto
     public decimal ValorTotal { get; set; }
     public List<ItemServicoDto> ItensServico { get; set; } = new();
     public List<ItemPecaDto> ItensPeca { get; set; } = new();
+    public List<HistoricoStatusDto> Historico { get; set; } = new();
 }
 
 public class ItemServicoDto
@@ -38,4 +42,11 @@ public class ItemPecaDto
     public int Quantidade { get; set; }
     public decimal ValorUnitario { get; set; }
     public decimal ValorTotal { get; set; }
+}
+
+public class HistoricoStatusDto
+{
+    public StatusOrdemServico StatusAnterior { get; set; }
+    public StatusOrdemServico StatusNovo { get; set; }
+    public DateTime DataAlteracao { get; set; }
 }
