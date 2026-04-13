@@ -12,7 +12,8 @@
       "Bash(dotnet test:*)",
       "Bash(docker info:*)",
       "Bash(find d:/Dev/Tech-challenge/.sonarqube -name *.xml -o -name *.properties)",
-      "Bash(\"d:\\\\Dev\\\\Tech-challenge\\\\tests\\\\TechChallenge.UnitTests\\\\Domain\\\\OrdemServicoTests.cs\")"
+      "Bash(\"d:\\\\Dev\\\\Tech-challenge\\\\tests\\\\TechChallenge.UnitTests\\\\Domain\\\\OrdemServicoTests.cs\")",
+      "Bash(xargs grep:*)"
     ]
   }
 }
