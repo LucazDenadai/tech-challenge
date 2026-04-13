@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     [ExcludeFromCodeCoverage] public DbSet<OrdemServico> OrdensServico => Set<OrdemServico>();
     [ExcludeFromCodeCoverage] public DbSet<ItemServico> ItensServico => Set<ItemServico>();
     [ExcludeFromCodeCoverage] public DbSet<ItemPeca> ItensPeca => Set<ItemPeca>();
+    [ExcludeFromCodeCoverage] public DbSet<HistoricoStatusOS> HistoricoStatusOS => Set<HistoricoStatusOS>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

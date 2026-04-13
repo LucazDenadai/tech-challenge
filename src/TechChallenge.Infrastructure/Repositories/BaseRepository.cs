@@ -24,9 +24,12 @@ public abstract class BaseRepository<T> : IRepository<T> where T : class
     public async Task AdicionarAsync(T entidade)
         => await _dbSet.AddAsync(entidade);
 
-    public Task AtualizarAsync(T entidade)
+    public virtual Task AtualizarAsync(T entidade)
     {
-        _dbSet.Update(entidade);
+        if (_context.Entry(entidade).State == EntityState.Detached)
+        {
+            _dbSet.Update(entidade);
+        }
         return Task.CompletedTask;
     }
 

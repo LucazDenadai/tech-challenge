@@ -21,5 +21,7 @@ public class OrdemServicoConfiguration : IEntityTypeConfiguration<OrdemServico>
 
         builder.Navigation(o => o.ItensServico).HasField("_itensServico").UsePropertyAccessMode(PropertyAccessMode.Field);
         builder.Navigation(o => o.ItensPeca).HasField("_itensPeca").UsePropertyAccessMode(PropertyAccessMode.Field);
+        builder.HasMany(o => o.Historico).WithOne().HasForeignKey(h => h.OrdemServicoId).OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(o => o.Historico).HasField("_historico").UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
