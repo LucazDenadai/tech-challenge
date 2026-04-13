@@ -23,9 +23,9 @@ public static class DbSeeder
         await context.Usuarios.AddRangeAsync(usuarios);
 
         // Clientes
-        var carlos = new Cliente("Carlos Silva", "12345678901", "carlos@email.com", "11987654321", "Rua das Flores, 100");
+        var carlos = new Cliente("Carlos Silva", "52998224725", "carlos@email.com", "11987654321", "Rua das Flores, 100");
         var ana = new Cliente("Ana Souza", "98765432100", "ana@email.com", "11912345678", "Av. Paulista, 500");
-        var roberto = new Cliente("Roberto Lima", "45678901234", "roberto@email.com", "11955556666", "Rua XV, 200");
+        var roberto = new Cliente("Roberto Lima", "11144477735", "roberto@email.com", "11955556666", "Rua XV, 200");
         await context.Clientes.AddRangeAsync(carlos, ana, roberto);
         await context.SaveChangesAsync();
 

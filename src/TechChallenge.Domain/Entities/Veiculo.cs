@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using TechChallenge.Domain.Validators;
 
 namespace TechChallenge.Domain.Entities;
 
@@ -18,8 +19,9 @@ public class Veiculo : EntityBase
 
     public Veiculo(Guid clienteId, string placa, string marca, string modelo, int ano, string cor)
     {
+        PlacaValidator.Validar(placa);
         ClienteId = clienteId;
-        Placa = placa;
+        Placa = PlacaValidator.Normalizar(placa);
         Marca = marca;
         Modelo = modelo;
         Ano = ano;

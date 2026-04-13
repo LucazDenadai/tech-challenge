@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using TechChallenge.Domain.Validators;
 
 namespace TechChallenge.Domain.Entities;
 
@@ -20,6 +21,7 @@ public class Cliente : EntityBase
 
     public Cliente(string nome, string cpf, string email, string telefone, string endereco)
     {
+        CpfValidator.Validar(cpf);
         Nome = nome;
         Cpf = cpf;
         Email = email;
