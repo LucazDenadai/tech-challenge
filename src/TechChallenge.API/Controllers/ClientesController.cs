@@ -15,10 +15,17 @@ public class ClientesController : ControllerBase
 
     public ClientesController(IClienteService service) => _service = service;
 
-    /// <summary>Listar todos os clientes</summary>
+    /// <summary>Listar todos os clientes ou buscar por nome, CPF ou e-mail</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<ClienteDto>), 200)]
-    public async Task<IActionResult> ObterTodos() => Ok(await _service.ObterTodosAsync());
+    public async Task<IActionResult> ObterTodos([FromQuery] string? busca)
+    {
+        if (!string.IsNullOrWhiteSpace(busca))
+        {
+            return Ok(await _service.BuscarAsync(busca));
+        }
+        return Ok(await _service.ObterTodosAsync());
+    }
 
     /// <summary>Obter cliente por ID</summary>
     [HttpGet("{id:guid}")]

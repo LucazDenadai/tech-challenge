@@ -54,7 +54,7 @@ public class UsuariosController : ControllerBase
     }
 
     /// <summary>Desativar usuário</summary>
-    [HttpDelete("{id:guid}")]
+    [HttpPatch("{id:guid}/desativar")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
