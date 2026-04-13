@@ -8,5 +8,6 @@ public interface IOrdemServicoRepository : IRepository<OrdemServico>
     Task<OrdemServico?> ObterComDetalhesAsync(Guid id);
     Task<IEnumerable<OrdemServico>> ObterPorClienteAsync(Guid clienteId);
     Task<IEnumerable<OrdemServico>> ObterPorStatusAsync(StatusOrdemServico status);
+    Task<IEnumerable<OrdemServico>> FiltrarAsync(Guid? clienteId, StatusOrdemServico? status);
     Task<string> GerarNumeroAsync();
 }
