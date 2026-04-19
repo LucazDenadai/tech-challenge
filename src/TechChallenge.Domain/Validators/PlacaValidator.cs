@@ -5,10 +5,11 @@ namespace TechChallenge.Domain.Validators;
 public static class PlacaValidator
 {
     // Formato antigo: ABC1234 | Mercosul: ABC1D23
-    private static readonly Regex _regex = new(@"^[A-Z]{3}[0-9][0-9A-Z][0-9]{2}$", RegexOptions.Compiled);
+    private static readonly Regex _regex = new(@"^[A-Z]{3}[0-9][0-9A-Z][0-9]{2}$", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
 
     public static string Normalizar(string placa)
-        => Regex.Replace(placa ?? "", @"[-\s]", "").ToUpperInvariant();
+        => Regex.Replace(placa ?? "", @"[-\s]", "", RegexOptions.None, TimeSpan.FromMilliseconds(100))
+        .ToUpperInvariant();
 
     public static void Validar(string placa)
     {

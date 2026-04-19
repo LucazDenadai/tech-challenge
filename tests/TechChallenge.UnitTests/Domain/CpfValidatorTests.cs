@@ -14,7 +14,7 @@ public class CpfValidatorTests
     [InlineData("123.456.789-09")]
     [InlineData("12345678909")]
     public void EhValido_CpfValido_DeveRetornarTrue(string cpf)
-        => CpfValidator.EhValido(cpf).Should().BeTrue();
+        => CpfValidator.Valido(cpf).Should().BeTrue();
 
     [Theory]
     [InlineData("000.000.000-00")]
@@ -24,7 +24,7 @@ public class CpfValidatorTests
     [InlineData("")]
     [InlineData("   ")]
     public void EhValido_CpfInvalido_DeveRetornarFalse(string cpf)
-        => CpfValidator.EhValido(cpf).Should().BeFalse();
+        => CpfValidator.Valido(cpf).Should().BeFalse();
 
     [Fact]
     public void Validar_CpfValido_NaoDeveLancarExcecao()

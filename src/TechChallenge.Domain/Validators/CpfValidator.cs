@@ -6,13 +6,13 @@ public static class CpfValidator
 {
     public static void Validar(string cpf)
     {
-        if (!EhValido(cpf))
+        if (!Valido(cpf))
             throw new ArgumentException("CPF inválido.", nameof(cpf));
     }
 
-    public static bool EhValido(string cpf)
+    public static bool Valido(string cpf)
     {
-        var digits = Regex.Replace(cpf ?? "", @"\D", "");
+        var digits = Regex.Replace(cpf ?? "", @"\D", "", RegexOptions.None, TimeSpan.FromMilliseconds(100));
 
         if (digits.Length != 11)
             return false;
