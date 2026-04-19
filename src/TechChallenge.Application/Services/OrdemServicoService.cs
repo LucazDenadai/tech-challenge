@@ -127,6 +127,52 @@ public class OrdemServicoService : IOrdemServicoService
         return MapDto(os);
     }
 
+    public async Task<AcompanhamentoOsDto?> AcompanharPorNumeroAsync(string numero)
+    {
+        var os = await _repo.ObterPorNumeroAsync(numero.ToUpperInvariant());
+        if (os is null) return null;
+
+        return new AcompanhamentoOsDto
+        {
+            Numero = os.Numero,
+            Status = os.Status,
+            StatusDescricao = os.Status.ToString(),
+            PlacaVeiculo = os.Veiculo?.Placa ?? "",
+            MarcaVeiculo = os.Veiculo?.Marca ?? "",
+            ModeloVeiculo = os.Veiculo?.Modelo ?? "",
+            AnoVeiculo = os.Veiculo?.Ano ?? 0,
+            DataAbertura = os.DataAbertura,
+            DataFechamento = os.DataFechamento,
+            ValorTotal = os.ValorTotal,
+            ItensServico = os.ItensServico.Select(i => new ItemServicoDto
+            {
+                Id = i.Id,
+                ServicoId = i.ServicoId,
+                NomeServico = i.Servico?.Nome ?? "",
+                Quantidade = i.Quantidade,
+                ValorUnitario = i.ValorUnitario,
+                ValorTotal = i.ValorTotal
+            }).ToList(),
+            ItensPeca = os.ItensPeca.Select(i => new ItemPecaDto
+            {
+                Id = i.Id,
+                PecaId = i.PecaId,
+                NomePeca = i.Peca?.Nome ?? "",
+                Quantidade = i.Quantidade,
+                ValorUnitario = i.ValorUnitario,
+                ValorTotal = i.ValorTotal
+            }).ToList(),
+            Historico = os.Historico
+                .OrderBy(h => h.DataAlteracao)
+                .Select(h => new HistoricoStatusDto
+                {
+                    StatusAnterior = h.StatusAnterior,
+                    StatusNovo = h.StatusNovo,
+                    DataAlteracao = h.DataAlteracao
+                }).ToList()
+        };
+    }
+
     public async Task<TempoMedioExecucaoDto> ObterTempoMedioExecucaoAsync()
     {
         var (tempoMedio, total) = await _repo.ObterTempoMedioExecucaoAsync();

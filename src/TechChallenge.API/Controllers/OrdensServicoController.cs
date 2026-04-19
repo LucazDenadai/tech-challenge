@@ -37,6 +37,21 @@ public class OrdensServicoController : ControllerBase
         return dto is null ? NotFound() : Ok(dto);
     }
 
+    /// <summary>
+    /// Acompanhar OS pelo número — acesso público, sem autenticação.
+    /// O cliente informa o número da OS (ex: OS-2026-0001) e recebe o status atual, serviços, peças e histórico.
+    /// Dados pessoais do cliente não são expostos neste endpoint.
+    /// </summary>
+    [HttpGet("acompanhar/{numero}")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(AcompanhamentoOsDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Acompanhar(string numero)
+    {
+        var dto = await _service.AcompanharPorNumeroAsync(numero);
+        return dto is null ? NotFound(new { message = $"OS '{numero}' não encontrada." }) : Ok(dto);
+    }
+
     /// <summary>Criar nova ordem de serviço</summary>
     [HttpPost]
     [ProducesResponseType(typeof(OrdemServicoDto), 201)]

@@ -5,15 +5,27 @@ API REST para gerenciamento de oficina mecânica, desenvolvida com arquitetura e
 ## Tecnologias Utilizadas
 
 - **Backend**: .NET 10.0 (ASP.NET Core Web API)
-- **Banco de Dados**: PostgreSQL
-- **ORM**: Entity Framework Core com Npgsql
-- **Autenticação**: JWT (JSON Web Tokens)
+- **Banco de Dados**: PostgreSQL 16
+- **ORM**: Entity Framework Core 9 com Npgsql
+- **Autenticação**: JWT (JSON Web Tokens) + BCrypt para senhas
 - **Documentação**: Swagger/OpenAPI
 - **Containerização**: Docker & Docker Compose
 - **Testes**: xUnit, Moq, FluentAssertions, Testcontainers
-- **Cobertura**: coverlet (formato OpenCover)
+- **Cobertura**: coverlet (formato OpenCover) — **92,6% de linhas | 81,9% de branches**
+- **Qualidade**: SonarAnalyzer for C# integrado ao build
 - **Lint**: .editorconfig + `dotnet format`
 - **Arquitetura**: DDD (Domain-Driven Design) com camadas separadas
+
+## Justificativa da Escolha do Banco de Dados
+
+O **PostgreSQL** foi escolhido pelos seguintes motivos:
+
+1. **ACID completo**: Transações confiáveis são essenciais para um sistema de ordens de serviço onde alterações de status, consumo de estoque e orçamento precisam ser atômicas.
+2. **Suporte a UUID nativo**: Todas as entidades usam `Guid` como chave primária. O PostgreSQL armazena UUIDs eficientemente com índices otimizados.
+3. **Índices únicos e constraints**: O campo `Documento` (CPF/CNPJ) e a placa do veículo possuem índices únicos configurados via EF Core — recurso robusto no PostgreSQL.
+4. **Maturidade e ecossistema .NET**: O driver **Npgsql** é o mais mantido e performático para integração com Entity Framework Core, com suporte completo ao .NET 10.
+5. **Compatibilidade com Docker**: Imagem oficial `postgres:16-alpine` extremamente leve (~80 MB) e estável, ideal para ambientes containerizados.
+6. **Open source sem custo de licença**: Para um MVP, elimina custo de licenciamento de bancos proprietários como SQL Server ou Oracle.
 
 ## Estrutura do Projeto
 
@@ -108,8 +120,9 @@ dotnet test tests/TechChallenge.IntegrationTests/
 
 Cobertura:
 - **Auth**: login válido, senha errada, usuário inexistente, perfis
-- **Clientes**: CRUD completo, CPF duplicado, 401 sem auth, 404
+- **Clientes**: CRUD completo, CPF/CNPJ duplicado, 401 sem auth, 404
 - **Peças**: CRUD completo, listagem seeded
+- **OS**: criação, filtros por cliente/status, alteração de status
 
 ### Todos os testes
 
@@ -189,12 +202,17 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
 - `DELETE /api/pecas/{id}` - Desativar peça
 
 ### Ordens de Serviço
-- `GET /api/ordensservico` - Listar todas as ordens
+
+> O endpoint de acompanhamento é **público** (sem JWT) — destinado ao cliente final.
+
+- `GET /api/ordensservico/acompanhar/{numero}` - **Público** — cliente consulta status pelo número da OS (ex: OS-2026-0001)
+- `GET /api/ordensservico` - Listar ordens com filtros (`?clienteId=&status=`)
 - `GET /api/ordensservico/{id}` - Obter ordem por ID
+- `GET /api/ordensservico/tempo-medio` - Tempo médio de execução das OS finalizadas
 - `POST /api/ordensservico` - Criar nova ordem
-- `PUT /api/ordensservico/{id}/status` - Avançar status
-- `POST /api/ordensservico/{id}/servicos` - Adicionar item de serviço
-- `POST /api/ordensservico/{id}/pecas` - Adicionar item de peça
+- `PATCH /api/ordensservico/{id}/status` - Alterar status (sequência obrigatória)
+- `POST /api/ordensservico/{id}/itens` - Adicionar serviço ou peça à OS
+- `DELETE /api/ordensservico/{id}/itens/{itemId}` - Cancelar item da OS (devolve estoque)
 
 ## Lint
 

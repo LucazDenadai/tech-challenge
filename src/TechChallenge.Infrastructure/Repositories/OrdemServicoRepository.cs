@@ -41,6 +41,14 @@ public class OrdemServicoRepository : BaseRepository<OrdemServico>, IOrdemServic
             .Include(o => o.Historico)
             .FirstOrDefaultAsync(o => o.Id == id);
 
+    public async Task<OrdemServico?> ObterPorNumeroAsync(string numero)
+        => await _dbSet
+            .Include(o => o.Veiculo)
+            .Include(o => o.ItensServico).ThenInclude(i => i.Servico)
+            .Include(o => o.ItensPeca).ThenInclude(i => i.Peca)
+            .Include(o => o.Historico)
+            .FirstOrDefaultAsync(o => o.Numero == numero);
+
     public async Task<IEnumerable<OrdemServico>> ObterPorClienteAsync(Guid clienteId)
         => await _dbSet
             .Include(o => o.Cliente)
