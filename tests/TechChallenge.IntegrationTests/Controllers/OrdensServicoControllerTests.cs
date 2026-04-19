@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using FluentAssertions;
-using TechChallenge.Application.DTOs.Cliente;
 using TechChallenge.Application.DTOs.OrdemServico;
 using TechChallenge.Application.DTOs.Veiculo;
 using TechChallenge.IntegrationTests.Fixtures;
@@ -29,15 +28,10 @@ public class OrdensServicoControllerTests
 
     private async Task<(Guid clienteId, Guid veiculoId)> ObterClienteEVeiculoSeededAsync(HttpClient client)
     {
-        var clientesResponse = await client.GetAsync("/api/clientes");
-        var clientes = await clientesResponse.Content.ReadFromJsonAsync<IEnumerable<ClienteDto>>();
-        var clienteId = clientes!.First().Id;
-
-        var veiculosResponse = await client.GetAsync($"/api/veiculos/cliente/{clienteId}");
+        var veiculosResponse = await client.GetAsync("/api/veiculos");
         var veiculos = await veiculosResponse.Content.ReadFromJsonAsync<IEnumerable<VeiculoDto>>();
-        var veiculoId = veiculos!.First().Id;
-
-        return (clienteId, veiculoId);
+        var veiculo = veiculos!.First();
+        return (veiculo.ClienteId, veiculo.Id);
     }
 
     [Fact]
@@ -58,7 +52,7 @@ public class OrdensServicoControllerTests
         var response = await client.GetAsync("/api/ordensservico");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<OrdemServicoDto>>();
+        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<OrdemServicoDto>>(AuthHelper.JsonOptions);
         lista.Should().NotBeNull();
     }
 
@@ -78,7 +72,7 @@ public class OrdensServicoControllerTests
         var response = await client.PostAsJsonAsync("/api/ordensservico", dto);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var criado = await response.Content.ReadFromJsonAsync<OrdemServicoDto>();
+        var criado = await response.Content.ReadFromJsonAsync<OrdemServicoDto>(AuthHelper.JsonOptions);
         criado.Should().NotBeNull();
         criado!.ClienteId.Should().Be(clienteId);
         criado.VeiculoId.Should().Be(veiculoId);
@@ -106,10 +100,10 @@ public class OrdensServicoControllerTests
         var dto = new CriarOrdemServicoDto { ClienteId = clienteId, VeiculoId = veiculoId };
         await client.PostAsJsonAsync("/api/ordensservico", dto);
 
-        var response = await client.GetAsync($"/api/ordensservico/cliente/{clienteId}");
+        var response = await client.GetAsync($"/api/ordensservico?clienteId={clienteId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<OrdemServicoDto>>();
+        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<OrdemServicoDto>>(AuthHelper.JsonOptions);
         lista.Should().NotBeNull();
         lista!.Should().AllSatisfy(o => o.ClienteId.Should().Be(clienteId));
     }
@@ -119,7 +113,7 @@ public class OrdensServicoControllerTests
     {
         var client = await CriarClienteAutenticadoAsync();
 
-        var response = await client.GetAsync("/api/ordensservico/status/Recebida");
+        var response = await client.GetAsync("/api/ordensservico?status=Recebida");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
@@ -134,7 +128,7 @@ public class OrdensServicoControllerTests
         var criarDto = new CriarOrdemServicoDto { ClienteId = clienteId, VeiculoId = veiculoId, Observacoes = "Fluxo completo" };
         var createResponse = await client.PostAsJsonAsync("/api/ordensservico", criarDto);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        var os = await createResponse.Content.ReadFromJsonAsync<OrdemServicoDto>();
+        var os = await createResponse.Content.ReadFromJsonAsync<OrdemServicoDto>(AuthHelper.JsonOptions);
         os.Should().NotBeNull();
 
         // Obter por ID
@@ -142,9 +136,10 @@ public class OrdensServicoControllerTests
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Avançar status: Recebida → EmDiagnostico
-        var avancarResponse = await client.PatchAsync($"/api/ordensservico/{os.Id}/avancar-status", null);
+        var statusDto = new AlterarStatusDto { NovoStatus = TechChallenge.Domain.Enums.StatusOrdemServico.EmDiagnostico };
+        var avancarResponse = await client.PatchAsJsonAsync($"/api/ordensservico/{os.Id}/status", statusDto, AuthHelper.JsonOptions);
         avancarResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var osAvancada = await avancarResponse.Content.ReadFromJsonAsync<OrdemServicoDto>();
+        var osAvancada = await avancarResponse.Content.ReadFromJsonAsync<OrdemServicoDto>(AuthHelper.JsonOptions);
         osAvancada!.Status.Should().NotBe(os.Status);
     }
 

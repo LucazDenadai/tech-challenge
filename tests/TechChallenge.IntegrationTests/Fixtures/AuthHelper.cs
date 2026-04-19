@@ -1,12 +1,16 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using TechChallenge.Application.DTOs.Auth;
 
 namespace TechChallenge.IntegrationTests.Fixtures;
 
 public static class AuthHelper
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
+    public static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     /// <summary>Faz login com as credenciais do admin gerado pelo DbSeeder e retorna o token JWT.</summary>
     public static async Task<string> ObterTokenAdminAsync(HttpClient client)

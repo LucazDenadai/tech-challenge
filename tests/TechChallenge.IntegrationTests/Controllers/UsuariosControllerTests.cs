@@ -44,7 +44,7 @@ public class UsuariosControllerTests
         var response = await client.GetAsync("/api/usuarios");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<UsuarioDto>>();
+        var lista = await response.Content.ReadFromJsonAsync<IEnumerable<UsuarioDto>>(AuthHelper.JsonOptions);
         lista.Should().NotBeNull();
         lista!.Should().HaveCountGreaterThanOrEqualTo(3); // 3 usuários do DbSeeder
     }
@@ -64,7 +64,7 @@ public class UsuariosControllerTests
         var response = await client.PostAsJsonAsync("/api/usuarios", dto);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var criado = await response.Content.ReadFromJsonAsync<UsuarioDto>();
+        var criado = await response.Content.ReadFromJsonAsync<UsuarioDto>(AuthHelper.JsonOptions);
         criado.Should().NotBeNull();
         criado!.Nome.Should().Be("Usuario Teste");
         criado.Perfil.Should().Be(PerfilUsuario.Mecanico);
@@ -113,12 +113,12 @@ public class UsuariosControllerTests
         };
         var createResponse = await client.PostAsJsonAsync("/api/usuarios", dto);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-        var criado = await createResponse.Content.ReadFromJsonAsync<UsuarioDto>();
+        var criado = await createResponse.Content.ReadFromJsonAsync<UsuarioDto>(AuthHelper.JsonOptions);
 
         // Obter por ID
         var getResponse = await client.GetAsync($"/api/usuarios/{criado!.Id}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var obtido = await getResponse.Content.ReadFromJsonAsync<UsuarioDto>();
+        var obtido = await getResponse.Content.ReadFromJsonAsync<UsuarioDto>(AuthHelper.JsonOptions);
         obtido!.Nome.Should().Be("Fluxo Completo");
 
         // Desativar
@@ -135,14 +135,14 @@ public class UsuariosControllerTests
         var email = $"atualizar.{Guid.NewGuid():N}@email.com";
         var criar = new CriarUsuarioDto { Nome = "Para Atualizar", Email = email, Senha = "Senha@123", Perfil = PerfilUsuario.Mecanico };
         var createResponse = await client.PostAsJsonAsync("/api/usuarios", criar);
-        var criado = await createResponse.Content.ReadFromJsonAsync<UsuarioDto>() ?? new UsuarioDto();
+        var criado = await createResponse.Content.ReadFromJsonAsync<UsuarioDto>(AuthHelper.JsonOptions) ?? new UsuarioDto();
 
         var dto = new CriarUsuarioDto { Nome = "Nome Atualizado", Email = email, Senha = "NovaSenha@123", Perfil = PerfilUsuario.Admin };
 
         var response = await client.PutAsJsonAsync($"/api/usuarios/{criado.Id}", dto);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var atualizado = await response.Content.ReadFromJsonAsync<UsuarioDto>();
+        var atualizado = await response.Content.ReadFromJsonAsync<UsuarioDto>(AuthHelper.JsonOptions);
         atualizado!.Nome.Should().Be("Nome Atualizado");
         atualizado.Perfil.Should().Be(PerfilUsuario.Admin);
     }
