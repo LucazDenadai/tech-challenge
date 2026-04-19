@@ -25,6 +25,7 @@ public class ExceptionFilter : IExceptionFilter
         {
             KeyNotFoundException => new NotFoundObjectResult(new { message = exception.Message }),
             InvalidOperationException => new BadRequestObjectResult(new { message = exception.Message }),
+            ArgumentException => new BadRequestObjectResult(new { message = exception.Message }),
             _ => new ObjectResult(new { message = "Erro interno do servidor." })
             {
                 StatusCode = StatusCodes.Status500InternalServerError
