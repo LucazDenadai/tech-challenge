@@ -235,6 +235,7 @@ dotnet tool install -g dotnet-sonarscanner
 dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="http://localhost:9000" /d:sonar.login="admin" /d:sonar.password="admin" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/Program.cs,**/*Tests.cs,**/Migrations/**"
 
 # 3. Build
+cd ..
 dotnet build
 
 # 4. Testes com cobertura (gera os XMLs que o Sonar vai ler)

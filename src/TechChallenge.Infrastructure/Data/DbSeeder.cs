@@ -29,7 +29,6 @@ public static class DbSeeder
         await context.Clientes.AddRangeAsync(carlos, ana, roberto);
         await context.SaveChangesAsync();
 
-        // Veiculos
         var corollaSilva = new Veiculo(carlos.Id, "ABC1234", "Toyota", "Corolla", 2020, "Prata");
         var civicSilva = new Veiculo(carlos.Id, "DEF5678", "Honda", "Civic", 2019, "Preto");
         var golfAna = new Veiculo(ana.Id, "GHI9012", "Volkswagen", "Golf", 2022, "Branco");
