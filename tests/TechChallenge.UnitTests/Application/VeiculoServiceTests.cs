@@ -89,7 +89,7 @@ public class VeiculoServiceTests
     public async Task CriarAsync_ClienteExiste_DeveCriarERetornarDto()
     {
         var clienteId = Guid.NewGuid();
-        var cliente = new Cliente("Carlos Silva", "12345678901", "carlos@email.com", "11987654321", "Rua das Flores");
+        var cliente = new Cliente("Carlos Silva", "52998224725", "carlos@email.com", "11987654321", "Rua das Flores");
         var dto = new CriarVeiculoDto { ClienteId = clienteId, Placa = "GHI9012", Marca = "VW", Modelo = "Golf", Ano = 2022, Cor = "Branco" };
         _clienteRepoMock.Setup(r => r.ObterPorIdAsync(clienteId)).ReturnsAsync(cliente);
         _repoMock.Setup(r => r.AdicionarAsync(It.IsAny<Veiculo>())).Returns(Task.CompletedTask);

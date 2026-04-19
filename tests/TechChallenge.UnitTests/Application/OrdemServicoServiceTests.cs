@@ -101,7 +101,7 @@ public class OrdemServicoServiceTests
     [Fact]
     public async Task CriarAsync_DadosValidos_DeveCriarERetornarDto()
     {
-        var cliente = new Cliente("Carlos", "12345678901", "c@c.com", "11999999999", "Rua A");
+        var cliente = new Cliente("Carlos", "52998224725", "c@c.com", "11999999999", "Rua A");
         var veiculo = new Veiculo(cliente.Id, "ABC1234", "Toyota", "Corolla", 2020, "Prata");
         var dto = new CriarOrdemServicoDto
         {
@@ -138,7 +138,7 @@ public class OrdemServicoServiceTests
     {
         var clienteId = Guid.NewGuid();
         var outroClienteId = Guid.NewGuid();
-        var cliente = new Cliente("Carlos", "12345678901", "c@c.com", "11999999999", "Rua A");
+        var cliente = new Cliente("Carlos", "52998224725", "c@c.com", "11999999999", "Rua A");
         var veiculo = new Veiculo(outroClienteId, "ABC1234", "Toyota", "Corolla", 2020, "Prata");
         var dto = new CriarOrdemServicoDto { ClienteId = clienteId, VeiculoId = Guid.NewGuid() };
 
@@ -262,5 +262,27 @@ public class OrdemServicoServiceTests
 
         resultado.ItensPeca.Should().HaveCount(1);
         peca.QuantidadeEstoque.Should().Be(7);
+    }
+
+    [Fact]
+    public async Task ObterTempoMedioExecucaoAsync_SemOrdensFinalizadas_DeveRetornarZero()
+    {
+        _repoMock.Setup(r => r.ObterTempoMedioExecucaoAsync()).ReturnsAsync((0.0, 0));
+
+        var resultado = await _sut.ObterTempoMedioExecucaoAsync();
+
+        resultado.TempoMedioHoras.Should().Be(0);
+        resultado.TotalOrdensAnalisadas.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ObterTempoMedioExecucaoAsync_ComOrdensFinalizadas_DeveRetornarMedia()
+    {
+        _repoMock.Setup(r => r.ObterTempoMedioExecucaoAsync()).ReturnsAsync((5.5, 3));
+
+        var resultado = await _sut.ObterTempoMedioExecucaoAsync();
+
+        resultado.TempoMedioHoras.Should().Be(5.5);
+        resultado.TotalOrdensAnalisadas.Should().Be(3);
     }
 }
