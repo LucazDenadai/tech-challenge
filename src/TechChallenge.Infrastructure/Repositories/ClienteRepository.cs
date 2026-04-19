@@ -10,18 +10,17 @@ public class ClienteRepository : BaseRepository<Cliente>, IClienteRepository
 {
     public ClienteRepository(AppDbContext context) : base(context) { }
 
-    // Nenhum serviço atual chama ObterPorCpfAsync diretamente (usa CpfExisteAsync)
     [ExcludeFromCodeCoverage]
-    public async Task<Cliente?> ObterPorCpfAsync(string cpf)
-        => await _dbSet.FirstOrDefaultAsync(c => c.Cpf == cpf);
+    public async Task<Cliente?> ObterPorDocumentoAsync(string documento)
+        => await _dbSet.FirstOrDefaultAsync(c => c.Documento == documento);
 
-    public async Task<bool> CpfExisteAsync(string cpf, Guid? excluirId = null)
-        => await _dbSet.AnyAsync(c => c.Cpf == cpf && (excluirId == null || c.Id != excluirId));
+    public async Task<bool> DocumentoExisteAsync(string documento, Guid? excluirId = null)
+        => await _dbSet.AnyAsync(c => c.Documento == documento && (excluirId == null || c.Id != excluirId));
 
     public async Task<IEnumerable<Cliente>> BuscarAsync(string termo)
         => await _dbSet.Where(c =>
             c.Nome.ToLower().Contains(termo.ToLower()) ||
-            c.Cpf.Contains(termo) ||
+            c.Documento.Contains(termo) ||
             c.Email.ToLower().Contains(termo.ToLower()))
         .ToListAsync();
 
@@ -36,7 +35,7 @@ public class ClienteRepository : BaseRepository<Cliente>, IClienteRepository
             .Include(c => c.Veiculos)
             .Where(c =>
                 c.Nome.ToLower().Contains(termo.ToLower()) ||
-                c.Cpf.Contains(termo) ||
+                c.Documento.Contains(termo) ||
                 c.Email.ToLower().Contains(termo.ToLower()))
             .Select(c => new ValueTuple<Cliente, int>(c, _context.Set<OrdemServico>().Count(o => o.ClienteId == c.Id)))
             .ToListAsync();

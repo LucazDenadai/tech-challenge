@@ -15,10 +15,26 @@ public class ClienteTests
         var cliente = CriarCliente();
 
         cliente.Nome.Should().Be("Carlos Silva");
-        cliente.Cpf.Should().Be("52998224725");
+        cliente.Documento.Should().Be("52998224725");
         cliente.Email.Should().Be("carlos@email.com");
         cliente.Ativo.Should().BeTrue();
         cliente.Id.Should().NotBe(Guid.Empty);
+    }
+
+    [Fact]
+    public void Construtor_ComCnpjValido_DeveCriarCliente()
+    {
+        var cliente = new Cliente("Empresa LTDA", "11222333000181", "empresa@email.com", "1133334444", "Av. Comercial, 500");
+
+        cliente.Documento.Should().Be("11222333000181");
+    }
+
+    [Fact]
+    public void Construtor_ComDocumentoInvalido_DeveLancarExcecao()
+    {
+        var act = () => new Cliente("Nome", "00000000000", "e@e.com", "11999", "Rua");
+
+        act.Should().Throw<ArgumentException>();
     }
 
     [Fact]
@@ -36,13 +52,13 @@ public class ClienteTests
     }
 
     [Fact]
-    public void Atualizar_NaoDeveMudarCpf()
+    public void Atualizar_NaoDeveMudarDocumento()
     {
         var cliente = CriarCliente();
 
         cliente.Atualizar("Outro Nome", "outro@email.com", "11911111111", "Outra Rua");
 
-        cliente.Cpf.Should().Be("52998224725");
+        cliente.Documento.Should().Be("52998224725");
     }
 
     [Fact]

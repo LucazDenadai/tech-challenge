@@ -25,9 +25,9 @@ public class ClienteService : IClienteService
 
     public async Task<ClienteDto> CriarAsync(CriarClienteDto dto)
     {
-        if (await _repo.CpfExisteAsync(dto.Cpf))
-            throw new InvalidOperationException("CPF já cadastrado.");
-        var cliente = new Cliente(dto.Nome, dto.Cpf, dto.Email, dto.Telefone, dto.Endereco);
+        if (await _repo.DocumentoExisteAsync(dto.Documento))
+            throw new InvalidOperationException("CPF/CNPJ já cadastrado.");
+        var cliente = new Cliente(dto.Nome, dto.Documento, dto.Email, dto.Telefone, dto.Endereco);
         await _repo.AdicionarAsync(cliente);
         await _repo.SalvarAsync();
         return MapDto(cliente);
@@ -37,8 +37,8 @@ public class ClienteService : IClienteService
     {
         var cliente = await _repo.ObterPorIdAsync(id)
             ?? throw new KeyNotFoundException("Cliente não encontrado.");
-        if (await _repo.CpfExisteAsync(dto.Cpf, id))
-            throw new InvalidOperationException("CPF já cadastrado.");
+        if (await _repo.DocumentoExisteAsync(dto.Documento, id))
+            throw new InvalidOperationException("CPF/CNPJ já cadastrado.");
         cliente.Atualizar(dto.Nome, dto.Email, dto.Telefone, dto.Endereco);
         await _repo.AtualizarAsync(cliente);
         await _repo.SalvarAsync();
@@ -58,7 +58,7 @@ public class ClienteService : IClienteService
     {
         Id = c.Id,
         Nome = c.Nome,
-        Cpf = c.Cpf,
+        Documento = c.Documento,
         Email = c.Email,
         Telefone = c.Telefone,
         Endereco = c.Endereco,

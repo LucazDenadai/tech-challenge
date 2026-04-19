@@ -8,9 +8,10 @@ public class CriarClienteDto
     [MaxLength(100)]
     public string Nome { get; set; } = string.Empty;
 
+    /// <summary>CPF (11 dígitos) ou CNPJ (14 dígitos), com ou sem máscara.</summary>
     [Required]
-    [StringLength(11, MinimumLength = 11)]
-    public string Cpf { get; set; } = string.Empty;
+    [StringLength(18, MinimumLength = 11)]
+    public string Documento { get; set; } = string.Empty;
 
     [Required]
     [EmailAddress]

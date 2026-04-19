@@ -33,8 +33,10 @@ builder.Services.AddScoped<IServicoService, ServicoService>();
 builder.Services.AddScoped<IPecaService, PecaService>();
 builder.Services.AddScoped<IOrdemServicoService, OrdemServicoService>();
 
-// JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"]!;
+// JWT Authentication — env var JWT_KEY tem prioridade sobre appsettings
+var jwtKey = builder.Configuration["JWT_KEY"]
+    ?? builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException("JWT Key não configurada. Defina a variável de ambiente JWT_KEY.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

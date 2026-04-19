@@ -55,7 +55,7 @@ public class ClientesControllerTests
         var dto = new CriarClienteDto
         {
             Nome = "Teste Integração",
-            Cpf = "12345678909",
+            Documento = "12345678909",
             Email = "integracao@teste.com",
             Telefone = "11900001111",
             Endereco = "Rua Teste, 999"
@@ -77,7 +77,7 @@ public class ClientesControllerTests
         var dto = new CriarClienteDto
         {
             Nome = "Cliente Duplicado",
-            Cpf = "52998224725", // CPF do Carlos Silva do DbSeeder
+            Documento = "52998224725", // CPF do Carlos Silva do DbSeeder
             Email = "duplicado@teste.com",
             Telefone = "11900002222",
             Endereco = "Rua Dup, 1"
@@ -117,7 +117,7 @@ public class ClientesControllerTests
         var criar = new CriarClienteDto
         {
             Nome = "Para Atualizar",
-            Cpf = "11122233396",
+            Documento = "11122233396",
             Email = "atualizar@teste.com",
             Telefone = "11900001234",
             Endereco = "Rua Velha, 1"
@@ -128,7 +128,7 @@ public class ClientesControllerTests
         var dto = new CriarClienteDto
         {
             Nome = "Nome Atualizado",
-            Cpf = "11122233300",
+            Documento = "11122233300",
             Email = "atualizado@teste.com",
             Telefone = "11900009999",
             Endereco = "Rua Nova, 2"
@@ -145,7 +145,7 @@ public class ClientesControllerTests
     public async Task Atualizar_IdInexistente_DeveRetornar404()
     {
         var client = await CriarClienteAutenticadoAsync();
-        var dto = new CriarClienteDto { Nome = "X", Cpf = "12345678901", Email = "x@x.com", Telefone = "11900000000", Endereco = "X" };
+        var dto = new CriarClienteDto { Nome = "X", Documento = "12345678901", Email = "x@x.com", Telefone = "11900000000", Endereco = "X" };
 
         var response = await client.PutAsJsonAsync($"/api/clientes/{Guid.NewGuid()}", dto);
 
@@ -161,7 +161,7 @@ public class ClientesControllerTests
         var dto = new CriarClienteDto
         {
             Nome = "Fluxo Completo",
-            Cpf = "13579246828",
+            Documento = "13579246828",
             Email = "fluxo@teste.com",
             Telefone = "11911112222",
             Endereco = "Av. Fluxo, 100"
