@@ -22,7 +22,7 @@ public class PecaServiceTests
     public async Task ObterTodosAsync_DeveRetornarListaMapeada()
     {
         var pecas = new[] { new Peca("Filtro", "Desc", 35m, 10) };
-        _repoMock.Setup(r => r.ObterTodosAsync()).ReturnsAsync(pecas);
+        _repoMock.Setup(r => r.ObterAtivosAsync()).ReturnsAsync(pecas);
 
         var resultado = await _sut.ObterTodosAsync();
 

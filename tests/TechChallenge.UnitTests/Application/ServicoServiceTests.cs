@@ -22,7 +22,7 @@ public class ServicoServiceTests
     public async Task ObterTodosAsync_DeveRetornarListaMapeada()
     {
         var servicos = new[] { new Servico("Troca de Óleo", "Desc", 80m, 30) };
-        _repoMock.Setup(r => r.ObterTodosAsync()).ReturnsAsync(servicos);
+        _repoMock.Setup(r => r.ObterAtivosAsync()).ReturnsAsync(servicos);
 
         var resultado = await _sut.ObterTodosAsync();
 
