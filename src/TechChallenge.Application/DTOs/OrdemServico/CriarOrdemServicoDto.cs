@@ -4,11 +4,13 @@ namespace TechChallenge.Application.DTOs.OrdemServico;
 
 public class CriarOrdemServicoDto
 {
+    /// <summary>CPF (11 dígitos) ou CNPJ (14 dígitos) do cliente</summary>
     [Required]
-    public Guid ClienteId { get; set; }
+    public string DocumentoCliente { get; set; } = string.Empty;
 
+    /// <summary>Placa do veículo (formato ABC1234 ou Mercosul ABC1D23)</summary>
     [Required]
-    public Guid VeiculoId { get; set; }
+    public string PlacaVeiculo { get; set; } = string.Empty;
 
     [MaxLength(500)]
     public string Observacoes { get; set; } = string.Empty;
