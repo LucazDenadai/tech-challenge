@@ -30,6 +30,7 @@ public class OrdemServicoRepository : BaseRepository<OrdemServico>, IOrdemServic
             .Include(o => o.ItensServico).ThenInclude(i => i.Servico)
             .Include(o => o.ItensPeca).ThenInclude(i => i.Peca)
             .Include(o => o.Historico)
+            .OrderByDescending(o => o.DataAbertura)
             .ToListAsync();
 
     public async Task<OrdemServico?> ObterComDetalhesAsync(Guid id)
@@ -49,6 +50,15 @@ public class OrdemServicoRepository : BaseRepository<OrdemServico>, IOrdemServic
             .Include(o => o.Historico)
             .FirstOrDefaultAsync(o => o.Numero == numero);
 
+    public async Task<OrdemServico?> ObterComDetalhesPorNumeroAsync(string numero)
+        => await _dbSet
+            .Include(o => o.Cliente)
+            .Include(o => o.Veiculo)
+            .Include(o => o.ItensServico).ThenInclude(i => i.Servico)
+            .Include(o => o.ItensPeca).ThenInclude(i => i.Peca)
+            .Include(o => o.Historico)
+            .FirstOrDefaultAsync(o => o.Numero == numero);
+
     public async Task<IEnumerable<OrdemServico>> ObterPorClienteAsync(Guid clienteId)
         => await _dbSet
             .Include(o => o.Cliente)
@@ -56,6 +66,7 @@ public class OrdemServicoRepository : BaseRepository<OrdemServico>, IOrdemServic
             .Include(o => o.ItensServico).ThenInclude(i => i.Servico)
             .Include(o => o.ItensPeca).ThenInclude(i => i.Peca)
             .Where(o => o.ClienteId == clienteId)
+            .OrderByDescending(o => o.DataAbertura)
             .ToListAsync();
 
     public async Task<IEnumerable<OrdemServico>> ObterPorStatusAsync(StatusOrdemServico status)
@@ -65,17 +76,33 @@ public class OrdemServicoRepository : BaseRepository<OrdemServico>, IOrdemServic
             .Include(o => o.ItensServico).ThenInclude(i => i.Servico)
             .Include(o => o.ItensPeca).ThenInclude(i => i.Peca)
             .Where(o => o.Status == status)
+            .OrderByDescending(o => o.DataAbertura)
             .ToListAsync();
 
-    public async Task<IEnumerable<OrdemServico>> FiltrarAsync(Guid? clienteId, StatusOrdemServico? status)
-        => await _dbSet
+    public async Task<IEnumerable<OrdemServico>> FiltrarAsync(string? busca, StatusOrdemServico? status)
+    {
+        var query = _dbSet
             .Include(o => o.Cliente)
             .Include(o => o.Veiculo)
             .Include(o => o.ItensServico).ThenInclude(i => i.Servico)
             .Include(o => o.ItensPeca).ThenInclude(i => i.Peca)
-            .Where(o => (clienteId == null || o.ClienteId == clienteId)
-                     && (status == null || o.Status == status))
-            .ToListAsync();
+            .Include(o => o.Historico)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(busca))
+        {
+            var buscaUpper = busca.ToUpperInvariant();
+            query = query.Where(o =>
+                o.Numero.ToUpper().Contains(buscaUpper) ||
+                (o.Cliente != null && o.Cliente.Documento.Contains(busca)) ||
+                (o.Veiculo != null && o.Veiculo.Placa.ToUpper().Contains(buscaUpper)));
+        }
+
+        if (status.HasValue)
+            query = query.Where(o => o.Status == status.Value);
+
+        return await query.OrderByDescending(o => o.DataAbertura).ToListAsync();
+    }
 
     public async Task<(double TempoMedioHoras, int Total)> ObterTempoMedioExecucaoAsync()
     {

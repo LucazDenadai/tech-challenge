@@ -117,5 +117,28 @@ public static class DbSeeder
 
         await context.OrdensServico.AddRangeAsync(os001, os002, os003, os004, os005, os006, os007, os008);
         await context.SaveChangesAsync();
+
+        // Ajusta datas para tempo médio realista (1-3 dias) nas OS finalizadas/entregues
+        await context.Database.ExecuteSqlRawAsync(@"
+            UPDATE ""OrdensServico"" SET ""DataAbertura"" = NOW() - INTERVAL '3 days', ""DataFechamento"" = NOW() - INTERVAL '1 day'
+            WHERE ""Numero"" IN ('OS-2026-0001', 'OS-2026-0008');
+            UPDATE ""OrdensServico"" SET ""DataAbertura"" = NOW() - INTERVAL '5 days', ""DataFechamento"" = NOW() - INTERVAL '3 days'
+            WHERE ""Numero"" = 'OS-2026-0002';
+
+            WITH ranked AS (
+                SELECT h.""Id"",
+                       ROW_NUMBER() OVER (PARTITION BY h.""OrdemServicoId"" ORDER BY h.""DataAlteracao"") AS rn,
+                       COUNT(*) OVER (PARTITION BY h.""OrdemServicoId"") AS cnt,
+                       os.""DataAbertura"",
+                       os.""DataFechamento""
+                FROM ""HistoricoStatusOS"" h
+                JOIN ""OrdensServico"" os ON os.""Id"" = h.""OrdemServicoId""
+                WHERE os.""Numero"" IN ('OS-2026-0001', 'OS-2026-0002', 'OS-2026-0008')
+            )
+            UPDATE ""HistoricoStatusOS"" h
+            SET ""DataAlteracao"" = r.""DataAbertura"" + (r.""DataFechamento"" - r.""DataAbertura"") * r.rn::float / (r.cnt + 1)
+            FROM ranked r
+            WHERE h.""Id"" = r.""Id"";
+        ");
     }
 }

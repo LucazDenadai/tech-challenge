@@ -14,4 +14,7 @@ public class UsuarioRepository : BaseRepository<Usuario>, IUsuarioRepository
 
     public async Task<bool> EmailExisteAsync(string email, Guid? excluirId = null)
         => await _dbSet.AnyAsync(u => u.Email == email && (excluirId == null || u.Id != excluirId));
+
+    public async Task<IEnumerable<Usuario>> BuscarPorEmailAsync(string email)
+        => await _dbSet.Where(u => u.Ativo && u.Email.ToLower().Contains(email.ToLower())).ToListAsync();
 }

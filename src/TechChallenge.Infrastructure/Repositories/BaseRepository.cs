@@ -39,6 +39,6 @@ public abstract class BaseRepository<T> : IRepository<T> where T : class
         return Task.CompletedTask;
     }
 
-    public async Task<int> SalvarAsync()
+    public virtual async Task<int> SalvarAsync()
         => await _context.SaveChangesAsync();
 }

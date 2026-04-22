@@ -15,28 +15,30 @@ public class ClienteRepository : BaseRepository<Cliente>, IClienteRepository
         => await _dbSet.FirstOrDefaultAsync(c => c.Documento == documento);
 
     public async Task<bool> DocumentoExisteAsync(string documento, Guid? excluirId = null)
-        => await _dbSet.AnyAsync(c => c.Documento == documento && (excluirId == null || c.Id != excluirId));
+        => await _dbSet.AnyAsync(c => c.Documento == documento && c.Ativo && (excluirId == null || c.Id != excluirId));
 
     public async Task<IEnumerable<Cliente>> BuscarAsync(string termo)
         => await _dbSet.Where(c =>
+            c.Ativo && (
             c.Nome.ToLower().Contains(termo.ToLower()) ||
             c.Documento.Contains(termo) ||
-            c.Email.ToLower().Contains(termo.ToLower()))
+            c.Email.ToLower().Contains(termo.ToLower())))
         .ToListAsync();
 
     public async Task<IEnumerable<(Cliente Cliente, int TotalOrdens)>> ObterTodosComDetalhesAsync()
         => await _dbSet
+            .Where(c => c.Ativo)
             .Include(c => c.Veiculos)
             .Select(c => new ValueTuple<Cliente, int>(c, _context.Set<OrdemServico>().Count(o => o.ClienteId == c.Id)))
             .ToListAsync();
 
     public async Task<IEnumerable<(Cliente Cliente, int TotalOrdens)>> BuscarComDetalhesAsync(string termo)
         => await _dbSet
-            .Include(c => c.Veiculos)
-            .Where(c =>
+            .Where(c => c.Ativo && (
                 c.Nome.ToLower().Contains(termo.ToLower()) ||
                 c.Documento.Contains(termo) ||
-                c.Email.ToLower().Contains(termo.ToLower()))
+                c.Email.ToLower().Contains(termo.ToLower())))
+            .Include(c => c.Veiculos)
             .Select(c => new ValueTuple<Cliente, int>(c, _context.Set<OrdemServico>().Count(o => o.ClienteId == c.Id)))
             .ToListAsync();
 }
