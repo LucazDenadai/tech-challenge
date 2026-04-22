@@ -26,11 +26,12 @@ public class VeiculosControllerTests
         return client;
     }
 
-    private async Task<Guid> ObterPrimeiroClienteIdAsync(HttpClient client)
+    private async Task<(Guid clienteId, string documento)> ObterPrimeiroClienteAsync(HttpClient client)
     {
         var response = await client.GetAsync("/api/clientes");
         var lista = await response.Content.ReadFromJsonAsync<IEnumerable<ClienteDto>>();
-        return lista!.First().Id;
+        var primeiro = lista!.First();
+        return (primeiro.Id, primeiro.Documento);
     }
 
     [Fact]
@@ -60,10 +61,10 @@ public class VeiculosControllerTests
     public async Task Criar_ClienteExiste_DeveRetornar201()
     {
         var client = await CriarClienteAutenticadoAsync();
-        var clienteId = await ObterPrimeiroClienteIdAsync(client);
+        var (_, documento) = await ObterPrimeiroClienteAsync(client);
         var dto = new CriarVeiculoDto
         {
-            ClienteId = clienteId,
+            DocumentoCliente = documento,
             Placa = "TST0001",
             Marca = "Toyota",
             Modelo = "Yaris",
@@ -86,7 +87,7 @@ public class VeiculosControllerTests
         var client = await CriarClienteAutenticadoAsync();
         var dto = new CriarVeiculoDto
         {
-            ClienteId = Guid.NewGuid(),
+            DocumentoCliente = "00000000000",
             Placa = "TST9999",
             Marca = "Ford",
             Modelo = "Ka",
@@ -113,7 +114,7 @@ public class VeiculosControllerTests
     public async Task ObterPorCliente_DeveRetornarVeiculosDoCliente()
     {
         var client = await CriarClienteAutenticadoAsync();
-        var clienteId = await ObterPrimeiroClienteIdAsync(client);
+        var (clienteId, _) = await ObterPrimeiroClienteAsync(client);
 
         var response = await client.GetAsync($"/api/veiculos/cliente/{clienteId}");
 
@@ -127,12 +128,12 @@ public class VeiculosControllerTests
     public async Task FluxoCompleto_CriarAtualizarRemover_DevePassar()
     {
         var client = await CriarClienteAutenticadoAsync();
-        var clienteId = await ObterPrimeiroClienteIdAsync(client);
+        var (_, documento) = await ObterPrimeiroClienteAsync(client);
 
         // Criar
         var dto = new CriarVeiculoDto
         {
-            ClienteId = clienteId,
+            DocumentoCliente = documento,
             Placa = "FLX0001",
             Marca = "VW",
             Modelo = "Polo",
@@ -144,10 +145,8 @@ public class VeiculosControllerTests
         var criado = await createResponse.Content.ReadFromJsonAsync<VeiculoDto>();
 
         // Atualizar
-        var dtoAtualizar = new CriarVeiculoDto
+        var dtoAtualizar = new AtualizarVeiculoDto
         {
-            ClienteId = clienteId,
-            Placa = "FLX0001",
             Marca = "VW",
             Modelo = "Polo",
             Ano = 2023,
@@ -167,8 +166,7 @@ public class VeiculosControllerTests
     public async Task Atualizar_IdInexistente_DeveRetornar404()
     {
         var client = await CriarClienteAutenticadoAsync();
-        var clienteId = await ObterPrimeiroClienteIdAsync(client);
-        var dto = new CriarVeiculoDto { ClienteId = clienteId, Placa = "XXX0000", Marca = "X", Modelo = "X", Ano = 2020, Cor = "X" };
+        var dto = new AtualizarVeiculoDto { Marca = "X", Modelo = "X", Ano = 2020, Cor = "X" };
 
         var response = await client.PutAsJsonAsync($"/api/veiculos/{Guid.NewGuid()}", dto);
 

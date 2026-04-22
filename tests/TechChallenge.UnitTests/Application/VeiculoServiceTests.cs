@@ -76,8 +76,8 @@ public class VeiculoServiceTests
     [Fact]
     public async Task CriarAsync_ClienteNaoEncontrado_DeveLancarExcecao()
     {
-        var dto = new CriarVeiculoDto { ClienteId = Guid.NewGuid(), Placa = "ABC1234", Marca = "Toyota", Modelo = "Corolla", Ano = 2020, Cor = "Prata" };
-        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(dto.ClienteId)).ReturnsAsync((Cliente?)null);
+        var dto = new CriarVeiculoDto { DocumentoCliente = "52998224725", Placa = "ABC1234", Marca = "Toyota", Modelo = "Corolla", Ano = 2020, Cor = "Prata" };
+        _clienteRepoMock.Setup(r => r.ObterPorDocumentoAsync("52998224725")).ReturnsAsync((Cliente?)null);
 
         var act = async () => await _sut.CriarAsync(dto);
 
@@ -88,10 +88,10 @@ public class VeiculoServiceTests
     [Fact]
     public async Task CriarAsync_ClienteExiste_DeveCriarERetornarDto()
     {
-        var clienteId = Guid.NewGuid();
         var cliente = new Cliente("Carlos Silva", "52998224725", "carlos@email.com", "11987654321", "Rua das Flores");
-        var dto = new CriarVeiculoDto { ClienteId = clienteId, Placa = "GHI9012", Marca = "VW", Modelo = "Golf", Ano = 2022, Cor = "Branco" };
-        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(clienteId)).ReturnsAsync(cliente);
+        var dto = new CriarVeiculoDto { DocumentoCliente = "52998224725", Placa = "GHI9012", Marca = "VW", Modelo = "Golf", Ano = 2022, Cor = "Branco" };
+        _clienteRepoMock.Setup(r => r.ObterPorDocumentoAsync("52998224725")).ReturnsAsync(cliente);
+        _repoMock.Setup(r => r.ObterPorPlacaAsync(It.IsAny<string>())).ReturnsAsync((Veiculo?)null);
         _repoMock.Setup(r => r.AdicionarAsync(It.IsAny<Veiculo>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
 
@@ -110,7 +110,7 @@ public class VeiculoServiceTests
     {
         _repoMock.Setup(r => r.ObterPorIdAsync(It.IsAny<Guid>())).ReturnsAsync((Veiculo?)null);
 
-        var act = async () => await _sut.AtualizarAsync(Guid.NewGuid(), new CriarVeiculoDto());
+        var act = async () => await _sut.AtualizarAsync(Guid.NewGuid(), new AtualizarVeiculoDto());
 
         await act.Should().ThrowAsync<KeyNotFoundException>()
             .WithMessage("*Veículo não encontrado*");
@@ -122,7 +122,7 @@ public class VeiculoServiceTests
         var id = Guid.NewGuid();
         var clienteId = Guid.NewGuid();
         var veiculo = new Veiculo(clienteId, "ABC1234", "Toyota", "Corolla", 2020, "Prata");
-        var dto = new CriarVeiculoDto { ClienteId = clienteId, Placa = "ABC1234", Marca = "Toyota", Modelo = "Corolla", Ano = 2021, Cor = "Azul" };
+        var dto = new AtualizarVeiculoDto { Marca = "Toyota", Modelo = "Corolla", Ano = 2021, Cor = "Azul" };
         _repoMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync(veiculo);
         _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<Veiculo>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);

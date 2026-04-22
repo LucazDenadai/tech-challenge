@@ -57,10 +57,11 @@ public class ClienteServiceTests
     }
 
     [Fact]
-    public async Task CriarAsync_DocumentoJaCadastrado_DeveLancarExcecao()
+    public async Task CriarAsync_DocumentoJaCadastradoEAtivo_DeveLancarExcecao()
     {
+        var clienteAtivo = new Cliente("João", "52998224725", "j@e.com", "11999", "Rua");
         var dto = new CriarClienteDto { Nome = "João", Documento = "52998224725", Email = "j@e.com", Telefone = "11999", Endereco = "Rua" };
-        _repoMock.Setup(r => r.DocumentoExisteAsync(dto.Documento, null)).ReturnsAsync(true);
+        _repoMock.Setup(r => r.ObterPorDocumentoAsync(dto.Documento)).ReturnsAsync(clienteAtivo);
 
         var act = async () => await _sut.CriarAsync(dto);
 
@@ -72,7 +73,7 @@ public class ClienteServiceTests
     public async Task CriarAsync_DadosValidos_DeveCriarERetornarDto()
     {
         var dto = new CriarClienteDto { Nome = "João", Documento = "52998224725", Email = "j@e.com", Telefone = "11999", Endereco = "Rua" };
-        _repoMock.Setup(r => r.DocumentoExisteAsync(dto.Documento, null)).ReturnsAsync(false);
+        _repoMock.Setup(r => r.ObterPorDocumentoAsync(dto.Documento)).ReturnsAsync((Cliente?)null);
         _repoMock.Setup(r => r.AdicionarAsync(It.IsAny<Cliente>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
 
@@ -91,24 +92,10 @@ public class ClienteServiceTests
         var id = Guid.NewGuid();
         _repoMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync((Cliente?)null);
 
-        var act = async () => await _sut.AtualizarAsync(id, new CriarClienteDto());
+        var act = async () => await _sut.AtualizarAsync(id, new AtualizarClienteDto());
 
         await act.Should().ThrowAsync<KeyNotFoundException>()
             .WithMessage("*Cliente não encontrado*");
-    }
-
-    [Fact]
-    public async Task AtualizarAsync_DocumentoDuplicado_DeveLancarExcecao()
-    {
-        var id = Guid.NewGuid();
-        var cliente = new Cliente("João", "52998224725", "j@e.com", "11999", "Rua");
-        var dto = new CriarClienteDto { Nome = "João 2", Documento = "11144477735", Email = "j2@e.com", Telefone = "11888", Endereco = "Rua 2" };
-        _repoMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync(cliente);
-        _repoMock.Setup(r => r.DocumentoExisteAsync(dto.Documento, id)).ReturnsAsync(true);
-
-        var act = async () => await _sut.AtualizarAsync(id, dto);
-
-        await act.Should().ThrowAsync<InvalidOperationException>();
     }
 
     [Fact]
@@ -116,9 +103,8 @@ public class ClienteServiceTests
     {
         var id = Guid.NewGuid();
         var cliente = new Cliente("João", "52998224725", "j@e.com", "11999", "Rua A");
-        var dto = new CriarClienteDto { Nome = "João Atualizado", Documento = "52998224725", Email = "j2@e.com", Telefone = "11888", Endereco = "Rua B" };
+        var dto = new AtualizarClienteDto { Nome = "João Atualizado", Email = "j2@e.com", Telefone = "11888", Endereco = "Rua B" };
         _repoMock.Setup(r => r.ObterPorIdAsync(id)).ReturnsAsync(cliente);
-        _repoMock.Setup(r => r.DocumentoExisteAsync(dto.Documento, id)).ReturnsAsync(false);
         _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<Cliente>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
 

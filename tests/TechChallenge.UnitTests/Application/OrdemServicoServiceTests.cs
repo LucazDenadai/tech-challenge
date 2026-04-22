@@ -105,13 +105,13 @@ public class OrdemServicoServiceTests
         var veiculo = new Veiculo(cliente.Id, "ABC1234", "Toyota", "Corolla", 2020, "Prata");
         var dto = new CriarOrdemServicoDto
         {
-            ClienteId = cliente.Id,
-            VeiculoId = veiculo.Id,
+            DocumentoCliente = "52998224725",
+            PlacaVeiculo = "ABC1234",
             Observacoes = "Revisão geral"
         };
 
-        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(cliente.Id)).ReturnsAsync(cliente);
-        _veiculoRepoMock.Setup(r => r.ObterPorIdAsync(veiculo.Id)).ReturnsAsync(veiculo);
+        _clienteRepoMock.Setup(r => r.ObterPorDocumentoAsync("52998224725")).ReturnsAsync(cliente);
+        _veiculoRepoMock.Setup(r => r.ObterPorPlacaAsync("ABC1234")).ReturnsAsync(veiculo);
         _repoMock.Setup(r => r.GerarNumeroAsync()).ReturnsAsync("OS-2026-0001");
         _repoMock.Setup(r => r.AdicionarAsync(It.IsAny<OrdemServico>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
@@ -125,8 +125,8 @@ public class OrdemServicoServiceTests
     [Fact]
     public async Task CriarAsync_ClienteNaoEncontrado_DeveLancarExcecao()
     {
-        var dto = new CriarOrdemServicoDto { ClienteId = Guid.NewGuid(), VeiculoId = Guid.NewGuid() };
-        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(dto.ClienteId)).ReturnsAsync((Cliente?)null);
+        var dto = new CriarOrdemServicoDto { DocumentoCliente = "52998224725", PlacaVeiculo = "ABC1234" };
+        _clienteRepoMock.Setup(r => r.ObterPorDocumentoAsync("52998224725")).ReturnsAsync((Cliente?)null);
 
         var act = async () => await _sut.CriarAsync(dto);
 
@@ -136,14 +136,13 @@ public class OrdemServicoServiceTests
     [Fact]
     public async Task CriarAsync_VeiculoNaoPertenceAoCliente_DeveLancarExcecao()
     {
-        var clienteId = Guid.NewGuid();
         var outroClienteId = Guid.NewGuid();
         var cliente = new Cliente("Carlos", "52998224725", "c@c.com", "11999999999", "Rua A");
         var veiculo = new Veiculo(outroClienteId, "ABC1234", "Toyota", "Corolla", 2020, "Prata");
-        var dto = new CriarOrdemServicoDto { ClienteId = clienteId, VeiculoId = Guid.NewGuid() };
+        var dto = new CriarOrdemServicoDto { DocumentoCliente = "52998224725", PlacaVeiculo = "ABC1234" };
 
-        _clienteRepoMock.Setup(r => r.ObterPorIdAsync(dto.ClienteId)).ReturnsAsync(cliente);
-        _veiculoRepoMock.Setup(r => r.ObterPorIdAsync(dto.VeiculoId)).ReturnsAsync(veiculo);
+        _clienteRepoMock.Setup(r => r.ObterPorDocumentoAsync("52998224725")).ReturnsAsync(cliente);
+        _veiculoRepoMock.Setup(r => r.ObterPorPlacaAsync("ABC1234")).ReturnsAsync(veiculo);
 
         var act = async () => await _sut.CriarAsync(dto);
 
@@ -153,9 +152,9 @@ public class OrdemServicoServiceTests
     [Fact]
     public async Task AlterarStatusAsync_OrdemNaoEncontrada_DeveLancarExcecao()
     {
-        _repoMock.Setup(r => r.ObterComDetalhesAsync(It.IsAny<Guid>())).ReturnsAsync((OrdemServico?)null);
+        _repoMock.Setup(r => r.ObterComDetalhesPorNumeroAsync(It.IsAny<string>())).ReturnsAsync((OrdemServico?)null);
 
-        var act = async () => await _sut.AlterarStatusAsync(Guid.NewGuid(), new AlterarStatusDto { NovoStatus = StatusOrdemServico.EmDiagnostico });
+        var act = async () => await _sut.AlterarStatusAsync("OS-2026-0001", new AlterarStatusDto { NovoStatus = StatusOrdemServico.EmDiagnostico });
 
         await act.Should().ThrowAsync<KeyNotFoundException>()
             .WithMessage("*Ordem de Serviço não encontrada*");
@@ -165,11 +164,11 @@ public class OrdemServicoServiceTests
     public async Task AlterarStatusAsync_OrdemExiste_DeveAlterarStatus()
     {
         var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
-        _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
+        _repoMock.Setup(r => r.ObterComDetalhesPorNumeroAsync("OS-001")).ReturnsAsync(os);
         _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<OrdemServico>())).Returns(Task.CompletedTask);
         _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
 
-        var resultado = await _sut.AlterarStatusAsync(os.Id, new AlterarStatusDto { NovoStatus = StatusOrdemServico.EmDiagnostico });
+        var resultado = await _sut.AlterarStatusAsync("OS-001", new AlterarStatusDto { NovoStatus = StatusOrdemServico.EmDiagnostico });
 
         resultado.Status.Should().Be(StatusOrdemServico.EmDiagnostico);
     }
@@ -178,9 +177,9 @@ public class OrdemServicoServiceTests
     public async Task AlterarStatusAsync_StatusInvalido_DeveLancarExcecao()
     {
         var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
-        _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
+        _repoMock.Setup(r => r.ObterComDetalhesPorNumeroAsync("OS-001")).ReturnsAsync(os);
 
-        var act = async () => await _sut.AlterarStatusAsync(os.Id, new AlterarStatusDto { NovoStatus = StatusOrdemServico.Entregue });
+        var act = async () => await _sut.AlterarStatusAsync("OS-001", new AlterarStatusDto { NovoStatus = StatusOrdemServico.Entregue });
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
