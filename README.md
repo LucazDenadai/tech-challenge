@@ -79,19 +79,28 @@ tests/
    dotnet restore
    ```
 
-3. **Execute as migrations** (se necessário):
+3. **Configure os segredos de desenvolvimento** (user-secrets — ficam fora do repositório):
    ```bash
-   cd src/TechChallenge.API
-   dotnet ef database update
+   dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
+     "Host=localhost;Port=5432;Database=techchallengedb;Username=postgres;Password=postgres123" \
+     --project src/TechChallenge.API
+
+   dotnet user-secrets set "JWT_KEY" "chave-secreta-dev-minimo-32-caracteres!!" \
+     --project src/TechChallenge.API
    ```
 
-4. **Execute a aplicação**:
+4. **Execute as migrations** (se necessário):
+   ```bash
+   dotnet ef database update --project src/TechChallenge.Infrastructure --startup-project src/TechChallenge.API
+   ```
+
+5. **Execute a aplicação**:
    ```bash
    dotnet run --project src/TechChallenge.API
    ```
 
-5. **Acesse**:
-   - API: http://localhost:5121 (porta padrão do launchSettings.json)
+6. **Acesse**:
+   - API: http://localhost:5121
    - Swagger: http://localhost:5121/swagger
 
 ## Testes

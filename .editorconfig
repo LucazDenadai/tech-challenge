@@ -76,6 +76,10 @@ dotnet_diagnostic.IDE0055.severity                                   = warning  
 [*.{json,yml,yaml}]
 indent_size = 2
 
+# ─── Migrations (código gerado pelo EF Core) ─────────────────────────────────
+[**/Migrations/**.cs]
+dotnet_diagnostic.S1192.severity = none
+
 # ─── XML (csproj, slnx, etc.) ────────────────────────────────────────────────
 [*.{csproj,slnx,xml,config,props,targets}]
 indent_size = 2

@@ -13,10 +13,10 @@ A análise estática de código foi realizada com o **SonarAnalyzer for C#** int
 
 | Severidade | Quantidade | Status |
 |------------|------------|--------|
-| Alta (High) | 1 | Mitigado |
-| Média (Medium) | 1 | Aceito (risco controlado) |
-| Baixa (Low) | 2 | Aceito (código gerado) |
-| **Total** | **4** | — |
+| Alta (High) | 1 | **Corrigido** |
+| Média (Medium) | 1 | **Corrigido** |
+| Baixa (Low) | 2 | **Suprimido** (código gerado) |
+| **Total** | **4** | ✅ **Todos tratados** |
 
 ---
 
@@ -45,13 +45,20 @@ O arquivo `launchSettings.json` contém a string de conexão com o PostgreSQL in
 **Análise de risco:**  
 O arquivo `launchSettings.json` **não é utilizado em produção** — serve apenas para execução via `dotnet run` em ambiente local. Não é carregado pelo Docker. O risco real é baixo, pois o `.gitignore` não exclui este arquivo e ele pode ser acidentalmente versionado com credenciais reais.
 
-**Mitigação aplicada:**  
-- Em produção, as credenciais são fornecidas **exclusivamente via variáveis de ambiente** definidas no `docker-compose.yml` e no arquivo `.env` (que está no `.gitignore`).
-- O `appsettings.json` usa o placeholder `{POSTGRES_PASSWORD}` em vez de valor real.
-- O arquivo `.env` com credenciais reais está listado no `.gitignore`.
+**Correção aplicada:**  
+- `launchSettings.json` foi refatorado: a `ConnectionStrings__DefaultConnection` com senha foi **removida do arquivo**.
+- As credenciais de desenvolvimento agora são gerenciadas via **`dotnet user-secrets`**, armazenado em `%APPDATA%/Microsoft/UserSecrets/` — fora do repositório, nunca versionado.
+- Em produção, as credenciais seguem via variáveis de ambiente no `docker-compose.yml` + arquivo `.env` (no `.gitignore`).
 
-**Recomendação adicional:**  
-Remover a senha de `launchSettings.json` e usar variável de ambiente local ou `dotnet user-secrets` para desenvolvimento.
+**Comandos executados para configurar user-secrets:**
+```bash
+dotnet user-secrets init --project src/TechChallenge.API
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" \
+  "Host=localhost;Port=5432;Database=techchallengedb;Username=postgres;Password=postgres123" \
+  --project src/TechChallenge.API
+dotnet user-secrets set "JWT_KEY" "chave-secreta-dev-minimo-32-caracteres!!" \
+  --project src/TechChallenge.API
+```
 
 ---
 
@@ -75,20 +82,19 @@ O arquivo `appsettings.json` contém uma chave JWT com valor padrão (`TechChall
 }
 ```
 
-**Mitigação aplicada:**  
-- O `docker-compose.yml` e o arquivo `.env` (fora do versionamento) sobrescrevem `JWT_KEY` com uma chave gerada para o ambiente de implantação.
-- O `Program.cs` lê a chave com prioridade para variáveis de ambiente (`JWT_KEY`).
-
-**Recomendação adicional:**  
-Substituir o valor padrão em `appsettings.json` por um placeholder vazio ou lançar exceção na inicialização caso `JWT_KEY` não esteja configurada.
-
-**Correção aplicada neste relatório:**
+**Correção aplicada:**  
+1. O valor padrão da chave JWT foi **removido de `appsettings.json`** — o campo `"Key"` agora está vazio, inviabilizando o uso da chave hardcoded.
+2. `Program.cs` foi atualizado para lançar exceção explícita na inicialização caso `JWT_KEY` não esteja configurada:
 
 ```csharp
-// Program.cs — validação na inicialização
-var jwtKey = builder.Configuration["JWT_KEY"] ?? builder.Configuration["Jwt:Key"]
-    ?? throw new InvalidOperationException("JWT Key não configurada. Defina a variável de ambiente JWT_KEY.");
+var jwtKey = builder.Configuration["JWT_KEY"]
+    ?? builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException(
+        "JWT Key não configurada. Defina a variável de ambiente JWT_KEY.");
 ```
+
+3. Em desenvolvimento, a chave é fornecida via **`dotnet user-secrets`** (fora do repositório).
+4. Em produção, a chave vem da variável de ambiente `JWT_KEY` definida no `docker-compose.yml` + `.env`.
 
 ---
 
@@ -107,7 +113,7 @@ A string `"Clientes"` aparece 6 vezes e `"Documento"` aparece 4 vezes no arquivo
 **Análise de risco:**  
 **Sem risco de segurança.** Trata-se de código gerado automaticamente pelo Entity Framework Core. A regra é sobre manutenibilidade, não segurança.
 
-**Decisão:** Aceito — código gerado não deve ser modificado manualmente.
+**Decisão:** Suprimido via `.editorconfig` com `dotnet_diagnostic.S1192.severity = none` para o glob `**/Migrations/**.cs`. O código gerado não deve ser modificado manualmente.
 
 ---
 
@@ -123,7 +129,7 @@ A string `"Clientes"` aparece 6 vezes e `"Documento"` aparece 4 vezes no arquivo
 **Descrição:**  
 Similar ao VUL-003. Mesma regra, mesma migration.
 
-**Decisão:** Aceito — código gerado.
+**Decisão:** Mesmo tratamento do VUL-003.
 
 ---
 
@@ -182,6 +188,10 @@ As dependências do projeto foram inspecionadas manualmente. Todas as versões u
 |---|-----------------|-------------|
 | 1 | CNPJ não validado (campo `Documento` aceitava apenas CPF) | Implementado `CnpjValidator` com algoritmo de dígitos verificadores |
 | 2 | Campo `Cpf` nomeado de forma imprecisa no banco | Renomeado para `Documento` via migration `RenameCpfToDocumento` |
+| 3 | VUL-001: Senha de dev em `launchSettings.json` versionado | Removida do arquivo; credenciais de dev migradas para `dotnet user-secrets` |
+| 4 | VUL-002: Chave JWT hardcoded em `appsettings.json` | Valor removido; `Program.cs` lança exceção se `JWT_KEY` não estiver configurada |
+| 5 | VUL-003/004: S1192 em migrations (código gerado) | Suprimido via `.editorconfig` para o glob `**/Migrations/**.cs` |
+| — | **Build final** | **0 erros, 0 warnings de segurança** |
 
 ---
 

@@ -17,11 +17,9 @@
       "applicationUrl": "https://localhost:7212;http://localhost:5121",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "JWT_KEY": "chave-secreta-dev-minimo-32-caracteres!!",
         "JWT_ISSUER": "TechChallenge",
         "JWT_AUDIENCE": "TechChallengeUsers",
-        "JWT_EXPIRACAO_MINUTOS": "60",
-        "ConnectionStrings__DefaultConnection": "Host=localhost;Port=5432;Database=techchallengedb;Username=postgres;Password=postgres123"
+        "JWT_EXPIRACAO_MINUTOS": "60"
       }
     }
   }
