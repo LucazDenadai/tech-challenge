@@ -46,30 +46,38 @@ public class OrdemServicoService : IOrdemServicoService
     public async Task<IEnumerable<OrdemServicoDto>> ObterPorStatusAsync(StatusOrdemServico status)
         => (await _repo.ObterPorStatusAsync(status)).Select(MapDto);
 
-    public async Task<IEnumerable<OrdemServicoDto>> FiltrarAsync(Guid? clienteId, StatusOrdemServico? status)
-        => (await _repo.FiltrarAsync(clienteId, status)).Select(MapDto);
+    public async Task<IEnumerable<OrdemServicoDto>> FiltrarAsync(string? busca, StatusOrdemServico? status)
+        => (await _repo.FiltrarAsync(busca, status)).Select(MapDto);
 
     public async Task<OrdemServicoDto> CriarAsync(CriarOrdemServicoDto dto)
     {
-        var cliente = await _clienteRepo.ObterPorIdAsync(dto.ClienteId)
-            ?? throw new KeyNotFoundException("Cliente não encontrado.");
+        var cliente = await _clienteRepo.ObterPorDocumentoAsync(dto.DocumentoCliente)
+            ?? throw new KeyNotFoundException("Cliente não encontrado para o documento informado.");
 
-        var veiculo = await _veiculoRepo.ObterPorIdAsync(dto.VeiculoId)
-            ?? throw new KeyNotFoundException("Veículo não encontrado.");
+        if (!cliente.Ativo)
+        {
+            throw new InvalidOperationException("O cliente informado está inativo.");
+        }
+
+        var placaNormalizada = dto.PlacaVeiculo.Replace("-", "").Replace(" ", "").ToUpperInvariant();
+        var veiculo = await _veiculoRepo.ObterPorPlacaAsync(placaNormalizada)
+            ?? throw new KeyNotFoundException("Veículo não encontrado para a placa informada.");
 
         if (veiculo.ClienteId != cliente.Id)
+        {
             throw new InvalidOperationException("O veículo não pertence ao cliente informado.");
+        }
 
         var numero = await _repo.GerarNumeroAsync();
-        var os = new OrdemServico(numero, dto.ClienteId, dto.VeiculoId, dto.Observacoes);
+        var os = new OrdemServico(numero, cliente.Id, veiculo.Id, dto.Observacoes);
         await _repo.AdicionarAsync(os);
         await _repo.SalvarAsync();
         return MapDto(os);
     }
 
-    public async Task<OrdemServicoDto> AlterarStatusAsync(Guid id, AlterarStatusDto dto)
+    public async Task<OrdemServicoDto> AlterarStatusAsync(string numero, AlterarStatusDto dto)
     {
-        var os = await _repo.ObterComDetalhesAsync(id)
+        var os = await _repo.ObterComDetalhesPorNumeroAsync(numero.ToUpperInvariant())
             ?? throw new KeyNotFoundException("Ordem de Serviço não encontrada.");
         os.AlterarStatus(dto.NovoStatus);
         await _repo.AtualizarAsync(os);
@@ -119,7 +127,7 @@ public class OrdemServicoService : IOrdemServicoService
             os.RemoverItemPeca(itemId);
             var peca = await _pecaRepo.ObterPorIdAsync(itemPeca.PecaId);
             peca?.AdicionarEstoque(itemPeca.Quantidade);
-            if (peca is not null) await _pecaRepo.AtualizarAsync(peca);
+            if (peca is not null) { await _pecaRepo.AtualizarAsync(peca); }
         }
 
         await _repo.AtualizarAsync(os);
@@ -130,7 +138,7 @@ public class OrdemServicoService : IOrdemServicoService
     public async Task<AcompanhamentoOsDto?> AcompanharPorNumeroAsync(string numero)
     {
         var os = await _repo.ObterPorNumeroAsync(numero.ToUpperInvariant());
-        if (os is null) return null;
+        if (os is null) { return null; }
 
         return new AcompanhamentoOsDto
         {
@@ -177,6 +185,80 @@ public class OrdemServicoService : IOrdemServicoService
     {
         var (tempoMedio, total) = await _repo.ObterTempoMedioExecucaoAsync();
         return new TempoMedioExecucaoDto { TempoMedioHoras = tempoMedio, TotalOrdensAnalisadas = total };
+    }
+
+    public async Task<TempoIndividualOsDto?> ObterTempoIndividualAsync(string numero)
+    {
+        var os = await _repo.ObterComDetalhesPorNumeroAsync(numero.ToUpperInvariant());
+        if (os is null) { return null; }
+
+        var agora = DateTime.UtcNow;
+        var fim = os.DataFechamento ?? agora;
+        var totalSpan = fim - os.DataAbertura;
+
+        var historico = os.Historico.OrderBy(h => h.DataAlteracao).ToList();
+        var temposPorStatus = new List<TempoPorStatusDto>();
+
+        if (historico.Count == 0)
+        {
+            temposPorStatus.Add(new TempoPorStatusDto
+            {
+                Status = os.Status.ToString(),
+                TempoHoras = Math.Round(totalSpan.TotalHours, 2),
+                TempoFormatado = FormatarTempo(totalSpan)
+            });
+        }
+        else
+        {
+            var pontos = new List<(DateTime Momento, string Status)>
+            {
+                (os.DataAbertura, historico[0].StatusAnterior.ToString())
+            };
+            foreach (var h in historico)
+                pontos.Add((h.DataAlteracao, h.StatusNovo.ToString()));
+
+            for (var i = 0; i < pontos.Count; i++)
+            {
+                var proximoMomento = i + 1 < pontos.Count ? pontos[i + 1].Momento : fim;
+                var span = proximoMomento - pontos[i].Momento;
+                if (span < TimeSpan.Zero) span = TimeSpan.Zero;
+                temposPorStatus.Add(new TempoPorStatusDto
+                {
+                    Status = pontos[i].Status,
+                    TempoHoras = Math.Round(span.TotalHours, 2),
+                    TempoFormatado = FormatarTempo(span)
+                });
+            }
+        }
+
+        var obs = os.DataFechamento.HasValue
+            ? "OS finalizada."
+            : "OS em andamento — tempo calculado até o momento atual.";
+
+        return new TempoIndividualOsDto
+        {
+            Numero = os.Numero,
+            Status = os.Status.ToString(),
+            DataAbertura = os.DataAbertura,
+            DataFechamento = os.DataFechamento,
+            TempoTotalHoras = Math.Round(totalSpan.TotalHours, 2),
+            TempoTotalFormatado = FormatarTempo(totalSpan),
+            Observacao = obs,
+            TemposPorStatus = temposPorStatus
+        };
+    }
+
+    private static string FormatarTempo(TimeSpan ts)
+    {
+        var dias = (int)ts.TotalDays;
+        var horas = ts.Hours;
+        var minutos = ts.Minutes;
+
+        if (dias > 0 && horas > 0) return $"{dias} dia(s) e {horas}h";
+        if (dias > 0) return $"{dias} dia(s)";
+        if (horas > 0 && minutos > 0) return $"{horas}h {minutos}min";
+        if (horas > 0) return $"{horas}h";
+        return $"{minutos}min";
     }
 
     private static OrdemServicoDto MapDto(OrdemServico os) => new()

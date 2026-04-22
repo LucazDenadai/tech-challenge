@@ -12,7 +12,10 @@ public class PecaService : IPecaService
     public PecaService(IPecaRepository repo) => _repo = repo;
 
     public async Task<IEnumerable<PecaDto>> ObterTodosAsync()
-        => (await _repo.ObterTodosAsync()).Select(MapDto);
+        => (await _repo.ObterAtivosAsync()).Select(MapDto);
+
+    public async Task<IEnumerable<PecaDto>> BuscarPorNomeAsync(string nome)
+        => (await _repo.BuscarPorNomeAsync(nome)).Select(MapDto);
 
     public async Task<PecaDto?> ObterPorIdAsync(Guid id)
     {
@@ -33,7 +36,7 @@ public class PecaService : IPecaService
         var peca = await _repo.ObterPorIdAsync(id)
             ?? throw new KeyNotFoundException("Peça não encontrada.");
         peca.Atualizar(dto.Nome, dto.Descricao, dto.Preco);
-        if (dto.QuantidadeEstoque > 0) peca.AdicionarEstoque(dto.QuantidadeEstoque);
+        if (dto.QuantidadeEstoque > 0) { peca.AdicionarEstoque(dto.QuantidadeEstoque); }
         await _repo.AtualizarAsync(peca);
         await _repo.SalvarAsync();
         return MapDto(peca);

@@ -9,16 +9,16 @@ public class UsuarioService : IUsuarioService
 {
     private readonly IUsuarioRepository _repo;
 
-    public UsuarioService(IUsuarioRepository repo)
-    {
-        _repo = repo;
-    }
+    public UsuarioService(IUsuarioRepository repo) => _repo = repo;
 
     public async Task<IEnumerable<UsuarioDto>> ObterTodosAsync()
     {
         var lista = await _repo.ObterTodosAsync();
-        return lista.Select(MapDto);
+        return lista.Where(u => u.Ativo).Select(MapDto);
     }
+
+    public async Task<IEnumerable<UsuarioDto>> BuscarPorEmailAsync(string email)
+        => (await _repo.BuscarPorEmailAsync(email)).Select(MapDto);
 
     public async Task<UsuarioDto?> ObterPorIdAsync(Guid id)
     {
@@ -29,7 +29,9 @@ public class UsuarioService : IUsuarioService
     public async Task<UsuarioDto> CriarAsync(CriarUsuarioDto dto)
     {
         if (await _repo.EmailExisteAsync(dto.Email))
+        {
             throw new InvalidOperationException("E-mail já cadastrado.");
+        }
 
         var senhaHash = BCrypt.Net.BCrypt.HashPassword(dto.Senha);
         var usuario = new Usuario(dto.Nome, dto.Email, senhaHash, dto.Perfil);
@@ -44,11 +46,15 @@ public class UsuarioService : IUsuarioService
             ?? throw new KeyNotFoundException("Usuário não encontrado.");
 
         if (await _repo.EmailExisteAsync(dto.Email, id))
+        {
             throw new InvalidOperationException("E-mail já cadastrado.");
+        }
 
         usuario.Atualizar(dto.Nome, dto.Email, dto.Perfil);
         if (!string.IsNullOrEmpty(dto.Senha))
+        {
             usuario.AlterarSenha(BCrypt.Net.BCrypt.HashPassword(dto.Senha));
+        }
 
         await _repo.AtualizarAsync(usuario);
         await _repo.SalvarAsync();

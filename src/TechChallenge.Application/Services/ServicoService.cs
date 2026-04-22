@@ -12,7 +12,7 @@ public class ServicoService : IServicoService
     public ServicoService(IServicoRepository repo) => _repo = repo;
 
     public async Task<IEnumerable<ServicoDto>> ObterTodosAsync()
-        => (await _repo.ObterTodosAsync()).Select(MapDto);
+        => (await _repo.ObterAtivosAsync()).Select(MapDto);
 
     public async Task<ServicoDto?> ObterPorIdAsync(Guid id)
     {
