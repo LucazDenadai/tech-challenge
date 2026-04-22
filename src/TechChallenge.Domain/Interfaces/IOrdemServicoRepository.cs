@@ -7,9 +7,10 @@ public interface IOrdemServicoRepository : IRepository<OrdemServico>
 {
     Task<OrdemServico?> ObterComDetalhesAsync(Guid id);
     Task<OrdemServico?> ObterPorNumeroAsync(string numero);
+    Task<OrdemServico?> ObterComDetalhesPorNumeroAsync(string numero);
     Task<IEnumerable<OrdemServico>> ObterPorClienteAsync(Guid clienteId);
     Task<IEnumerable<OrdemServico>> ObterPorStatusAsync(StatusOrdemServico status);
-    Task<IEnumerable<OrdemServico>> FiltrarAsync(Guid? clienteId, StatusOrdemServico? status);
+    Task<IEnumerable<OrdemServico>> FiltrarAsync(string? busca, StatusOrdemServico? status);
     Task<string> GerarNumeroAsync();
     Task<(double TempoMedioHoras, int Total)> ObterTempoMedioExecucaoAsync();
 }
