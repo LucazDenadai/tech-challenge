@@ -12,21 +12,21 @@ public static class CnpjValidator
 
     public static bool Valido(string cnpj)
     {
-        var digits = Regex.Replace(cnpj ?? "", @"\D", "", RegexOptions.None, TimeSpan.FromMilliseconds(100));
+        var chars = Regex.Replace((cnpj ?? "").ToUpperInvariant(), @"[.\-/\s]", "", RegexOptions.None, TimeSpan.FromMilliseconds(100));
 
-        if (digits.Length != 14)
+        if (chars.Length != 14)
             return false;
 
-        if (digits.Distinct().Count() == 1)
+        if (chars.Distinct().Count() == 1)
             return false;
 
-        return CalcularDigito(digits, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) == int.Parse(digits[12].ToString())
-            && CalcularDigito(digits, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) == int.Parse(digits[13].ToString());
+        return CalcularDigito(chars, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) == (chars[12] - '0')
+            && CalcularDigito(chars, [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]) == (chars[13] - '0');
     }
 
-    private static int CalcularDigito(string digits, int[] pesos)
+    private static int CalcularDigito(string chars, int[] pesos)
     {
-        var soma = pesos.Select((p, i) => int.Parse(digits[i].ToString()) * p).Sum();
+        var soma = pesos.Select((p, i) => (chars[i] - 48) * p).Sum();
         var resto = soma % 11;
         return resto < 2 ? 0 : 11 - resto;
     }

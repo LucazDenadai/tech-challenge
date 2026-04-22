@@ -25,20 +25,30 @@ public class ClienteService : IClienteService
 
     public async Task<ClienteDto> CriarAsync(CriarClienteDto dto)
     {
-        if (await _repo.DocumentoExisteAsync(dto.Documento))
-            throw new InvalidOperationException("CPF/CNPJ já cadastrado.");
-        var cliente = new Cliente(dto.Nome, dto.Documento, dto.Email, dto.Telefone, dto.Endereco);
+        var documento = Cliente.Sanitizar(dto.Documento);
+        var existente = await _repo.ObterPorDocumentoAsync(documento);
+        if (existente is not null)
+        {
+            if (existente.Ativo)
+            {
+                throw new InvalidOperationException("CPF/CNPJ já cadastrado para um cliente ativo.");
+            }
+            existente.Ativar(dto.Nome, dto.Email, dto.Telefone, dto.Endereco);
+            await _repo.AtualizarAsync(existente);
+            await _repo.SalvarAsync();
+            return MapDto(existente);
+        }
+
+        var cliente = new Cliente(dto.Nome, documento, dto.Email, dto.Telefone, dto.Endereco);
         await _repo.AdicionarAsync(cliente);
         await _repo.SalvarAsync();
         return MapDto(cliente);
     }
 
-    public async Task<ClienteDto> AtualizarAsync(Guid id, CriarClienteDto dto)
+    public async Task<ClienteDto> AtualizarAsync(Guid id, AtualizarClienteDto dto)
     {
         var cliente = await _repo.ObterPorIdAsync(id)
             ?? throw new KeyNotFoundException("Cliente não encontrado.");
-        if (await _repo.DocumentoExisteAsync(dto.Documento, id))
-            throw new InvalidOperationException("CPF/CNPJ já cadastrado.");
         cliente.Atualizar(dto.Nome, dto.Email, dto.Telefone, dto.Endereco);
         await _repo.AtualizarAsync(cliente);
         await _repo.SalvarAsync();
