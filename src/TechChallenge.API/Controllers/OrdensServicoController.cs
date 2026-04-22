@@ -17,15 +17,15 @@ public class OrdensServicoController : ControllerBase
     public OrdensServicoController(IOrdemServicoService service) => _service = service;
 
     /// <summary>
-    /// Listar ordens de serviço com filtros opcionais.
-    /// clienteId: filtra pelo cliente. status: Recebida | EmDiagnostico | AguardandoAprovacao | EmExecucao | Finalizada | Entregue
+    /// Listar ordens de serviço. Use ?busca= para filtrar por número da OS, documento do cliente ou placa do veículo.
+    /// Use ?status= para filtrar por status: Recebida | EmDiagnostico | AguardandoAprovacao | EmExecucao | Finalizada | Entregue | Cancelada
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<OrdemServicoDto>), 200)]
     public async Task<IActionResult> Listar(
-        [FromQuery] Guid? clienteId,
+        [FromQuery] string? busca,
         [FromQuery] StatusOrdemServico? status)
-        => Ok(await _service.FiltrarAsync(clienteId, status));
+        => Ok(await _service.FiltrarAsync(busca, status));
 
     /// <summary>Obter ordem de serviço por ID</summary>
     [HttpGet("{id:guid}")]
@@ -52,7 +52,9 @@ public class OrdensServicoController : ControllerBase
         return dto is null ? NotFound(new { message = $"OS '{numero}' não encontrada." }) : Ok(dto);
     }
 
-    /// <summary>Criar nova ordem de serviço</summary>
+    /// <summary>
+    /// Criar nova ordem de serviço informando o documento do cliente (CPF/CNPJ) e a placa do veículo.
+    /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(OrdemServicoDto), 201)]
     [ProducesResponseType(400)]
@@ -64,19 +66,25 @@ public class OrdensServicoController : ControllerBase
             return CreatedAtAction(nameof(ObterPorId), new { id = criado.Id }, criado);
         }
         catch (KeyNotFoundException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
     }
 
     /// <summary>
-    /// Alterar status da OS. Para avançar informe o próximo status na sequência.
-    /// Para cancelar informe Cancelada — permitido a qualquer momento.
+    /// Alterar status da OS informando o número (ex: OS-2026-0001).
     /// Sequência: Recebida → EmDiagnostico → AguardandoAprovacao → EmExecucao → Finalizada → Entregue
+    /// Para cancelar informe Cancelada — permitido a qualquer momento.
+    /// Status disponíveis: 1=Recebida | 2=EmDiagnostico | 3=AguardandoAprovacao | 4=EmExecucao | 5=Finalizada | 6=Entregue | 7=Cancelada
     /// </summary>
-    [HttpPatch("{id:guid}/status")]
+    [HttpPatch("{numero}/status")]
     [ProducesResponseType(typeof(OrdemServicoDto), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> AlterarStatus(Guid id, [FromBody] AlterarStatusDto dto)
-        => Ok(await _service.AlterarStatusAsync(id, dto));
+    public async Task<IActionResult> AlterarStatus(string numero, [FromBody] AlterarStatusDto dto)
+    {
+        try { return Ok(await _service.AlterarStatusAsync(numero, dto)); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
 
     /// <summary>Adicionar serviço ou peça à ordem (só em EmDiagnostico ou EmExecucao)</summary>
     [HttpPost("{id:guid}/itens")]
@@ -84,13 +92,31 @@ public class OrdensServicoController : ControllerBase
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> AdicionarItem(Guid id, [FromBody] AdicionarItemDto dto)
-        => Ok(await _service.AdicionarItemAsync(id, dto));
+    {
+        try { return Ok(await _service.AdicionarItemAsync(id, dto)); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
 
-    /// <summary>Tempo médio de execução das ordens finalizadas (em horas)</summary>
+    /// <summary>Tempo médio global de execução das ordens finalizadas (em horas)</summary>
     [HttpGet("tempo-medio")]
     [ProducesResponseType(typeof(TempoMedioExecucaoDto), 200)]
     public async Task<IActionResult> ObterTempoMedio()
         => Ok(await _service.ObterTempoMedioExecucaoAsync());
+
+    /// <summary>
+    /// Tempo de execução de uma OS específica pelo número (ex: OS-2026-0001).
+    /// Para OS finalizada mostra o tempo real; para OS em andamento mostra o tempo decorrido até agora.
+    /// Referência: tempo ideal de 1 a 3 dias úteis.
+    /// </summary>
+    [HttpGet("{numero}/tempo")]
+    [ProducesResponseType(typeof(TempoIndividualOsDto), 200)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> ObterTempoIndividual(string numero)
+    {
+        var dto = await _service.ObterTempoIndividualAsync(numero);
+        return dto is null ? NotFound(new { message = $"OS '{numero}' não encontrada." }) : Ok(dto);
+    }
 
     /// <summary>Cancelar item da ordem (só em EmDiagnostico)</summary>
     [HttpDelete("{id:guid}/itens/{itemId:guid}")]
@@ -98,5 +124,9 @@ public class OrdensServicoController : ControllerBase
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> CancelarItem(Guid id, Guid itemId)
-        => Ok(await _service.CancelarItemAsync(id, itemId));
+    {
+        try { return Ok(await _service.CancelarItemAsync(id, itemId)); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
 }

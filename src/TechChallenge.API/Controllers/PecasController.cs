@@ -15,10 +15,17 @@ public class PecasController : ControllerBase
 
     public PecasController(IPecaService service) => _service = service;
 
-    /// <summary>Listar todas as peças</summary>
+    /// <summary>Listar peças ativas. Use ?nome= para filtrar por nome.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<PecaDto>), 200)]
-    public async Task<IActionResult> ObterTodos() => Ok(await _service.ObterTodosAsync());
+    public async Task<IActionResult> ObterTodos([FromQuery] string? nome)
+    {
+        if (!string.IsNullOrWhiteSpace(nome))
+        {
+            return Ok(await _service.BuscarPorNomeAsync(nome));
+        }
+        return Ok(await _service.ObterTodosAsync());
+    }
 
     /// <summary>Obter peça por ID</summary>
     [HttpGet("{id:guid}")]

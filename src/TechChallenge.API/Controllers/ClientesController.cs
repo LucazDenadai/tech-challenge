@@ -15,7 +15,7 @@ public class ClientesController : ControllerBase
 
     public ClientesController(IClienteService service) => _service = service;
 
-    /// <summary>Listar todos os clientes ou buscar por nome, CPF ou e-mail</summary>
+    /// <summary>Listar todos os clientes ativos ou buscar por nome, CPF/CNPJ ou e-mail</summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<ClienteDto>), 200)]
     public async Task<IActionResult> ObterTodos([FromQuery] string? busca)
@@ -37,32 +37,45 @@ public class ClientesController : ControllerBase
         return dto is null ? NotFound() : Ok(dto);
     }
 
-    /// <summary>Criar novo cliente</summary>
+    /// <summary>
+    /// Criar novo cliente.
+    /// Se o CPF/CNPJ pertencer a um cliente inativo, ele será reativado com os novos dados.
+    /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(ClienteDto), 201)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Criar([FromBody] CriarClienteDto dto)
     {
-        var criado = await _service.CriarAsync(dto);
-        return CreatedAtAction(nameof(ObterPorId), new { id = criado.Id }, criado);
+        try
+        {
+            var criado = await _service.CriarAsync(dto);
+            return CreatedAtAction(nameof(ObterPorId), new { id = criado.Id }, criado);
+        }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
     }
 
-    /// <summary>Atualizar cliente</summary>
+    /// <summary>Atualizar dados do cliente (nome, e-mail, telefone, endereço — documento não é alterável)</summary>
     [HttpPut("{id:guid}")]
     [ProducesResponseType(typeof(ClienteDto), 200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> Atualizar(Guid id, [FromBody] CriarClienteDto dto)
+    public async Task<IActionResult> Atualizar(Guid id, [FromBody] AtualizarClienteDto dto)
     {
-        return Ok(await _service.AtualizarAsync(id, dto));
+        try { return Ok(await _service.AtualizarAsync(id, dto)); }
+        catch (KeyNotFoundException) { return NotFound(); }
     }
 
-    /// <summary>Desativar cliente</summary>
+    /// <summary>Desativar cliente (soft delete)</summary>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Desativar(Guid id)
     {
-        await _service.DesativarAsync(id);
-        return NoContent();
+        try
+        {
+            await _service.DesativarAsync(id);
+            return NoContent();
+        }
+        catch (KeyNotFoundException) { return NotFound(); }
     }
 }
