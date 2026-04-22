@@ -189,13 +189,6 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
 - `PUT /api/clientes/{id}` - Atualizar cliente
 - `DELETE /api/clientes/{id}` - Desativar cliente
 
-### Veículos
-- `GET /api/veiculos` - Listar todos os veículos
-- `GET /api/veiculos/{id}` - Obter veículo por ID
-- `POST /api/veiculos` - Criar novo veículo
-- `PUT /api/veiculos/{id}` - Atualizar veículo
-- `DELETE /api/veiculos/{id}` - Desativar veículo
-
 ### Serviços
 - `GET /api/servicos` - Listar todos os serviços
 - `GET /api/servicos/{id}` - Obter serviço por ID
@@ -210,18 +203,27 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
 - `PUT /api/pecas/{id}` - Atualizar peça
 - `DELETE /api/pecas/{id}` - Desativar peça
 
+### Veículos
+- `GET /api/veiculos` - Listar todos os veículos
+- `GET /api/veiculos/{id}` - Obter veículo por ID
+- `GET /api/veiculos/por-documento/{documento}` - Listar veículos por CPF/CNPJ do cliente
+- `POST /api/veiculos` - Criar veículo (body: `documentoCliente`, `placa`, `marca`, `modelo`, `ano`, `cor`)
+- `PUT /api/veiculos/{id}` - Atualizar veículo
+- `DELETE /api/veiculos/{id}` - Remover veículo
+
 ### Ordens de Serviço
 
 > O endpoint de acompanhamento é **público** (sem JWT) — destinado ao cliente final.
 
-- `GET /api/ordensservico/acompanhar/{numero}` - **Público** — cliente consulta status pelo número da OS (ex: OS-2026-0001)
-- `GET /api/ordensservico` - Listar ordens com filtros (`?clienteId=&status=`)
+- `GET /api/ordensservico/acompanhar/{numero}` - **Público** — cliente consulta status pelo número (ex: `OS-2026-0001`)
+- `GET /api/ordensservico` - Listar ordens com filtros (`?busca=documento|placa|numero&status=`)
 - `GET /api/ordensservico/{id}` - Obter ordem por ID
 - `GET /api/ordensservico/tempo-medio` - Tempo médio de execução das OS finalizadas
-- `POST /api/ordensservico` - Criar nova ordem
-- `PATCH /api/ordensservico/{id}/status` - Alterar status (sequência obrigatória)
+- `GET /api/ordensservico/{numero}/tempo` - Tempo detalhado por status de uma OS específica
+- `POST /api/ordensservico` - Criar OS (body: `documentoCliente`, `placaVeiculo`, `observacoes`)
+- `PATCH /api/ordensservico/{numero}/status` - Alterar status pelo número da OS
 - `POST /api/ordensservico/{id}/itens` - Adicionar serviço ou peça à OS
-- `DELETE /api/ordensservico/{id}/itens/{itemId}` - Cancelar item da OS (devolve estoque)
+- `DELETE /api/ordensservico/{id}/itens/{itemId}` - Cancelar item da OS (devolve estoque ao estoque)
 
 ## Lint
 
@@ -258,18 +260,19 @@ Aguarde 1-2 minutos e acesse http://localhost:9000 (admin/admin na primeira vez)
 # 1. Instale o sonarscanner (uma vez)
 dotnet tool install -g dotnet-sonarscanner
 
-# 2. Inicia a sessão de análise
-dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="http://localhost:9000" /d:sonar.login="admin" /d:sonar.password="admin" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/Program.cs,**/*Tests.cs,**/Migrations/**"
+# 2. Gere um token em: http://localhost:9000 → My Account → Security → Generate Token
 
-# 3. Build
-cd ..
+# 3. Inicia a sessão de análise (substitua SEU_TOKEN pelo token gerado)
+dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="http://localhost:9000" /d:sonar.token="SEU_TOKEN" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/Program.cs,**/*Tests.cs,**/Migrations/**"
+
+# 4. Build
 dotnet build
 
-# 4. Testes com cobertura (gera os XMLs que o Sonar vai ler)
+# 5. Testes com cobertura (gera os XMLs que o Sonar vai ler)
 dotnet test --settings coverlet.runsettings
 
-# 5. Finaliza e envia os resultados
-dotnet sonarscanner end /d:sonar.login="admin" /d:sonar.password="admin"
+# 6. Finaliza e envia os resultados
+dotnet sonarscanner end /d:sonar.token="SEU_TOKEN"
 ```
 
 Visualize os resultados em http://localhost:9000/projects.
@@ -287,14 +290,6 @@ cd src/TechChallenge.API
 dotnet ef migrations add NomeDaMigration
 dotnet ef database update
 ```
-
-## Contribuição
-
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -am 'Adiciona nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request
 
 ## Licença
 
