@@ -280,4 +280,30 @@ public class OrdensServicoControllerTests
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
+
+    [Fact]
+    public async Task AdicionarServico_Duplicado_DeveRetornar400()
+    {
+        var client = await CriarClienteAutenticadoAsync();
+        var (documento, placa, _, _) = await ObterDocumentoEPlacaSeededAsync(client);
+
+        var criarDto = new CriarOrdemServicoDto { DocumentoCliente = documento, PlacaVeiculo = placa };
+        var createResponse = await client.PostAsJsonAsync("/api/ordensservico", criarDto);
+        var os = await createResponse.Content.ReadFromJsonAsync<OrdemServicoDto>(AuthHelper.JsonOptions);
+
+        var statusDto = new AlterarStatusDto { NovoStatus = TechChallenge.Domain.Enums.StatusOrdemServico.EmDiagnostico };
+        await client.PatchAsJsonAsync($"/api/ordensservico/{os!.Numero}/status", statusDto, AuthHelper.JsonOptions);
+
+        var servicosResponse = await client.GetAsync("/api/servicos");
+        var servicos = await servicosResponse.Content.ReadFromJsonAsync<IEnumerable<ServicoDto>>();
+        var servico = servicos!.First();
+
+        var adicionarDto = new AdicionarItemServicoDto { ServicoId = servico.Id };
+        await client.PostAsJsonAsync($"/api/ordensservico/{os.Id}/servicos", adicionarDto);
+
+        // Segunda tentativa com o mesmo serviço deve retornar 400
+        var response = await client.PostAsJsonAsync($"/api/ordensservico/{os.Id}/servicos", adicionarDto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
 }

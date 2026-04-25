@@ -80,6 +80,8 @@ public class OrdemServico : EntityBase
     {
         if (Status != StatusOrdemServico.EmDiagnostico && Status != StatusOrdemServico.EmExecucao)
             throw new InvalidOperationException($"Não é possível adicionar serviços com a OS no status '{Status}'.");
+        if (_itensServico.Any(i => i.ServicoId == item.ServicoId))
+            throw new InvalidOperationException($"O serviço já foi adicionado a esta OS.");
         _itensServico.Add(item);
     }
 
