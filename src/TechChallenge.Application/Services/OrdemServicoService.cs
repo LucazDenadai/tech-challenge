@@ -87,22 +87,57 @@ public class OrdemServicoService : IOrdemServicoService
 
     public async Task<OrdemServicoDto> AdicionarItemAsync(Guid ordemId, AdicionarItemDto dto)
     {
+        // 1. Obter e validar ordem de serviço
         var os = await _repo.ObterComDetalhesAsync(ordemId)
             ?? throw new KeyNotFoundException("Ordem de Serviço não encontrada.");
 
+        // Validar status da OS - só permite adicionar itens em EmDiagnostico ou EmExecucao
+        if (os.Status != StatusOrdemServico.EmDiagnostico && os.Status != StatusOrdemServico.EmExecucao)
+        {
+            throw new InvalidOperationException(
+                $"Não é possível adicionar itens com a OS no status '{os.Status}'. " +
+                $"A OS deve estar em 'EmDiagnostico' ou 'EmExecucao'.");
+        }
+
+        // 2. Validar e obter o item (serviço ou peça)
         if (dto.Tipo == TipoItem.Servico)
         {
+            // 2a. Para SERVIÇO: apenas validar existência
             var servico = await _servicoRepo.ObterPorIdAsync(dto.ItemId)
-                ?? throw new KeyNotFoundException("Serviço não encontrado.");
+                ?? throw new KeyNotFoundException($"Serviço com ID '{dto.ItemId}' não encontrado.");
+
+            if (!servico.Ativo)
+            {
+                throw new InvalidOperationException(
+                    $"O serviço '{servico.Nome}' está inativo e não pode ser adicionado à OS.");
+            }
+
+            // 3a. Criar e vincular item de serviço
             os.AdicionarItemServico(new ItemServico(ordemId, dto.ItemId, dto.Quantidade, servico.Preco));
         }
         else
         {
+            // 2b. Para PEÇA: validar existência E estoque
             var peca = await _pecaRepo.ObterPorIdAsync(dto.ItemId)
-                ?? throw new KeyNotFoundException("Peça não encontrada.");
+                ?? throw new KeyNotFoundException($"Peça com ID '{dto.ItemId}' não encontrada.");
+
+            if (!peca.Ativo)
+            {
+                throw new InvalidOperationException(
+                    $"A peça '{peca.Nome}' está inativa e não pode ser adicionada à OS.");
+            }
+
+            // Validar estoque ANTES de consumir
+            if (peca.QuantidadeEstoque < dto.Quantidade)
+            {
+                throw new InvalidOperationException(
+                    $"Estoque insuficiente para a peça '{peca.Nome}'. " +
+                    $"Disponível: {peca.QuantidadeEstoque}, Solicitado: {dto.Quantidade}.");
+            }
+
+            // 3b. Consumir estoque e vincular item de peça
             peca.ConsumirEstoque(dto.Quantidade);
             os.AdicionarItemPeca(new ItemPeca(ordemId, dto.ItemId, dto.Quantidade, peca.Preco));
-            await _pecaRepo.AtualizarAsync(peca);
         }
 
         await _repo.AtualizarAsync(os);
