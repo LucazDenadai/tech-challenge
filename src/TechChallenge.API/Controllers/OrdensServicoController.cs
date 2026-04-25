@@ -86,14 +86,29 @@ public class OrdensServicoController : ControllerBase
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
     }
 
-    /// <summary>Adicionar serviço ou peça à ordem (só em EmDiagnostico ou EmExecucao)</summary>
-    [HttpPost("{id:guid}/itens")]
+    /// <summary>Adicionar serviço à ordem (só em EmDiagnostico ou EmExecucao)</summary>
+    [HttpPost("{id:guid}/servicos")]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(OrdemServicoDto), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> AdicionarItem(Guid id, [FromBody] AdicionarItemDto dto)
+    public async Task<IActionResult> AdicionarServico(Guid id, [FromBody] AdicionarItemServicoDto dto)
     {
-        try { return Ok(await _service.AdicionarItemAsync(id, dto)); }
+        var item = new AdicionarItemDto { Tipo = TipoItem.Servico, ItemId = dto.ServicoId, Quantidade = 1 };
+        try { return Ok(await _service.AdicionarItemAsync(id, item)); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    /// <summary>Adicionar peça à ordem (só em EmDiagnostico ou EmExecucao)</summary>
+    [HttpPost("{id:guid}/pecas")]
+    [ProducesResponseType(typeof(OrdemServicoDto), 200)]
+    [ProducesResponseType(400)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> AdicionarPeca(Guid id, [FromBody] AdicionarItemPecaDto dto)
+    {
+        var item = new AdicionarItemDto { Tipo = TipoItem.Peca, ItemId = dto.PecaId, Quantidade = dto.Quantidade };
+        try { return Ok(await _service.AdicionarItemAsync(id, item)); }
         catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
         catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
     }
