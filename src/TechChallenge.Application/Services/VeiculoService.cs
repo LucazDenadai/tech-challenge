@@ -43,7 +43,7 @@ public class VeiculoService : IVeiculoService
 
         var placaNormalizada = dto.Placa.Replace("-", "").Replace(" ", "").ToUpperInvariant();
         var existente = await _repo.ObterPorPlacaAsync(placaNormalizada);
-        if (existente is not null)
+        if (existente != null)
         {
             throw new InvalidOperationException($"Já existe um veículo cadastrado com a placa '{placaNormalizada}'.");
         }

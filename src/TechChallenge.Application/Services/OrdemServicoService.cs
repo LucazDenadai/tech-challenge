@@ -116,7 +116,7 @@ public class OrdemServicoService : IOrdemServicoService
             ?? throw new KeyNotFoundException("Ordem de Serviço não encontrada.");
 
         var itemServico = os.ItensServico.FirstOrDefault(i => i.Id == itemId);
-        if (itemServico is not null)
+        if (itemServico != null)
         {
             os.RemoverItemServico(itemId);
         }
@@ -127,7 +127,7 @@ public class OrdemServicoService : IOrdemServicoService
             os.RemoverItemPeca(itemId);
             var peca = await _pecaRepo.ObterPorIdAsync(itemPeca.PecaId);
             peca?.AdicionarEstoque(itemPeca.Quantidade);
-            if (peca is not null) { await _pecaRepo.AtualizarAsync(peca); }
+            if (peca != null) { await _pecaRepo.AtualizarAsync(peca); }
         }
 
         await _repo.AtualizarAsync(os);

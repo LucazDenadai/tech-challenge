@@ -27,7 +27,7 @@ public class ClienteService : IClienteService
     {
         var documento = Cliente.Sanitizar(dto.Documento);
         var existente = await _repo.ObterPorDocumentoAsync(documento);
-        if (existente is not null)
+        if (existente != null)
         {
             if (existente.Ativo)
             {

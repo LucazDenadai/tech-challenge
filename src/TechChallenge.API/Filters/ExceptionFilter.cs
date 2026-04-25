@@ -19,7 +19,7 @@ public class ExceptionFilter : IExceptionFilter
     {
         var exception = context.Exception;
 
-        _logger.LogError(exception, "Exceção não tratada: {Message}", exception.Message);
+        _logger.LogError(exception, "Exceção não tratada");
 
         context.Result = exception switch
         {
