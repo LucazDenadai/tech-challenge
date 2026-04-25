@@ -268,8 +268,8 @@ dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="http://localhos
 # 4. Build
 dotnet build
 
-# 5. Testes com cobertura (gera os XMLs que o Sonar vai ler)
-dotnet test --settings coverlet.runsettings
+# 5. Testes com cobertura (--no-build reutiliza os assemblies do passo 4, mantendo os hashes de módulo que o Sonar rastreou)
+dotnet test --no-build --settings coverlet.runsettings --collect:"XPlat Code Coverage"
 
 # 6. Finaliza e envia os resultados
 dotnet sonarscanner end /d:sonar.token="SEU_TOKEN"

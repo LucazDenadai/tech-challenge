@@ -24,4 +24,5 @@ FROM base AS final
 
 WORKDIR /app
 COPY --from=publish /app/publish .
+USER app
 ENTRYPOINT ["dotnet", "TechChallenge.API.dll"]
