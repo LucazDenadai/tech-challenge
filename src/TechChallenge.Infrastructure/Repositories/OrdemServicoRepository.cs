@@ -91,11 +91,11 @@ public class OrdemServicoRepository : BaseRepository<OrdemServico>, IOrdemServic
 
         if (!string.IsNullOrWhiteSpace(busca))
         {
-            var buscaUpper = busca.ToUpperInvariant();
+            var pattern = $"%{busca}%";
             query = query.Where(o =>
-                o.Numero.ToUpper().Contains(buscaUpper) ||
+                EF.Functions.ILike(o.Numero, pattern) ||
                 (o.Cliente != null && o.Cliente.Documento.Contains(busca)) ||
-                (o.Veiculo != null && o.Veiculo.Placa.ToUpper().Contains(buscaUpper)));
+                (o.Veiculo != null && EF.Functions.ILike(o.Veiculo.Placa, pattern)));
         }
 
         if (status.HasValue)

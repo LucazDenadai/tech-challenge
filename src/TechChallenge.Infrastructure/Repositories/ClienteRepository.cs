@@ -18,12 +18,15 @@ public class ClienteRepository : BaseRepository<Cliente>, IClienteRepository
         => await _dbSet.AnyAsync(c => c.Documento == documento && c.Ativo && (excluirId == null || c.Id != excluirId));
 
     public async Task<IEnumerable<Cliente>> BuscarAsync(string termo)
-        => await _dbSet.Where(c =>
+    {
+        var pattern = $"%{termo}%";
+        return await _dbSet.Where(c =>
             c.Ativo && (
-            c.Nome.ToLower().Contains(termo.ToLower()) ||
+            EF.Functions.ILike(c.Nome, pattern) ||
             c.Documento.Contains(termo) ||
-            c.Email.ToLower().Contains(termo.ToLower())))
+            EF.Functions.ILike(c.Email, pattern)))
         .ToListAsync();
+    }
 
     public async Task<IEnumerable<(Cliente Cliente, int TotalOrdens)>> ObterTodosComDetalhesAsync()
         => await _dbSet
@@ -33,12 +36,15 @@ public class ClienteRepository : BaseRepository<Cliente>, IClienteRepository
             .ToListAsync();
 
     public async Task<IEnumerable<(Cliente Cliente, int TotalOrdens)>> BuscarComDetalhesAsync(string termo)
-        => await _dbSet
+    {
+        var pattern = $"%{termo}%";
+        return await _dbSet
             .Where(c => c.Ativo && (
-                c.Nome.ToLower().Contains(termo.ToLower()) ||
+                EF.Functions.ILike(c.Nome, pattern) ||
                 c.Documento.Contains(termo) ||
-                c.Email.ToLower().Contains(termo.ToLower())))
+                EF.Functions.ILike(c.Email, pattern)))
             .Include(c => c.Veiculos)
             .Select(c => new ValueTuple<Cliente, int>(c, _context.Set<OrdemServico>().Count(o => o.ClienteId == c.Id)))
             .ToListAsync();
+    }
 }

@@ -13,5 +13,5 @@ public class PecaRepository : BaseRepository<Peca>, IPecaRepository
         => await _dbSet.Where(p => p.Ativo).ToListAsync();
 
     public async Task<IEnumerable<Peca>> BuscarPorNomeAsync(string nome)
-        => await _dbSet.Where(p => p.Ativo && p.Nome.ToLower().Contains(nome.ToLower())).ToListAsync();
+        => await _dbSet.Where(p => p.Ativo && EF.Functions.ILike(p.Nome, $"%{nome}%")).ToListAsync();
 }
