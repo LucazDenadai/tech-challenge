@@ -12,12 +12,36 @@ public class OrdemServicoRepository : BaseRepository<OrdemServico>, IOrdemServic
 
     public override Task AtualizarAsync(OrdemServico entidade)
     {
-        foreach (var historico in entidade.Historico)
+        // Disable AutoDetectChanges while inspecting child entity states.
+        // Local.Contains() and _context.Entry() both trigger DetectChanges when
+        // AutoDetectChangesEnabled is true. If DetectChanges runs before we explicitly
+        // Add new children, EF Core discovers them via collection snapshot and marks
+        // them as Modified (since the parent OS is Unchanged), causing a
+        // DbUpdateConcurrencyException when SaveChanges tries to UPDATE a non-existent row.
+        _context.ChangeTracker.AutoDetectChangesEnabled = false;
+        try
         {
-            if (_context.Entry(historico).State == EntityState.Detached)
+            foreach (var item in entidade.ItensServico)
             {
-                _context.Set<HistoricoStatusOS>().Add(historico);
+                var e = _context.Entry(item);
+                if (e.State == EntityState.Detached) e.State = EntityState.Added;
             }
+
+            foreach (var item in entidade.ItensPeca)
+            {
+                var e = _context.Entry(item);
+                if (e.State == EntityState.Detached) e.State = EntityState.Added;
+            }
+
+            foreach (var historico in entidade.Historico)
+            {
+                var e = _context.Entry(historico);
+                if (e.State == EntityState.Detached) e.State = EntityState.Added;
+            }
+        }
+        finally
+        {
+            _context.ChangeTracker.AutoDetectChangesEnabled = true;
         }
 
         return base.AtualizarAsync(entidade);

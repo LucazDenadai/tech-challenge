@@ -40,5 +40,15 @@ public abstract class BaseRepository<T> : IRepository<T> where T : class
     }
 
     public virtual async Task<int> SalvarAsync()
-        => await _context.SaveChangesAsync();
+    {
+        try
+        {
+            return await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new InvalidOperationException(
+                "O recurso foi alterado por outra operação simultânea. Tente novamente.");
+        }
+    }
 }
