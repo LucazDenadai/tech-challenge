@@ -26,7 +26,7 @@ public class VeiculosControllerTests
         return client;
     }
 
-    private async Task<(Guid clienteId, string documento)> ObterPrimeiroClienteAsync(HttpClient client)
+    private static async Task<(Guid clienteId, string documento)> ObterPrimeiroClienteAsync(HttpClient client)
     {
         var response = await client.GetAsync("/api/clientes");
         var lista = await response.Content.ReadFromJsonAsync<IEnumerable<ClienteDto>>();

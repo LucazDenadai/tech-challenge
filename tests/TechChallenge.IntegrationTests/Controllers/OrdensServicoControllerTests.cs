@@ -27,7 +27,7 @@ public class OrdensServicoControllerTests
         return client;
     }
 
-    private async Task<(string documento, string placa, Guid clienteId, Guid veiculoId)> ObterDocumentoEPlacaSeededAsync(HttpClient client)
+    private static async Task<(string documento, string placa, Guid clienteId, Guid veiculoId)> ObterDocumentoEPlacaSeededAsync(HttpClient client)
     {
         var veiculosResponse = await client.GetAsync("/api/veiculos");
         var veiculos = await veiculosResponse.Content.ReadFromJsonAsync<IEnumerable<VeiculoDto>>();
