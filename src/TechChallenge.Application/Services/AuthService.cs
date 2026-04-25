@@ -26,7 +26,9 @@ public class AuthService : IAuthService
         if (usuario is null || !usuario.Ativo) return null;
         if (!BCrypt.Net.BCrypt.Verify(loginDto.Senha, usuario.SenhaHash)) return null;
 
-        var jwtKey = _config["Jwt:Key"] ?? Environment.GetEnvironmentVariable("JWT_KEY") ?? "";
+        var jwtKey = (_config["Jwt:Key"] is { Length: > 0 } k ? k : null)
+            ?? Environment.GetEnvironmentVariable("JWT_KEY")
+            ?? "";
         var jwtIssuer = _config["Jwt:Issuer"] ?? Environment.GetEnvironmentVariable("JWT_ISSUER") ?? "";
         var jwtAudience = _config["Jwt:Audience"] ?? Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? "";
         var expiracaoMinutos = int.Parse(_config["Jwt:ExpiracaoMinutos"] ?? Environment.GetEnvironmentVariable("JWT_EXPIRACAO_MINUTOS") ?? "60");
@@ -54,10 +56,7 @@ public class AuthService : IAuthService
         return new TokenResponseDto
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
-            Expiracao = expiracao,
-            Nome = usuario.Nome,
-            Email = usuario.Email,
-            Perfil = usuario.Perfil.ToString()
+            Expiracao = expiracao
         };
     }
 }
