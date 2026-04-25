@@ -104,7 +104,7 @@ public class OrdemServicoService : IOrdemServicoService
         {
             // 2a. Para SERVIÇO: apenas validar existência
             var servico = await _servicoRepo.ObterPorIdAsync(dto.ItemId)
-                ?? throw new KeyNotFoundException($"Serviço com ID '{dto.ItemId}' não encontrado.");
+                ?? throw new KeyNotFoundException("Serviço não encontrado.");
 
             if (!servico.Ativo)
             {

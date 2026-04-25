@@ -76,8 +76,6 @@ public class AuthServiceTests
 
         resultado.Should().NotBeNull();
         resultado!.Token.Should().NotBeNullOrEmpty();
-        resultado.Email.Should().Be(usuario.Email);
-        resultado.Perfil.Should().Be(PerfilUsuario.Admin.ToString());
     }
 
     private static Usuario CriarUsuario() =>

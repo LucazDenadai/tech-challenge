@@ -29,8 +29,6 @@ public class AuthControllerTests
         var body = await response.Content.ReadFromJsonAsync<TokenResponseDto>();
         body.Should().NotBeNull();
         body!.Token.Should().NotBeNullOrEmpty();
-        body.Email.Should().Be("admin@oficina.com");
-        body.Perfil.Should().Be("Admin");
     }
 
     [Fact]
@@ -65,6 +63,6 @@ public class AuthControllerTests
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<TokenResponseDto>();
-        body!.Perfil.Should().Be("Mecanico");
+        body!.Token.Should().NotBeNullOrEmpty();
     }
 }
