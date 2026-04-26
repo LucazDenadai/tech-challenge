@@ -71,4 +71,29 @@ public class ClienteTests
         cliente.Ativo.Should().BeFalse();
         cliente.AtualizadoEm.Should().NotBeNull();
     }
+
+    [Fact]
+    public void Ativar_DeveDefinirAtivoComoTrueEAtualizarDados()
+    {
+        var cliente = CriarCliente();
+        cliente.Desativar();
+
+        cliente.Ativar("Novo Nome", "novo@email.com", "11900000000", "Nova Rua, 2");
+
+        cliente.Ativo.Should().BeTrue();
+        cliente.Nome.Should().Be("Novo Nome");
+        cliente.Email.Should().Be("novo@email.com");
+        cliente.Telefone.Should().Be("11900000000");
+        cliente.Endereco.Should().Be("Nova Rua, 2");
+        cliente.AtualizadoEm.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Construtor_DocumentoComTamanhoInvalido_DeveLancarArgumentException()
+    {
+        // 10 dígitos — nem CPF (11) nem CNPJ (14)
+        var act = () => new Cliente("Nome", "1234567890", "e@e.com", "11999", "Rua");
+
+        act.Should().Throw<ArgumentException>().WithMessage("*Documento inválido*");
+    }
 }

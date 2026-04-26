@@ -140,4 +140,44 @@ public class ClienteServiceTests
         cliente.Ativo.Should().BeFalse();
         _repoMock.Verify(r => r.AtualizarAsync(cliente), Times.Once);
     }
+
+    [Fact]
+    public async Task BuscarAsync_DeveRetornarClientesFiltrados()
+    {
+        IEnumerable<(Cliente Cliente, int TotalOrdens)> clientes = new[]
+        {
+            (new Cliente("João", "52998224725", "j@e.com", "11999", "Rua A"), 1),
+        };
+        _repoMock.Setup(r => r.BuscarComDetalhesAsync("João")).ReturnsAsync(clientes);
+
+        var resultado = await _sut.BuscarAsync("João");
+
+        resultado.Should().HaveCount(1);
+        resultado.First().Nome.Should().Be("João");
+    }
+
+    [Fact]
+    public async Task CriarAsync_ClienteInativoExistente_DeveReativarCliente()
+    {
+        var clienteInativo = new Cliente("João", "52998224725", "j@e.com", "11999", "Rua");
+        clienteInativo.Desativar();
+        var dto = new CriarClienteDto
+        {
+            Nome = "João Reativado",
+            Documento = "52998224725",
+            Email = "joaonovo@e.com",
+            Telefone = "11888",
+            Endereco = "Rua Nova"
+        };
+        _repoMock.Setup(r => r.ObterPorDocumentoAsync("52998224725")).ReturnsAsync(clienteInativo);
+        _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<Cliente>())).Returns(Task.CompletedTask);
+        _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
+
+        var resultado = await _sut.CriarAsync(dto);
+
+        resultado.Should().NotBeNull();
+        clienteInativo.Ativo.Should().BeTrue();
+        clienteInativo.Nome.Should().Be("João Reativado");
+        _repoMock.Verify(r => r.AtualizarAsync(clienteInativo), Times.Once);
+    }
 }

@@ -160,4 +160,84 @@ public class OrdemServicoTests
         os.Invoking(o => o.AdicionarItemPeca(item))
             .Should().Throw<InvalidOperationException>();
     }
+
+    [Fact]
+    public void AdicionarItemServico_ServicoJaAdicionado_DeveLancarExcecao()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        var servicoId = Guid.NewGuid();
+        os.AdicionarItemServico(new ItemServico(os.Id, servicoId, 1, 100m));
+
+        os.Invoking(o => o.AdicionarItemServico(new ItemServico(os.Id, servicoId, 1, 100m)))
+            .Should().Throw<InvalidOperationException>().WithMessage("*já foi adicionado*");
+    }
+
+    [Fact]
+    public void RemoverItemServico_EmDiagnostico_DeveRemoverItem()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        var item = new ItemServico(os.Id, Guid.NewGuid(), 1, 100m);
+        os.AdicionarItemServico(item);
+
+        os.RemoverItemServico(item.Id);
+
+        os.ItensServico.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoverItemServico_StatusInvalido_DeveLancarExcecao()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        os.AlterarStatus(StatusOrdemServico.AguardandoAprovacao);
+
+        os.Invoking(o => o.RemoverItemServico(Guid.NewGuid()))
+            .Should().Throw<InvalidOperationException>().WithMessage("*diagnóstico*");
+    }
+
+    [Fact]
+    public void RemoverItemServico_ItemNaoEncontrado_DeveLancarExcecao()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+
+        os.Invoking(o => o.RemoverItemServico(Guid.NewGuid()))
+            .Should().Throw<KeyNotFoundException>();
+    }
+
+    [Fact]
+    public void RemoverItemPeca_EmDiagnostico_DeveRemoverItem()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        var item = new ItemPeca(os.Id, Guid.NewGuid(), 2, 50m);
+        os.AdicionarItemPeca(item);
+
+        os.RemoverItemPeca(item.Id);
+
+        os.ItensPeca.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void RemoverItemPeca_StatusInvalido_DeveLancarExcecao()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        os.AlterarStatus(StatusOrdemServico.AguardandoAprovacao);
+
+        os.Invoking(o => o.RemoverItemPeca(Guid.NewGuid()))
+            .Should().Throw<InvalidOperationException>().WithMessage("*diagnóstico*");
+    }
+
+    [Fact]
+    public void RemoverItemPeca_ItemNaoEncontrado_DeveLancarExcecao()
+    {
+        var os = CriarOrdemServico();
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+
+        os.Invoking(o => o.RemoverItemPeca(Guid.NewGuid()))
+            .Should().Throw<KeyNotFoundException>();
+    }
 }

@@ -1,3 +1,4 @@
+using System.Reflection;
 using FluentAssertions;
 using Moq;
 using TechChallenge.Application.DTOs.OrdemServico;
@@ -283,5 +284,179 @@ public class OrdemServicoServiceTests
 
         resultado.TempoMedioHoras.Should().Be(5.5);
         resultado.TotalOrdensAnalisadas.Should().Be(3);
+    }
+
+    // ── FiltrarAsync ──────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task FiltrarAsync_DeveRetornarResultadosDoRepo()
+    {
+        var lista = new[] { new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "") };
+        _repoMock.Setup(r => r.FiltrarAsync("OS", null)).ReturnsAsync(lista);
+
+        var resultado = await _sut.FiltrarAsync("OS", null);
+
+        resultado.Should().HaveCount(1);
+        resultado.First().Numero.Should().Be("OS-001");
+    }
+
+    // ── CancelarItemAsync ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task CancelarItemAsync_OrdemNaoEncontrada_DeveLancarExcecao()
+    {
+        _repoMock.Setup(r => r.ObterComDetalhesAsync(It.IsAny<Guid>())).ReturnsAsync((OrdemServico?)null);
+
+        var act = async () => await _sut.CancelarItemAsync(Guid.NewGuid(), Guid.NewGuid());
+
+        await act.Should().ThrowAsync<KeyNotFoundException>().WithMessage("*Ordem de Serviço*");
+    }
+
+    [Fact]
+    public async Task CancelarItemAsync_ItemServico_DeveRemoverItem()
+    {
+        var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "");
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        var item = new ItemServico(os.Id, Guid.NewGuid(), 1, 80m);
+        os.AdicionarItemServico(item);
+
+        _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
+        _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<OrdemServico>())).Returns(Task.CompletedTask);
+        _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
+
+        var resultado = await _sut.CancelarItemAsync(os.Id, item.Id);
+
+        resultado.ItensServico.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CancelarItemAsync_ItemPeca_DeveRemoverItemERestaurarEstoque()
+    {
+        var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "");
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        var peca = new Peca("Filtro", "Desc", 35m, 10);
+        peca.ConsumirEstoque(3);
+        var item = new ItemPeca(os.Id, peca.Id, 3, 35m);
+        os.AdicionarItemPeca(item);
+
+        _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
+        _pecaRepoMock.Setup(r => r.ObterPorIdAsync(peca.Id)).ReturnsAsync(peca);
+        _pecaRepoMock.Setup(r => r.AtualizarAsync(It.IsAny<Peca>())).Returns(Task.CompletedTask);
+        _repoMock.Setup(r => r.AtualizarAsync(It.IsAny<OrdemServico>())).Returns(Task.CompletedTask);
+        _repoMock.Setup(r => r.SalvarAsync()).ReturnsAsync(1);
+
+        var resultado = await _sut.CancelarItemAsync(os.Id, item.Id);
+
+        resultado.ItensPeca.Should().BeEmpty();
+        peca.QuantidadeEstoque.Should().Be(10);
+    }
+
+    [Fact]
+    public async Task CancelarItemAsync_ItemNaoEncontrado_DeveLancarExcecao()
+    {
+        var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "");
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        _repoMock.Setup(r => r.ObterComDetalhesAsync(os.Id)).ReturnsAsync(os);
+
+        var act = async () => await _sut.CancelarItemAsync(os.Id, Guid.NewGuid());
+
+        await act.Should().ThrowAsync<KeyNotFoundException>().WithMessage("*Item*");
+    }
+
+    // ── AcompanharPorNumeroAsync ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task AcompanharPorNumeroAsync_OrdemNaoExiste_DeveRetornarNull()
+    {
+        _repoMock.Setup(r => r.ObterPorNumeroAsync(It.IsAny<string>())).ReturnsAsync((OrdemServico?)null);
+
+        var resultado = await _sut.AcompanharPorNumeroAsync("OS-001");
+
+        resultado.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AcompanharPorNumeroAsync_OrdemExiste_DeveRetornarDto()
+    {
+        var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "Obs");
+        _repoMock.Setup(r => r.ObterPorNumeroAsync("OS-001")).ReturnsAsync(os);
+
+        var resultado = await _sut.AcompanharPorNumeroAsync("OS-001");
+
+        resultado.Should().NotBeNull();
+        resultado!.Numero.Should().Be("OS-001");
+        resultado.Status.Should().Be(StatusOrdemServico.Recebida);
+    }
+
+    // ── ObterTempoIndividualAsync + FormatarTempo ─────────────────────────────
+
+    private static OrdemServico CriarOsComDatas(DateTime abertura, DateTime? fechamento = null)
+    {
+        var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "");
+        typeof(OrdemServico).GetProperty("DataAbertura", BindingFlags.Public | BindingFlags.Instance)!
+            .SetValue(os, abertura);
+        if (fechamento.HasValue)
+            typeof(OrdemServico).GetProperty("DataFechamento", BindingFlags.Public | BindingFlags.Instance)!
+                .SetValue(os, fechamento.Value);
+        return os;
+    }
+
+    [Fact]
+    public async Task ObterTempoIndividualAsync_OrdemNaoExiste_DeveRetornarNull()
+    {
+        _repoMock.Setup(r => r.ObterComDetalhesPorNumeroAsync(It.IsAny<string>())).ReturnsAsync((OrdemServico?)null);
+
+        var resultado = await _sut.ObterTempoIndividualAsync("OS-001");
+
+        resultado.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ObterTempoIndividualAsync_OsSemHistorico_DeveRetornarStatusAtualEObservacaoAndamento()
+    {
+        var os = new OrdemServico("OS-001", Guid.NewGuid(), Guid.NewGuid(), "");
+        _repoMock.Setup(r => r.ObterComDetalhesPorNumeroAsync("OS-001")).ReturnsAsync(os);
+
+        var resultado = await _sut.ObterTempoIndividualAsync("OS-001");
+
+        resultado.Should().NotBeNull();
+        resultado!.TemposPorStatus.Should().HaveCount(1);
+        resultado.TemposPorStatus[0].Status.Should().Be(StatusOrdemServico.Recebida.ToString());
+        resultado.Observacao.Should().Contain("andamento");
+    }
+
+    [Fact]
+    public async Task ObterTempoIndividualAsync_OsFinalizadaComHistorico_DeveRetornarObservacaoFinalizada()
+    {
+        var abertura = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var fechamento = new DateTime(2026, 1, 1, 2, 0, 0, DateTimeKind.Utc);
+        var os = CriarOsComDatas(abertura, fechamento);
+        os.AlterarStatus(StatusOrdemServico.EmDiagnostico);
+        _repoMock.Setup(r => r.ObterComDetalhesPorNumeroAsync("OS-001")).ReturnsAsync(os);
+
+        var resultado = await _sut.ObterTempoIndividualAsync("OS-001");
+
+        resultado.Should().NotBeNull();
+        resultado!.Observacao.Should().Contain("finalizada");
+        resultado.TemposPorStatus.Should().HaveCountGreaterThan(0);
+    }
+
+    [Theory]
+    [InlineData(0, 0, 30, "30min")]
+    [InlineData(0, 2, 0,  "2h")]
+    [InlineData(0, 2, 30, "2h 30min")]
+    [InlineData(2, 0, 0,  "2 dia(s)")]
+    [InlineData(2, 3, 0,  "2 dia(s) e 3h")]
+    public async Task ObterTempoIndividualAsync_FormatarTempo_RetornaFormatoCorreto(
+        int dias, int horas, int minutos, string esperado)
+    {
+        var abertura = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var fechamento = abertura.AddDays(dias).AddHours(horas).AddMinutes(minutos);
+        var os = CriarOsComDatas(abertura, fechamento);
+        _repoMock.Setup(r => r.ObterComDetalhesPorNumeroAsync("OS-001")).ReturnsAsync(os);
+
+        var resultado = await _sut.ObterTempoIndividualAsync("OS-001");
+
+        resultado!.TempoTotalFormatado.Should().Be(esperado);
     }
 }
