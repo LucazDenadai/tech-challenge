@@ -88,7 +88,6 @@ public class OrdensServicoController : ControllerBase
 
     /// <summary>Adicionar serviço à ordem (só em EmDiagnostico ou EmExecucao)</summary>
     [HttpPost("{id:guid}/servicos")]
-    [AllowAnonymous]
     [ProducesResponseType(typeof(OrdemServicoDto), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
