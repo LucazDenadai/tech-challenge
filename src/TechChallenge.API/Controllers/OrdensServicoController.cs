@@ -21,6 +21,7 @@ public class OrdensServicoController : ControllerBase
     /// Use ?status= para filtrar por status: Recebida | EmDiagnostico | AguardandoAprovacao | EmExecucao | Finalizada | Entregue | Cancelada
     /// </summary>
     [HttpGet]
+    [Authorize(Roles = "Admin,Atendente,Mecanico")]
     [ProducesResponseType(typeof(IEnumerable<OrdemServicoDto>), 200)]
     public async Task<IActionResult> Listar(
         [FromQuery] string? busca,
@@ -29,6 +30,7 @@ public class OrdensServicoController : ControllerBase
 
     /// <summary>Obter ordem de serviço por ID</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Admin,Atendente,Mecanico")]
     [ProducesResponseType(typeof(OrdemServicoDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> ObterPorId(Guid id)
@@ -56,6 +58,7 @@ public class OrdensServicoController : ControllerBase
     /// Criar nova ordem de serviço informando o documento do cliente (CPF/CNPJ) e a placa do veículo.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(OrdemServicoDto), 201)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Criar([FromBody] CriarOrdemServicoDto dto)
@@ -76,6 +79,7 @@ public class OrdensServicoController : ControllerBase
     /// Status disponíveis: 1=Recebida | 2=EmDiagnostico | 3=AguardandoAprovacao | 4=EmExecucao | 5=Finalizada | 6=Entregue | 7=Cancelada
     /// </summary>
     [HttpPatch("{numero}/status")]
+    [Authorize(Roles = "Admin,Atendente,Mecanico")]
     [ProducesResponseType(typeof(OrdemServicoDto), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -88,6 +92,7 @@ public class OrdensServicoController : ControllerBase
 
     /// <summary>Adicionar serviço à ordem (só em EmDiagnostico ou EmExecucao)</summary>
     [HttpPost("{id:guid}/servicos")]
+    [Authorize(Roles = "Admin,Mecanico")]
     [ProducesResponseType(typeof(OrdemServicoDto), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -101,6 +106,7 @@ public class OrdensServicoController : ControllerBase
 
     /// <summary>Adicionar peça à ordem (só em EmDiagnostico ou EmExecucao)</summary>
     [HttpPost("{id:guid}/pecas")]
+    [Authorize(Roles = "Admin,Mecanico")]
     [ProducesResponseType(typeof(OrdemServicoDto), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]
@@ -114,6 +120,7 @@ public class OrdensServicoController : ControllerBase
 
     /// <summary>Tempo médio global de execução das ordens finalizadas (em horas)</summary>
     [HttpGet("tempo-medio")]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(TempoMedioExecucaoDto), 200)]
     public async Task<IActionResult> ObterTempoMedio()
         => Ok(await _service.ObterTempoMedioExecucaoAsync());
@@ -124,6 +131,7 @@ public class OrdensServicoController : ControllerBase
     /// Referência: tempo ideal de 1 a 3 dias úteis.
     /// </summary>
     [HttpGet("{numero}/tempo")]
+    [Authorize(Roles = "Admin,Atendente,Mecanico")]
     [ProducesResponseType(typeof(TempoIndividualOsDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> ObterTempoIndividual(string numero)
@@ -134,6 +142,7 @@ public class OrdensServicoController : ControllerBase
 
     /// <summary>Cancelar item da ordem (só em EmDiagnostico)</summary>
     [HttpDelete("{id:guid}/itens/{itemId:guid}")]
+    [Authorize(Roles = "Admin,Mecanico")]
     [ProducesResponseType(typeof(OrdemServicoDto), 200)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]

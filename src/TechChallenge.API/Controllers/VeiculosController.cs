@@ -17,11 +17,13 @@ public class VeiculosController : ControllerBase
 
     /// <summary>Listar todos os veículos</summary>
     [HttpGet]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(IEnumerable<VeiculoDto>), 200)]
     public async Task<IActionResult> ObterTodos() => Ok(await _service.ObterTodosAsync());
 
     /// <summary>Obter veículo por ID</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Admin,Atendente,Mecanico")]
     [ProducesResponseType(typeof(VeiculoDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> ObterPorId(Guid id)
@@ -32,12 +34,14 @@ public class VeiculosController : ControllerBase
 
     /// <summary>Listar veículos por ID do cliente</summary>
     [HttpGet("cliente/{clienteId:guid}")]
+    [Authorize(Roles = "Admin,Atendente,Mecanico")]
     [ProducesResponseType(typeof(IEnumerable<VeiculoDto>), 200)]
     public async Task<IActionResult> ObterPorCliente(Guid clienteId)
         => Ok(await _service.ObterPorClienteAsync(clienteId));
 
     /// <summary>Listar veículos por documento do cliente (CPF ou CNPJ)</summary>
     [HttpGet("cliente/documento/{documento}")]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(IEnumerable<VeiculoDto>), 200)]
     public async Task<IActionResult> ObterPorDocumentoCliente(string documento)
         => Ok(await _service.ObterPorDocumentoClienteAsync(documento));
@@ -47,6 +51,7 @@ public class VeiculosController : ControllerBase
     /// Placa aceita formato antigo (ABC1234) ou Mercosul (ABC1D23).
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(VeiculoDto), 201)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Criar([FromBody] CriarVeiculoDto dto)
@@ -63,6 +68,7 @@ public class VeiculosController : ControllerBase
 
     /// <summary>Atualizar veículo (marca, modelo, ano, cor)</summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(VeiculoDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Atualizar(Guid id, [FromBody] AtualizarVeiculoDto dto)
@@ -73,6 +79,7 @@ public class VeiculosController : ControllerBase
 
     /// <summary>Remover veículo (não permitido se existirem OS vinculadas)</summary>
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(204)]
     [ProducesResponseType(400)]
     [ProducesResponseType(404)]

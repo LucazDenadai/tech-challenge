@@ -17,6 +17,7 @@ public class ClientesController : ControllerBase
 
     /// <summary>Listar todos os clientes ativos ou buscar por nome, CPF/CNPJ ou e-mail</summary>
     [HttpGet]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(IEnumerable<ClienteDto>), 200)]
     public async Task<IActionResult> ObterTodos([FromQuery] string? busca)
     {
@@ -29,6 +30,7 @@ public class ClientesController : ControllerBase
 
     /// <summary>Obter cliente por ID</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(ClienteDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> ObterPorId(Guid id)
@@ -42,6 +44,7 @@ public class ClientesController : ControllerBase
     /// Se o CPF/CNPJ pertencer a um cliente inativo, ele será reativado com os novos dados.
     /// </summary>
     [HttpPost]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(ClienteDto), 201)]
     [ProducesResponseType(400)]
     public async Task<IActionResult> Criar([FromBody] CriarClienteDto dto)
@@ -57,6 +60,7 @@ public class ClientesController : ControllerBase
 
     /// <summary>Atualizar dados do cliente (nome, e-mail, telefone, endereço — documento não é alterável)</summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,Atendente")]
     [ProducesResponseType(typeof(ClienteDto), 200)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Atualizar(Guid id, [FromBody] AtualizarClienteDto dto)
@@ -67,6 +71,7 @@ public class ClientesController : ControllerBase
 
     /// <summary>Desativar cliente (soft delete)</summary>
     [HttpDelete("{id:guid}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(204)]
     [ProducesResponseType(404)]
     public async Task<IActionResult> Desativar(Guid id)
