@@ -262,16 +262,20 @@ dotnet tool install -g dotnet-sonarscanner
 
 # 2. Gere um token em: http://localhost:9000 → My Account → Security → Generate Token
 
-# 3. Inicia a sessão de análise (substitua SEU_TOKEN pelo token gerado)
+# 3. IMPORTANTE: todos os comandos abaixo devem ser executados a partir da RAIZ do projeto
+#    (d:\Dev\Tech-challenge), NÃO dentro da pasta sonar/
+#    O "cd sonar" é usado apenas para subir o Docker — depois volte com "cd .."
+
+# 4. Inicia a sessão de análise (substitua SEU_TOKEN pelo token gerado)
 dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="http://localhost:9000" /d:sonar.token="SEU_TOKEN" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/Program.cs,**/*Tests.cs,**/Migrations/**"
 
-# 4. Build
+# 5. Build
 dotnet build
 
-# 5. Testes com cobertura (--no-build reutiliza os assemblies do passo 4, mantendo os hashes de módulo que o Sonar rastreou)
+# 6. Testes com cobertura (--no-build reutiliza os assemblies do passo 5)
 dotnet test --no-build --settings coverlet.runsettings --collect:"XPlat Code Coverage"
 
-# 6. Finaliza e envia os resultados
+# 7. Finaliza e envia os resultados
 dotnet sonarscanner end /d:sonar.token="SEU_TOKEN"
 ```
 
