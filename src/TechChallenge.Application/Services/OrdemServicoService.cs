@@ -1,3 +1,6 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using TechChallenge.Application.DTOs.OrdemServico;
 using TechChallenge.Application.Interfaces;
 using TechChallenge.Domain.Entities;
@@ -13,19 +16,36 @@ public class OrdemServicoService : IOrdemServicoService
     private readonly IPecaRepository _pecaRepo;
     private readonly IClienteRepository _clienteRepo;
     private readonly IVeiculoRepository _veiculoRepo;
+    private readonly ILogger<OrdemServicoService> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
     public OrdemServicoService(
         IOrdemServicoRepository repo,
         IServicoRepository servicoRepo,
         IPecaRepository pecaRepo,
         IClienteRepository clienteRepo,
-        IVeiculoRepository veiculoRepo)
+        IVeiculoRepository veiculoRepo,
+        ILogger<OrdemServicoService> logger,
+        IHttpContextAccessor httpContextAccessor)
     {
         _repo = repo;
         _servicoRepo = servicoRepo;
         _pecaRepo = pecaRepo;
         _clienteRepo = clienteRepo;
         _veiculoRepo = veiculoRepo;
+        _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    private string AuditUser()
+    {
+        var ctx = _httpContextAccessor.HttpContext;
+        return ctx?.User.FindFirst(ClaimTypes.Name)?.Value ?? "system";
+    }
+
+    private string AuditIp()
+    {
+        return _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
     }
 
     public async Task<IEnumerable<OrdemServicoDto>> ObterTodosAsync()
@@ -72,6 +92,10 @@ public class OrdemServicoService : IOrdemServicoService
         var os = new OrdemServico(numero, cliente.Id, veiculo.Id, dto.Observacoes);
         await _repo.AdicionarAsync(os);
         await _repo.SalvarAsync();
+
+        _logger.LogInformation("[AUDIT] OS criada | Numero={Numero} | Cliente={ClienteId} | Veiculo={Placa} | Usuario={Usuario} | IP={IP}",
+            os.Numero, cliente.Id, veiculo.Placa, AuditUser(), AuditIp());
+
         return MapDto(os);
     }
 
@@ -79,9 +103,14 @@ public class OrdemServicoService : IOrdemServicoService
     {
         var os = await _repo.ObterComDetalhesPorNumeroAsync(numero.ToUpperInvariant())
             ?? throw new KeyNotFoundException("Ordem de Serviço não encontrada.");
+        var statusAnterior = os.Status;
         os.AlterarStatus(dto.NovoStatus);
         await _repo.AtualizarAsync(os);
         await _repo.SalvarAsync();
+
+        _logger.LogInformation("[AUDIT] Status da OS alterado | Numero={Numero} | De={StatusAnterior} | Para={StatusNovo} | Usuario={Usuario} | IP={IP}",
+            os.Numero, statusAnterior, dto.NovoStatus, AuditUser(), AuditIp());
+
         return MapDto(os);
     }
 

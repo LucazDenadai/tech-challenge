@@ -55,6 +55,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddHsts(options =>
 {
@@ -154,6 +155,15 @@ app.Use(async (context, next) =>
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
     context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()";
     await next();
+
+    if (context.Response.StatusCode is 401 or 403)
+    {
+        var auditLogger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        var ip = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        var user = context.User.Identity?.Name ?? "anonymous";
+        auditLogger.LogWarning("[AUDIT] Acesso negado | Status={Status} | Metodo={Method} | Path={Path} | Usuario={User} | IP={IP}",
+            context.Response.StatusCode, context.Request.Method, context.Request.Path, user, ip);
+    }
 });
 
 app.UseRateLimiter();

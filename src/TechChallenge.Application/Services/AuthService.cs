@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using TechChallenge.Application.DTOs.Auth;
 using TechChallenge.Application.Interfaces;
@@ -13,18 +15,34 @@ public class AuthService : IAuthService
 {
     private readonly IUsuarioRepository _repo;
     private readonly IConfiguration _config;
+    private readonly ILogger<AuthService> _logger;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public AuthService(IUsuarioRepository repo, IConfiguration config)
+    public AuthService(IUsuarioRepository repo, IConfiguration config,
+        ILogger<AuthService> logger, IHttpContextAccessor httpContextAccessor)
     {
         _repo = repo;
         _config = config;
+        _logger = logger;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public async Task<TokenResponseDto?> LoginAsync(LoginDto loginDto)
     {
+        var ip = _httpContextAccessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         var usuario = await _repo.ObterPorEmailAsync(loginDto.Email);
-        if (usuario is null || !usuario.Ativo) return null;
-        if (!BCrypt.Net.BCrypt.Verify(loginDto.Senha, usuario.SenhaHash)) return null;
+
+        if (usuario is null || !usuario.Ativo)
+        {
+            _logger.LogWarning("[AUDIT] Login falhou — usuario nao encontrado ou inativo | Email={Email} | IP={IP}", loginDto.Email, ip);
+            return null;
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(loginDto.Senha, usuario.SenhaHash))
+        {
+            _logger.LogWarning("[AUDIT] Login falhou — senha incorreta | Email={Email} | IP={IP}", loginDto.Email, ip);
+            return null;
+        }
 
         var jwtKey = (_config["Jwt:Key"] is { Length: > 0 } k ? k : null)
             ?? Environment.GetEnvironmentVariable("JWT_KEY")
@@ -53,10 +71,15 @@ public class AuthService : IAuthService
             expires: expiracao,
             signingCredentials: creds);
 
-        return new TokenResponseDto
+        var resultado = new TokenResponseDto
         {
             Token = new JwtSecurityTokenHandler().WriteToken(token),
             Expiracao = expiracao
         };
+
+        _logger.LogInformation("[AUDIT] Login bem-sucedido | Usuario={Usuario} | Email={Email} | Perfil={Perfil} | IP={IP}",
+            usuario.Nome, usuario.Email, usuario.Perfil, ip);
+
+        return resultado;
     }
 }
