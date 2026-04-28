@@ -33,20 +33,14 @@ public class VeiculoService : IVeiculoService
 
     public async Task<VeiculoDto> CriarAsync(CriarVeiculoDto dto)
     {
-        var cliente = await _clienteRepo.ObterPorDocumentoAsync(dto.DocumentoCliente)
-            ?? throw new KeyNotFoundException("Cliente não encontrado para o documento informado.");
-
-        if (!cliente.Ativo)
-        {
-            throw new InvalidOperationException("O cliente informado está inativo.");
-        }
+        var cliente = await _clienteRepo.ObterPorDocumentoAsync(dto.DocumentoCliente);
+        if (cliente is null || !cliente.Ativo)
+            throw new InvalidOperationException("Documento do cliente inválido ou cliente não habilitado.");
 
         var placaNormalizada = dto.Placa.Replace("-", "").Replace(" ", "").ToUpperInvariant();
         var existente = await _repo.ObterPorPlacaAsync(placaNormalizada);
         if (existente != null)
-        {
-            throw new InvalidOperationException($"Já existe um veículo cadastrado com a placa '{placaNormalizada}'.");
-        }
+            throw new InvalidOperationException("Já existe um veículo cadastrado com esta placa.");
 
         var veiculo = new Veiculo(cliente.Id, dto.Placa, dto.Marca, dto.Modelo, dto.Ano, dto.Cor);
         await _repo.AdicionarAsync(veiculo);

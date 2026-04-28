@@ -71,21 +71,21 @@ public class OrdemServicoService : IOrdemServicoService
 
     public async Task<OrdemServicoDto> CriarAsync(CriarOrdemServicoDto dto)
     {
-        var cliente = await _clienteRepo.ObterPorDocumentoAsync(dto.DocumentoCliente)
-            ?? throw new KeyNotFoundException("Cliente não encontrado para o documento informado.");
-
-        if (!cliente.Ativo)
+        var cliente = await _clienteRepo.ObterPorDocumentoAsync(dto.DocumentoCliente);
+        if (cliente is null || !cliente.Ativo)
         {
-            throw new InvalidOperationException("O cliente informado está inativo.");
+            _logger.LogWarning("[AUDIT] Tentativa de abrir OS com documento invalido ou inativo | Documento={Doc} | Usuario={Usuario} | IP={IP}",
+                dto.DocumentoCliente, AuditUser(), AuditIp());
+            throw new InvalidOperationException("Dados inválidos: verifique o documento do cliente e a placa do veículo.");
         }
 
         var placaNormalizada = dto.PlacaVeiculo.Replace("-", "").Replace(" ", "").ToUpperInvariant();
-        var veiculo = await _veiculoRepo.ObterPorPlacaAsync(placaNormalizada)
-            ?? throw new KeyNotFoundException("Veículo não encontrado para a placa informada.");
-
-        if (veiculo.ClienteId != cliente.Id)
+        var veiculo = await _veiculoRepo.ObterPorPlacaAsync(placaNormalizada);
+        if (veiculo is null || veiculo.ClienteId != cliente.Id)
         {
-            throw new InvalidOperationException("O veículo não pertence ao cliente informado.");
+            _logger.LogWarning("[AUDIT] Tentativa de abrir OS com placa invalida ou nao vinculada | Placa={Placa} | Usuario={Usuario} | IP={IP}",
+                placaNormalizada, AuditUser(), AuditIp());
+            throw new InvalidOperationException("Dados inválidos: verifique o documento do cliente e a placa do veículo.");
         }
 
         var numero = await _repo.GerarNumeroAsync();

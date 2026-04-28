@@ -81,8 +81,8 @@ public class VeiculoServiceTests
 
         var act = async () => await _sut.CriarAsync(dto);
 
-        await act.Should().ThrowAsync<KeyNotFoundException>()
-            .WithMessage("*Cliente não encontrado*");
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*Documento do cliente inválido*");
     }
 
     [Fact]

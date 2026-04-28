@@ -139,7 +139,7 @@ public class OrdemServicoServiceTests
 
         var act = async () => await _sut.CriarAsync(dto);
 
-        await act.Should().ThrowAsync<KeyNotFoundException>().WithMessage("*Cliente*");
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*Dados inválidos*");
     }
 
     [Fact]
