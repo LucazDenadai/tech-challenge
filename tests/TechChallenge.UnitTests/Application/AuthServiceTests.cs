@@ -1,5 +1,7 @@
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using TechChallenge.Application.DTOs.Auth;
 using TechChallenge.Application.Services;
@@ -31,7 +33,11 @@ public class AuthServiceTests
             })
             .Build();
 
-        _sut = new AuthService(_repoMock.Object, config);
+        var logger = new Mock<ILogger<AuthService>>();
+        var httpContextAccessor = new Mock<IHttpContextAccessor>();
+        httpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null);
+
+        _sut = new AuthService(_repoMock.Object, config, logger.Object, httpContextAccessor.Object);
     }
 
     [Fact]

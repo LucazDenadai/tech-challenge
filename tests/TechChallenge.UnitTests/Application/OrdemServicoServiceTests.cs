@@ -1,5 +1,7 @@
 using System.Reflection;
 using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Moq;
 using TechChallenge.Application.DTOs.OrdemServico;
 using TechChallenge.Application.Services;
@@ -21,12 +23,18 @@ public class OrdemServicoServiceTests
 
     public OrdemServicoServiceTests()
     {
+        var logger = new Mock<ILogger<OrdemServicoService>>();
+        var httpContextAccessor = new Mock<IHttpContextAccessor>();
+        httpContextAccessor.Setup(x => x.HttpContext).Returns((HttpContext?)null);
+
         _sut = new OrdemServicoService(
             _repoMock.Object,
             _servicoRepoMock.Object,
             _pecaRepoMock.Object,
             _clienteRepoMock.Object,
-            _veiculoRepoMock.Object);
+            _veiculoRepoMock.Object,
+            logger.Object,
+            httpContextAccessor.Object);
     }
 
     [Fact]
