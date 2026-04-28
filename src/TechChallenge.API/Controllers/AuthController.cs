@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using TechChallenge.Application.DTOs.Auth;
 using TechChallenge.Application.Interfaces;
 
@@ -15,6 +16,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Autenticar usuário e obter token JWT</summary>
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     [ProducesResponseType(typeof(TokenResponseDto), 200)]
     [ProducesResponseType(401)]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
