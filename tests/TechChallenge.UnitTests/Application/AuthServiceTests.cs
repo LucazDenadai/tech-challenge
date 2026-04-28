@@ -56,7 +56,7 @@ public class AuthServiceTests
         var usuario = CriarUsuarioInativo();
         _repoMock.Setup(r => r.ObterPorEmailAsync(usuario.Email)).ReturnsAsync(usuario);
 
-        var resultado = await _sut.LoginAsync(new LoginDto { Email = usuario.Email, Senha = "Admin@123" });
+        var resultado = await _sut.LoginAsync(new LoginDto { Email = usuario.Email, Senha = "Admin@1234" });
 
         resultado.Should().BeNull();
     }
@@ -78,18 +78,18 @@ public class AuthServiceTests
         var usuario = CriarUsuario();
         _repoMock.Setup(r => r.ObterPorEmailAsync(usuario.Email)).ReturnsAsync(usuario);
 
-        var resultado = await _sut.LoginAsync(new LoginDto { Email = usuario.Email, Senha = "Admin@123" });
+        var resultado = await _sut.LoginAsync(new LoginDto { Email = usuario.Email, Senha = "Admin@1234" });
 
         resultado.Should().NotBeNull();
         resultado!.Token.Should().NotBeNullOrEmpty();
     }
 
     private static Usuario CriarUsuario() =>
-        new("Admin Teste", "admin@teste.com", BCrypt.Net.BCrypt.HashPassword("Admin@123"), PerfilUsuario.Admin);
+        new("Admin Teste", "admin@teste.com", BCrypt.Net.BCrypt.HashPassword("Admin@1234"), PerfilUsuario.Admin);
 
     private static Usuario CriarUsuarioInativo()
     {
-        var u = new Usuario("Inativo", "inativo@teste.com", BCrypt.Net.BCrypt.HashPassword("Admin@123"), PerfilUsuario.Admin);
+        var u = new Usuario("Inativo", "inativo@teste.com", BCrypt.Net.BCrypt.HashPassword("Admin@1234"), PerfilUsuario.Admin);
         u.Desativar();
         return u;
     }

@@ -62,7 +62,7 @@ public class UsuarioServiceTests
     [Fact]
     public async Task CriarAsync_EmailJaCadastrado_DeveLancarExcecao()
     {
-        var dto = new CriarUsuarioDto { Nome = "Admin", Email = "admin@email.com", Senha = "Admin@123", Perfil = PerfilUsuario.Admin };
+        var dto = new CriarUsuarioDto { Nome = "Admin", Email = "admin@email.com", Senha = "Admin@1234", Perfil = PerfilUsuario.Admin };
         _repoMock.Setup(r => r.EmailExisteAsync(dto.Email, null)).ReturnsAsync(true);
 
         var act = async () => await _sut.CriarAsync(dto);

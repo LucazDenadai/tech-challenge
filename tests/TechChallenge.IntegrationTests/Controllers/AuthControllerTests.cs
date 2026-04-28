@@ -21,7 +21,7 @@ public class AuthControllerTests
     public async Task Login_CredenciaisValidas_DeveRetornar200ComToken()
     {
         var client = _factory.CreateClient();
-        var dto = new LoginDto { Email = "admin@oficina.com", Senha = "Admin@123" };
+        var dto = new LoginDto { Email = "admin@oficina.com", Senha = "Admin@1234" };
 
         var response = await client.PostAsJsonAsync("/api/auth/login", dto);
 
@@ -57,7 +57,7 @@ public class AuthControllerTests
     public async Task Login_PerfilMecanico_DeveRetornarPerfilCorreto()
     {
         var client = _factory.CreateClient();
-        var dto = new LoginDto { Email = "mecanico@oficina.com", Senha = "Mec@123" };
+        var dto = new LoginDto { Email = "mecanico@oficina.com", Senha = "Mecan@123" };
 
         var response = await client.PostAsJsonAsync("/api/auth/login", dto);
 

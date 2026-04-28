@@ -14,11 +14,11 @@ public static class AuthHelper
 
     /// <summary>Faz login com as credenciais do admin gerado pelo DbSeeder e retorna o token JWT.</summary>
     public static async Task<string> ObterTokenAdminAsync(HttpClient client)
-        => await ObterTokenAsync(client, "admin@oficina.com", "Admin@123");
+        => await ObterTokenAsync(client, "admin@oficina.com", "Admin@1234");
 
     /// <summary>Faz login com as credenciais do mecânico gerado pelo DbSeeder.</summary>
     public static async Task<string> ObterTokenMecanicoAsync(HttpClient client)
-        => await ObterTokenAsync(client, "mecanico@oficina.com", "Mec@123");
+        => await ObterTokenAsync(client, "mecanico@oficina.com", "Mecan@123");
 
     private static async Task<string> ObterTokenAsync(HttpClient client, string email, string senha)
     {

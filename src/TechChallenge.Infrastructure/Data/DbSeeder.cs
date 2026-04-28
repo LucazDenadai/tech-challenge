@@ -15,10 +15,10 @@ public static class DbSeeder
         // Usuarios
         var usuarios = new[]
         {
-            new Usuario("Admin Sistema", "admin@oficina.com", BCrypt.Net.BCrypt.HashPassword("Admin@123"), PerfilUsuario.Admin),
-            new Usuario("João Mecânico", "mecanico@oficina.com", BCrypt.Net.BCrypt.HashPassword("Mec@123"), PerfilUsuario.Mecanico),
-            new Usuario("Maria Atendente", "atendente@oficina.com", BCrypt.Net.BCrypt.HashPassword("Ate@123"), PerfilUsuario.Atendente),
-            new Usuario("String da silva", "user@example.com", BCrypt.Net.BCrypt.HashPassword("string"), PerfilUsuario.Atendente)
+            new Usuario("Admin Sistema", "admin@oficina.com", BCrypt.Net.BCrypt.HashPassword("Admin@1234"), PerfilUsuario.Admin),
+            new Usuario("João Mecânico", "mecanico@oficina.com", BCrypt.Net.BCrypt.HashPassword("Mecan@123"), PerfilUsuario.Mecanico),
+            new Usuario("Maria Atendente", "atendente@oficina.com", BCrypt.Net.BCrypt.HashPassword("Atend@123"), PerfilUsuario.Atendente),
+            new Usuario("Demo Atendente", "demo@oficina.com", BCrypt.Net.BCrypt.HashPassword("Demo@1234"), PerfilUsuario.Atendente)
         };
         await context.Usuarios.AddRangeAsync(usuarios);
 

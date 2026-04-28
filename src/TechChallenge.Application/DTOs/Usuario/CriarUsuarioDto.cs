@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using TechChallenge.Application.Validators;
 using TechChallenge.Domain.Enums;
 
 namespace TechChallenge.Application.DTOs.Usuario;
@@ -14,7 +15,7 @@ public class CriarUsuarioDto
     public string Email { get; set; } = string.Empty;
 
     [Required]
-    [MinLength(6)]
+    [SenhaForte]
     public string Senha { get; set; } = string.Empty;
 
     [Required]
