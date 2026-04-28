@@ -11,7 +11,7 @@ API REST para gerenciamento de oficina mecânica, desenvolvida com arquitetura e
 - **Documentação**: Swagger/OpenAPI
 - **Containerização**: Docker & Docker Compose
 - **Testes**: xUnit, Moq, FluentAssertions, Testcontainers
-- **Cobertura**: coverlet (formato OpenCover) — **92,6% de linhas | 81,9% de branches**
+- **Cobertura**: coverlet (formato OpenCover)**
 - **Qualidade**: SonarAnalyzer for C# integrado ao build
 - **Lint**: .editorconfig + `dotnet format`
 - **Arquitetura**: DDD (Domain-Driven Design) com camadas separadas
@@ -163,7 +163,7 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
    ```json
    {
      "email": "admin@oficina.com",
-     "senha": "Admin@123"
+     "senha": "Admin@1234"
    }
    ```
 
@@ -171,11 +171,11 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
 
 ### Usuários de Teste (Seeded)
 
-| Perfil     | Email                      | Senha       |
-|------------|---------------------------|-------------|
-| Admin      | admin@oficina.com         | Admin@123   |
-| Mecânico   | mecanico@oficina.com      | Mec@123     |
-| Atendente  | atendente@oficina.com     | Ate@123     |
+| Perfil     | Email                      | Senha        |
+|------------|---------------------------|--------------|
+| Admin      | admin@oficina.com         | Admin@1234   |
+| Mecânico   | mecanico@oficina.com      | Mecan@123    |
+| Atendente  | atendente@oficina.com     | Atend@123    |
 
 ## Endpoints Principais
 
@@ -224,6 +224,74 @@ A API utiliza JWT para autenticação. Para acessar endpoints protegidos:
 - `PATCH /api/ordensservico/{numero}/status` - Alterar status pelo número da OS
 - `POST /api/ordensservico/{id}/itens` - Adicionar serviço ou peça à OS
 - `DELETE /api/ordensservico/{id}/itens/{itemId}` - Cancelar item da OS (devolve estoque ao estoque)
+
+## Segurança (OWASP ASVS)
+
+O projeto implementa controles de segurança baseados no [OWASP Application Security Verification Standard (ASVS)](https://owasp.org/www-project-application-security-verification-standard/).
+
+### Autenticação e Controle de Acesso
+
+- **JWT com HMAC-SHA256** e validação de issuer, audience e lifetime
+- **BCrypt** para hash de senhas com salt automático
+- **Política de senha forte**: mínimo 8 caracteres com letra maiúscula, minúscula, número e caractere especial (validado via `SenhaForteAttribute`)
+- **RBAC granular por endpoint**: cada rota aceita apenas os perfis autorizados
+
+| Recurso | Admin | Atendente | Mecânico |
+|---|:---:|:---:|:---:|
+| Clientes (leitura/escrita) | ✓ | ✓ | ✗ |
+| Clientes (exclusão) | ✓ | ✗ | ✗ |
+| Veículos (leitura) | ✓ | ✓ | ✓ |
+| Veículos (escrita) | ✓ | ✓ | ✗ |
+| Veículos (exclusão) | ✓ | ✗ | ✗ |
+| OS (leitura) | ✓ | ✓ | ✓ |
+| OS (criar) | ✓ | ✓ | ✗ |
+| OS (alterar status) | ✓ | ✓ | ✓ |
+| OS (adicionar serviços/peças) | ✓ | ✗ | ✓ |
+| Usuários | ✓ | ✗ | ✗ |
+
+### Rate Limiting
+
+Proteção contra força bruta e abuso implementada via `Microsoft.AspNetCore.RateLimiting` (nativo, sem dependência externa):
+
+- **Global**: 100 requisições/minuto por IP em todos os endpoints
+- **Login**: 10 requisições/minuto por IP — retorna `HTTP 429 Too Many Requests` ao exceder
+
+### Headers de Segurança
+
+Todos os responses incluem:
+
+| Header | Valor |
+|---|---|
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` |
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `DENY` |
+| `X-XSS-Protection` | `1; mode=block` |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | `geolocation=(), microphone=(), camera=()` |
+
+### CORS
+
+Origens permitidas configuradas por ambiente em `appsettings`:
+
+- **Desenvolvimento**: `localhost:3000`, `localhost:5173`, `localhost:4200`
+- **Produção**: configurar `Cors:AllowedOrigins` via variável de ambiente ou `appsettings` sobrescrito no deploy
+
+### Audit Logging
+
+Eventos críticos registrados com prefixo `[AUDIT]` via `ILogger`, contendo usuário, IP e timestamp:
+
+- Login bem-sucedido e falhas de autenticação
+- Respostas `401 Unauthorized` e `403 Forbidden`
+- Criação de Ordem de Serviço
+- Alteração de status de OS
+- Tentativas de abertura de OS com dados inválidos
+
+### Proteção contra Enumeração
+
+Mensagens de erro de endpoints públicos são genéricas e não revelam o estado interno dos dados:
+
+- Criação de OS com CPF/CNPJ inválido ou inativo → mensagem única sem distinguir os casos
+- Placa duplicada → sem expor a placa na mensagem de retorno
 
 ## Lint
 
