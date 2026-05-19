@@ -1,8 +1,8 @@
+using OficinaMecanica.Atendimento.Domain.Entities;
+
 namespace OficinaMecanica.Atendimento.Application.Ports.Out;
 
-// Usuario pertence ao contexto de autenticação; aqui o Application só precisa validar existência.
-public interface IUsuarioRepository
+public interface IUsuarioRepository : IRepository<Usuario>
 {
-    Task<bool> ExisteAsync(Guid usuarioId, CancellationToken ct = default);
-    Task<string?> ObterEmailAsync(Guid usuarioId, CancellationToken ct = default);
+    Task<Usuario?> ObterPorEmailAsync(string email, CancellationToken ct = default);
 }
