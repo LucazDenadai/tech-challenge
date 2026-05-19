@@ -1,5 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <ProjectReference Include="..\OficinaMecanica.Atendimento.Application\OficinaMecanica.Atendimento.Application.csproj" />
+    <ProjectReference Include="..\OficinaMecanica.Atendimento.Domain\OficinaMecanica.Atendimento.Domain.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

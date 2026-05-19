@@ -18,4 +18,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Atendimento\OficinaMecanica.Atendimento.API\OficinaMecanica.Atendimento.API.csproj" />
+    <ProjectReference Include="..\..\..\src\Atendimento\OficinaMecanica.Atendimento.Infrastructure\OficinaMecanica.Atendimento.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -18,4 +18,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Atendimento\OficinaMecanica.Atendimento.Application\OficinaMecanica.Atendimento.Application.csproj" />
+    <ProjectReference Include="..\..\..\src\Atendimento\OficinaMecanica.Atendimento.Domain\OficinaMecanica.Atendimento.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

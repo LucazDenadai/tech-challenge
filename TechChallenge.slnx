@@ -1,12 +1,12 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/TechChallenge.API/TechChallenge.API.csproj" />
-    <Project Path="src/TechChallenge.Application/TechChallenge.Application.csproj" />
-    <Project Path="src/TechChallenge.Domain/TechChallenge.Domain.csproj" />
-    <Project Path="src/TechChallenge.Infrastructure/TechChallenge.Infrastructure.csproj" />
+  <Folder Name="/src/Atendimento/">
+    <Project Path="src/Atendimento/OficinaMecanica.Atendimento.Domain/OficinaMecanica.Atendimento.Domain.csproj" />
+    <Project Path="src/Atendimento/OficinaMecanica.Atendimento.Application/OficinaMecanica.Atendimento.Application.csproj" />
+    <Project Path="src/Atendimento/OficinaMecanica.Atendimento.Infrastructure/OficinaMecanica.Atendimento.Infrastructure.csproj" />
+    <Project Path="src/Atendimento/OficinaMecanica.Atendimento.API/OficinaMecanica.Atendimento.API.csproj" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/TechChallenge.UnitTests/TechChallenge.UnitTests.csproj" />
-    <Project Path="tests/TechChallenge.IntegrationTests/TechChallenge.IntegrationTests.csproj" />
+  <Folder Name="/tests/Atendimento/">
+    <Project Path="tests/Atendimento/OficinaMecanica.Atendimento.UnitTests/OficinaMecanica.Atendimento.UnitTests.csproj" />
+    <Project Path="tests/Atendimento/OficinaMecanica.Atendimento.IntegrationTests/OficinaMecanica.Atendimento.IntegrationTests.csproj" />
   </Folder>
 </Solution>
