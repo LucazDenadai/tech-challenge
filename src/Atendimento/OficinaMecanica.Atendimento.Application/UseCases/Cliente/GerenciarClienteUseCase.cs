@@ -6,6 +6,24 @@ namespace OficinaMecanica.Atendimento.Application.UseCases.Cliente;
 
 public class GerenciarClienteUseCase(IClienteRepository repository)
 {
+    public async Task<IEnumerable<ClienteResponse>> ObterTodosAsync(CancellationToken ct = default)
+    {
+        var clientes = await repository.ObterTodosAsync(ct);
+        return clientes.Where(c => c.Ativo).Select(ToResponse);
+    }
+
+    public async Task<ClienteResponse?> ObterPorIdAsync(Guid id, CancellationToken ct = default)
+    {
+        var cliente = await repository.ObterPorIdAsync(id, ct);
+        return cliente is null ? null : ToResponse(cliente);
+    }
+
+    public async Task<IEnumerable<ClienteResponse>> BuscarAsync(string termo, CancellationToken ct = default)
+    {
+        var clientes = await repository.BuscarAsync(termo, ct);
+        return clientes.Select(ToResponse);
+    }
+
     public async Task<Guid> CriarAsync(CriarClienteRequest request, CancellationToken ct = default)
     {
         var documentoSanitizado = DomainCliente.Sanitizar(request.Documento);
@@ -49,4 +67,7 @@ public class GerenciarClienteUseCase(IClienteRepository repository)
         await repository.AtualizarAsync(cliente, ct);
         await repository.SalvarAsync(ct);
     }
+
+    private static ClienteResponse ToResponse(DomainCliente c) =>
+        new(c.Id, c.Nome, c.Documento, c.Email, c.Telefone, c.Endereco, c.Ativo);
 }

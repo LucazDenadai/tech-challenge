@@ -13,6 +13,18 @@ public class ClientesController : ControllerBase
 
     public ClientesController(GerenciarClienteUseCase useCase) => _useCase = useCase;
 
+    /// <summary>Lista clientes ativos. Aceita ?busca= para filtrar por nome, CPF/CNPJ ou e-mail.</summary>
+    [HttpGet]
+    [Authorize(Roles = "Admin,Atendente")]
+    [ProducesResponseType(typeof(IEnumerable<ClienteResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Listar([FromQuery] string? busca, CancellationToken ct)
+    {
+        var resultado = busca is not null
+            ? await _useCase.BuscarAsync(busca, ct)
+            : await _useCase.ObterTodosAsync(ct);
+        return Ok(resultado);
+    }
+
     /// <summary>Cria um novo cliente.</summary>
     [HttpPost]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
@@ -25,9 +37,14 @@ public class ClientesController : ControllerBase
 
     /// <summary>Obtém um cliente pelo ID.</summary>
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [Authorize(Roles = "Admin,Atendente")]
+    [ProducesResponseType(typeof(ClienteResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public IActionResult ObterPorId(Guid id) => Ok(new { id });
+    public async Task<IActionResult> ObterPorId(Guid id, CancellationToken ct)
+    {
+        var cliente = await _useCase.ObterPorIdAsync(id, ct);
+        return cliente is null ? NotFound() : Ok(cliente);
+    }
 
     /// <summary>Atualiza dados de um cliente.</summary>
     [HttpPut("{id:guid}")]
