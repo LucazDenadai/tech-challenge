@@ -46,4 +46,7 @@ public class JwtTokenService : ITokenService
 
     public bool VerificarSenha(string senhaPlana, string hashArmazenado)
         => BCrypt.Net.BCrypt.Verify(senhaPlana, hashArmazenado);
+
+    public string HashSenha(string senhaPlana)
+        => BCrypt.Net.BCrypt.HashPassword(senhaPlana);
 }

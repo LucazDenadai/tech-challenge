@@ -10,6 +10,7 @@ using OficinaMecanica.Atendimento.Application.UseCases.Auth;
 using OficinaMecanica.Atendimento.Application.UseCases.Catalogo;
 using OficinaMecanica.Atendimento.Application.UseCases.Cliente;
 using OficinaMecanica.Atendimento.Application.UseCases.OrdemServico;
+using OficinaMecanica.Atendimento.Application.UseCases.Usuario;
 using OficinaMecanica.Atendimento.Application.UseCases.Veiculo;
 using OficinaMecanica.Atendimento.Domain.Entities;
 using OficinaMecanica.Atendimento.Domain.Enums;
@@ -31,6 +32,7 @@ builder.Services.AddScoped<AtualizarStatusOSUseCase>();
 builder.Services.AddScoped<GerenciarClienteUseCase>();
 builder.Services.AddScoped<GerenciarVeiculoUseCase>();
 builder.Services.AddScoped<GerenciarCatalogoUseCase>();
+builder.Services.AddScoped<GerenciarUsuarioUseCase>();
 
 // ── JWT Authentication ─────────────────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:Key"]
@@ -124,7 +126,7 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.MigrateAsync();
 
-    if (!db.Usuarios.Any())
+    if (!await db.Usuarios.AnyAsync())
     {
         var senhaHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
         db.Usuarios.Add(new Usuario("Administrador", "admin@oficina.com", senhaHash, PerfilUsuario.Admin));

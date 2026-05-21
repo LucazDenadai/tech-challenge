@@ -22,6 +22,14 @@ public class Usuario : EntityBase
         Perfil = perfil;
     }
 
+    public void Atualizar(string nome, string email, PerfilUsuario perfil)
+    {
+        Nome = nome;
+        Email = email;
+        Perfil = perfil;
+        MarcarAtualizado();
+    }
+
     public void AlterarSenha(string novaSenhaHash)
     {
         SenhaHash = novaSenhaHash;
