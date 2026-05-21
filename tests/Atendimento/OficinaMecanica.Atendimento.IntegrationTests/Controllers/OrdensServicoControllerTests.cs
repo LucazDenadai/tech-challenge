@@ -174,10 +174,162 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
+    // ── Teste 5: ObterPorId retorna detalhe completo ──────────────────────────
+
+    [Fact]
+    public async Task ObterPorId_ComIdExistente_DeveRetornar200ComDetalhe()
+    {
+        var (osId, clienteId, veiculoId) = await AbrirOSAsync();
+
+        var response = await _client.GetAsync($"/ordens-servico/{osId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var detalhe = await response.Content.ReadFromJsonAsync<OSDetalheResponse>();
+        detalhe!.Id.Should().Be(osId);
+        detalhe.ClienteId.Should().Be(clienteId);
+        detalhe.VeiculoId.Should().Be(veiculoId);
+    }
+
+    // ── Teste 6: ObterPorId → 404 ────────────────────────────────────────────
+
+    [Fact]
+    public async Task ObterPorId_ComIdInexistente_DeveRetornar404()
+    {
+        var response = await _client.GetAsync($"/ordens-servico/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // ── Teste 7: Acompanhar sem token ────────────────────────────────────────
+
+    [Fact]
+    public async Task Acompanhar_SemToken_DeveRetornar200()
+    {
+        var (osId, _, _) = await AbrirOSAsync();
+
+        // Obter número da OS
+        var statusResp = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/ordens-servico/{osId}/status");
+        var numero = statusResp!.Numero;
+
+        var clienteSemToken = _factory.CreateClient();
+        var response = await clienteSemToken.GetAsync($"/ordens-servico/acompanhar/{numero}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var acomp = await response.Content.ReadFromJsonAsync<AcompanhamentoResponse>();
+        acomp!.Numero.Should().Be(numero);
+        acomp.Status.Should().Be(StatusOrdemServico.Recebida);
+    }
+
+    // ── Teste 8: Adicionar serviço à OS em EmDiagnostico ─────────────────────
+
+    [Fact]
+    public async Task AdicionarServico_EmDiagnostico_DeveRetornar200()
+    {
+        var (osId, _, _) = await AbrirOSAsync();
+        await MudarStatusAsync(osId, StatusOrdemServico.EmDiagnostico);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var servico = new OficinaMecanica.Atendimento.Domain.Entities.Servico("Balanceamento", "Balanceamento de rodas", 80m, 30);
+        db.Servicos.Add(servico);
+        await db.SaveChangesAsync();
+
+        var response = await _client.PostAsJsonAsync($"/ordens-servico/{osId}/servicos",
+            new { ServicoId = servico.Id });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var detalhe = await response.Content.ReadFromJsonAsync<OSDetalheResponse>();
+        detalhe!.Servicos.Should().HaveCount(1);
+        detalhe.ValorTotal.Should().Be(80m);
+    }
+
+    // ── Teste 9: Adicionar peça à OS em EmDiagnostico ────────────────────────
+
+    [Fact]
+    public async Task AdicionarPeca_EmDiagnostico_DeveRetornar200()
+    {
+        var (osId, _, _) = await AbrirOSAsync();
+        await MudarStatusAsync(osId, StatusOrdemServico.EmDiagnostico);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var peca = new OficinaMecanica.Atendimento.Domain.Entities.Peca("Pastilha", "Pastilha dianteira", 120m);
+        db.Pecas.Add(peca);
+        await db.SaveChangesAsync();
+
+        var response = await _client.PostAsJsonAsync($"/ordens-servico/{osId}/pecas",
+            new { PecaId = peca.Id, Quantidade = 2 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var detalhe = await response.Content.ReadFromJsonAsync<OSDetalheResponse>();
+        detalhe!.Pecas.Should().HaveCount(1);
+        detalhe.ValorTotal.Should().Be(240m);
+    }
+
+    // ── Teste 10: Cancelar item de serviço ───────────────────────────────────
+
+    [Fact]
+    public async Task CancelarItemServico_EmDiagnostico_DeveRetornar200()
+    {
+        var (osId, _, _) = await AbrirOSAsync();
+        await MudarStatusAsync(osId, StatusOrdemServico.EmDiagnostico);
+
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var servico = new OficinaMecanica.Atendimento.Domain.Entities.Servico("Revisão Y", "Revisão completa", 200m, 120);
+        db.Servicos.Add(servico);
+        await db.SaveChangesAsync();
+
+        var addResp = await _client.PostAsJsonAsync($"/ordens-servico/{osId}/servicos",
+            new { ServicoId = servico.Id });
+        var osComItem = await addResp.Content.ReadFromJsonAsync<OSDetalheResponse>();
+        var itemId = osComItem!.Servicos[0].Id;
+
+        var cancelResp = await _client.DeleteAsync($"/ordens-servico/{osId}/itens/{itemId}");
+
+        cancelResp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var detalhe = await cancelResp.Content.ReadFromJsonAsync<OSDetalheResponse>();
+        detalhe!.Servicos.Should().BeEmpty();
+    }
+
+    // ── Teste 11: Tempo médio ────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ObterTempoMedio_DeveRetornar200()
+    {
+        var response = await _client.GetAsync("/ordens-servico/tempo-medio");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var resultado = await response.Content.ReadFromJsonAsync<TempoMedioResponse>();
+        resultado.Should().NotBeNull();
+    }
+
+    // ── Teste 12: Tempo individual ───────────────────────────────────────────
+
+    [Fact]
+    public async Task ObterTempoIndividual_ComNumeroExistente_DeveRetornar200()
+    {
+        var (osId, _, _) = await AbrirOSAsync();
+        var statusResp = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/ordens-servico/{osId}/status");
+        var numero = statusResp!.Numero;
+
+        var response = await _client.GetAsync($"/ordens-servico/{numero}/tempo");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var tempo = await response.Content.ReadFromJsonAsync<TempoIndividualResponse>();
+        tempo!.Numero.Should().Be(numero);
+    }
+
     // ── Records de apoio ──────────────────────────────────────────────────────
 
     private record AbrirOSResponse(Guid Id, string Numero);
     private record ConsultarStatusOSResponse(Guid Id, string Numero, StatusOrdemServico Status, decimal ValorTotal, List<HistoricoItem> Historico);
     private record HistoricoItem(StatusOrdemServico StatusAnterior, StatusOrdemServico StatusNovo, DateTime AlteradoEm);
     private record ListarOSItem(Guid Id, string Numero, StatusOrdemServico Status, DateTime DataAbertura, decimal ValorTotal);
+    private record ItemServicoResponse(Guid Id, Guid ServicoId, int Quantidade, decimal ValorUnitario, decimal ValorTotal);
+    private record ItemPecaResponse(Guid Id, Guid PecaId, int Quantidade, decimal ValorUnitario, decimal ValorTotal);
+    private record OSDetalheResponse(Guid Id, string Numero, StatusOrdemServico Status, Guid ClienteId, Guid VeiculoId, string Observacoes, DateTime DataAbertura, DateTime? DataFechamento, decimal ValorTotal, List<ItemServicoResponse> Servicos, List<ItemPecaResponse> Pecas, List<object> Historico);
+    private record AcompanhamentoResponse(string Numero, StatusOrdemServico Status, DateTime DataAbertura, DateTime? DataFechamento, List<object> Servicos, List<object> Pecas, List<object> Historico);
+    private record TempoMedioResponse(double TempoMedioHoras, int TotalOSFinalizadas);
+    private record TempoIndividualResponse(string Numero, StatusOrdemServico Status, double TempoDecorridoHoras, bool Finalizada);
 }
