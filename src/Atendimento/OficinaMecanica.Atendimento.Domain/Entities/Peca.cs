@@ -20,4 +20,18 @@ public class Peca : EntityBase
         Descricao = descricao;
         Preco = preco;
     }
+
+    public void Atualizar(string nome, string descricao, decimal preco)
+    {
+        Nome = nome;
+        Descricao = descricao;
+        Preco = preco;
+        MarcarAtualizado();
+    }
+
+    public void Desativar()
+    {
+        Ativo = false;
+        MarcarAtualizado();
+    }
 }
