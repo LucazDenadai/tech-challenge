@@ -18,7 +18,7 @@ public sealed class SenhaForteAttribute : ValidationAttribute
         var senha = value as string;
 
         if (string.IsNullOrEmpty(senha))
-            return new ValidationResult("A senha é obrigatória.");
+            return ValidationResult.Success;
 
         var erros = new List<string>();
 
