@@ -1,6 +1,7 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -84,6 +85,28 @@ builder.Services.AddCors(options =>
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<GlobalExceptionFilter>();
+});
+
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var erros = context.ModelState
+            .Where(e => e.Value?.Errors.Count > 0)
+            .ToDictionary(
+                kvp => kvp.Key,
+                kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray());
+
+        var resultado = new ValidationProblemDetails(context.ModelState)
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Dados inválidos",
+            Detail = "Um ou mais campos não passaram na validação.",
+        };
+        resultado.Extensions["erros"] = erros;
+
+        return new BadRequestObjectResult(resultado);
+    };
 });
 
 // ── Swagger ────────────────────────────────────────────────────────────────────
