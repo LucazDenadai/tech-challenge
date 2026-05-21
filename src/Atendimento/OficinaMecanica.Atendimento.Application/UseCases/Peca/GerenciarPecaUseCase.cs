@@ -21,7 +21,7 @@ public class GerenciarPecaUseCase(IPecaRepository repository)
     public async Task<PecaResponse?> ObterPorIdAsync(Guid id, CancellationToken ct = default)
     {
         var peca = await repository.ObterPorIdAsync(id, ct);
-        return peca is null ? null : ToResponse(peca);
+        return peca is null || !peca.Ativo ? null : ToResponse(peca);
     }
 
     public async Task<PecaResponse> CriarAsync(CriarPecaRequest request, CancellationToken ct = default)
