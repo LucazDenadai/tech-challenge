@@ -15,7 +15,7 @@ public class GerenciarCatalogoUseCase(IServicoRepository servicoRepository)
     public async Task<ServicoResponse?> ObterServicoPorIdAsync(Guid id, CancellationToken ct = default)
     {
         var servico = await servicoRepository.ObterPorIdAsync(id, ct);
-        return servico is null ? null : ToResponse(servico);
+        return servico is null || !servico.Ativo ? null : ToResponse(servico);
     }
 
     public async Task<ServicoResponse> CriarServicoAsync(CriarServicoRequest request, CancellationToken ct = default)
