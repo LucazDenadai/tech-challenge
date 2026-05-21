@@ -119,5 +119,110 @@ public class ClientesControllerTests : IAsyncLifetime
         clienteNoBanco!.Ativo.Should().BeFalse();
     }
 
+    // ── GET /clientes → 200 com lista ────────────────────────────────────────
+
+    [Fact]
+    public async Task Listar_DeveRetornar200ComListaDeClientes()
+    {
+        await _client.PostAsJsonAsync("/clientes", new
+        {
+            Nome = "Lista Test",
+            Documento = "52998224725",
+            Email = "lista@test.com",
+            Telefone = "11999999999",
+            Endereco = "Rua A, 1"
+        });
+
+        var response = await _client.GetAsync("/clientes");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var lista = await response.Content.ReadFromJsonAsync<List<ClienteResponse>>();
+        lista.Should().HaveCountGreaterThanOrEqualTo(1);
+    }
+
+    // ── GET /clientes?busca= → 200 filtrando ─────────────────────────────────
+
+    [Fact]
+    public async Task Listar_ComBusca_DeveRetornarApenasCorrespondentes()
+    {
+        await _client.PostAsJsonAsync("/clientes", new
+        {
+            Nome = "Zilda Busca",
+            Documento = "23708614526",
+            Email = "zilda@test.com",
+            Telefone = "11988888888",
+            Endereco = "Rua B, 2"
+        });
+
+        var response = await _client.GetAsync("/clientes?busca=Zilda");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var lista = await response.Content.ReadFromJsonAsync<List<ClienteResponse>>();
+        lista.Should().HaveCountGreaterThanOrEqualTo(1);
+        lista!.All(c => c.Nome.Contains("Zilda")).Should().BeTrue();
+    }
+
+    // ── GET /clientes/{id} → 200 ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task ObterPorId_ComIdExistente_DeveRetornar200()
+    {
+        var criar = await _client.PostAsJsonAsync("/clientes", new
+        {
+            Nome = "Obter Por Id",
+            Documento = "89540362369",
+            Email = "obterid@test.com",
+            Telefone = "11977777777",
+            Endereco = "Rua C, 3"
+        });
+        var criado = await criar.Content.ReadFromJsonAsync<CriarClienteResponse>();
+
+        var response = await _client.GetAsync($"/clientes/{criado!.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var cliente = await response.Content.ReadFromJsonAsync<ClienteResponse>();
+        cliente!.Nome.Should().Be("Obter Por Id");
+    }
+
+    // ── GET /clientes/{id} → 404 ──────────────────────────────────────────────
+
+    [Fact]
+    public async Task ObterPorId_ComIdInexistente_DeveRetornar404()
+    {
+        var response = await _client.GetAsync($"/clientes/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // ── PUT /clientes/{id} → 200 com dados atualizados ───────────────────────
+
+    [Fact]
+    public async Task Atualizar_ComDadosValidos_DeveRetornar200ComClienteAtualizado()
+    {
+        var criar = await _client.PostAsJsonAsync("/clientes", new
+        {
+            Nome = "Original Nome",
+            Documento = "31792370075",
+            Email = "original@test.com",
+            Telefone = "11966666666",
+            Endereco = "Rua D, 4"
+        });
+        var criado = await criar.Content.ReadFromJsonAsync<CriarClienteResponse>();
+
+        var response = await _client.PutAsJsonAsync($"/clientes/{criado!.Id}", new
+        {
+            Nome = "Nome Atualizado",
+            Email = "atualizado@test.com",
+            Telefone = "11955555555",
+            Endereco = "Rua E, 5"
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var atualizado = await response.Content.ReadFromJsonAsync<ClienteResponse>();
+        atualizado!.Nome.Should().Be("Nome Atualizado");
+        atualizado.Email.Should().Be("atualizado@test.com");
+    }
+
     private record CriarClienteResponse(Guid Id);
+    private record ClienteResponse(Guid Id, string Nome, string Documento, string Email, string Telefone, string Endereco, bool Ativo);
 }
