@@ -1,6 +1,8 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OficinaMecanica.Atendimento.API.Filters;
@@ -9,8 +11,10 @@ using OficinaMecanica.Atendimento.Application.UseCases.Catalogo;
 using OficinaMecanica.Atendimento.Application.UseCases.Cliente;
 using OficinaMecanica.Atendimento.Application.UseCases.OrdemServico;
 using OficinaMecanica.Atendimento.Application.UseCases.Veiculo;
+using OficinaMecanica.Atendimento.Domain.Entities;
+using OficinaMecanica.Atendimento.Domain.Enums;
 using OficinaMecanica.Atendimento.Infrastructure;
-using System.Threading.RateLimiting;
+using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -113,6 +117,20 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 var app = builder.Build();
+
+// ── Migration automática + seed inicial ───────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+
+    if (!db.Usuarios.Any())
+    {
+        var senhaHash = BCrypt.Net.BCrypt.HashPassword("Admin@123");
+        db.Usuarios.Add(new Usuario("Administrador", "admin@oficina.com", senhaHash, PerfilUsuario.Admin));
+        await db.SaveChangesAsync();
+    }
+}
 
 // ── Middleware pipeline ────────────────────────────────────────────────────────
 app.UseSwagger();
