@@ -46,15 +46,15 @@ public class ClientesController : ControllerBase
         return cliente is null ? NotFound() : Ok(cliente);
     }
 
-    /// <summary>Atualiza dados de um cliente.</summary>
+    /// <summary>Atualiza nome, e-mail, telefone e endereço do cliente. Documento não é alterável.</summary>
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [Authorize(Roles = "Admin,Atendente")]
+    [ProducesResponseType(typeof(ClienteResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status422UnprocessableEntity)]
     public async Task<IActionResult> Atualizar(Guid id, [FromBody] AtualizarClienteRequest request, CancellationToken ct)
     {
-        await _useCase.AtualizarAsync(request with { Id = id }, ct);
-        return NoContent();
+        var cliente = await _useCase.AtualizarAsync(request with { Id = id }, ct);
+        return Ok(cliente);
     }
 
     /// <summary>Desativa um cliente.</summary>

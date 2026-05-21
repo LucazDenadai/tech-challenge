@@ -48,7 +48,7 @@ public class GerenciarClienteUseCase(IClienteRepository repository)
         return cliente.Id;
     }
 
-    public async Task AtualizarAsync(AtualizarClienteRequest request, CancellationToken ct = default)
+    public async Task<ClienteResponse> AtualizarAsync(AtualizarClienteRequest request, CancellationToken ct = default)
     {
         var cliente = await repository.ObterPorIdAsync(request.Id, ct)
             ?? throw new NotFoundException("Cliente", request.Id);
@@ -56,6 +56,7 @@ public class GerenciarClienteUseCase(IClienteRepository repository)
         cliente.Atualizar(request.Nome, request.Email, request.Telefone, request.Endereco);
         await repository.AtualizarAsync(cliente, ct);
         await repository.SalvarAsync(ct);
+        return ToResponse(cliente);
     }
 
     public async Task DesativarAsync(Guid id, CancellationToken ct = default)
