@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
 using OficinaMecanica.Atendimento.Domain.Entities;
+using OrdemServico = OficinaMecanica.Atendimento.Domain.Entities.OrdemServico;
 
 namespace OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Persistence.Repositories;
 
@@ -18,6 +19,14 @@ public class VeiculoRepository : BaseRepository<Veiculo>, IVeiculoRepository
 
     public async Task<IEnumerable<Veiculo>> ObterPorClienteAsync(Guid clienteId, CancellationToken ct = default)
         => await _dbSet.Include(v => v.Cliente).Where(v => v.ClienteId == clienteId).ToListAsync(ct);
+
+    public async Task<IEnumerable<Veiculo>> ObterPorDocumentoClienteAsync(string documento, CancellationToken ct = default)
+        => await _dbSet.Include(v => v.Cliente)
+            .Where(v => v.Cliente != null && v.Cliente.Documento == documento)
+            .ToListAsync(ct);
+
+    public async Task<bool> PossuiOrdensServicoAsync(Guid veiculoId, CancellationToken ct = default)
+        => await _context.Set<OrdemServico>().AnyAsync(os => os.VeiculoId == veiculoId, ct);
 
     [ExcludeFromCodeCoverage]
     public async Task<Veiculo?> ObterPorPlacaAsync(string placa, CancellationToken ct = default)
