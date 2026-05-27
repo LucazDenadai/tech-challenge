@@ -1,0 +1,750 @@
+{
+  "info": {
+    "name": "Oficina Mecânica — Tech Challenge",
+    "_postman_id": "oficina-mecanica-tech-challenge",
+    "description": "Collection completa do sistema de oficina mecânica.\n\n**Serviços:**\n- Atendimento: http://localhost:8080\n- Estoque: http://localhost:8081\n\n**Fluxo recomendado:**\n1. Health Check\n2. Registrar usuário → Login (captura token automaticamente)\n3. Cadastrar peça no Estoque (fonte da verdade)\n4. Cadastrar serviços, clientes e veículos no Atendimento\n5. Executar o fluxo completo da OS\n6. Verificar baixa automática no estoque via RabbitMQ",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_atendimento", "value": "http://localhost:8080", "type": "string" },
+    { "key": "base_estoque",     "value": "http://localhost:8081", "type": "string" },
+    { "key": "token",            "value": "", "type": "string" },
+    { "key": "cliente_id",       "value": "", "type": "string" },
+    { "key": "veiculo_id",       "value": "", "type": "string" },
+    { "key": "peca_id",          "value": "", "type": "string" },
+    { "key": "servico_id",       "value": "", "type": "string" },
+    { "key": "usuario_id",       "value": "", "type": "string" },
+    { "key": "os_id",            "value": "", "type": "string" },
+    { "key": "os_numero",        "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 — Health Check",
+      "item": [
+        {
+          "name": "Health Atendimento",
+          "request": {
+            "method": "GET",
+            "url": "{{base_atendimento}}/health",
+            "description": "Esperado: 200 Healthy"
+          }
+        },
+        {
+          "name": "Health Estoque",
+          "request": {
+            "method": "GET",
+            "url": "{{base_estoque}}/health",
+            "description": "Esperado: 200 Healthy"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 — Autenticação",
+      "item": [
+        {
+          "name": "Registrar Usuário Admin",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_atendimento}}/auth/registrar",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Admin Oficina\",\n  \"email\": \"admin@oficina.com\",\n  \"senha\": \"Admin@123\",\n  \"perfil\": 0\n}"
+            },
+            "description": "Perfil: 0=Admin, 1=Atendente, 2=Mecanico"
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "  pm.collectionVariables.set('token', json.token);",
+                  "  console.log('Token salvo.');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_atendimento}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@oficina.com\",\n  \"senha\": \"Admin@123\"\n}"
+            },
+            "description": "Salva o JWT em {{token}} automaticamente via script de test"
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Usuários",
+      "item": [
+        {
+          "name": "Listar Usuários",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/usuarios",
+            "description": "Requer perfil Admin"
+          }
+        },
+        {
+          "name": "Buscar por E-mail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_atendimento}}/usuarios?email=admin@oficina.com",
+              "host": ["{{base_atendimento}}"],
+              "path": ["usuarios"],
+              "query": [{ "key": "email", "value": "admin@oficina.com" }]
+            }
+          }
+        },
+        {
+          "name": "Criar Usuário Mecanico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('usuario_id', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/usuarios",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Mecânico\",\n  \"email\": \"mecanico@oficina.com\",\n  \"senha\": \"Mecanico@123\",\n  \"perfil\": 2\n}"
+            }
+          }
+        },
+        {
+          "name": "Obter Usuário por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/usuarios/{{usuario_id}}"
+          }
+        },
+        {
+          "name": "Atualizar Usuário",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/usuarios/{{usuario_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"João Mecânico Silva\",\n  \"email\": \"mecanico@oficina.com\",\n  \"perfil\": 2\n}"
+            }
+          }
+        },
+        {
+          "name": "Desativar Usuário",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/usuarios/{{usuario_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Estoque / Peças (fonte da verdade)",
+      "description": "O Estoque é a fonte da verdade para peças. Cadastre aqui PRIMEIRO. O ID gerado aqui é o que será usado na OS do Atendimento.",
+      "item": [
+        {
+          "name": "Criar Peça",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('peca_id', json.id);",
+                  "  console.log('Peça ID salvo:', json.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_estoque}}/estoque/pecas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Pastilha de Freio Dianteira\",\n  \"descricao\": \"Pastilha de freio para veículos de passeio\",\n  \"valor\": 89.90,\n  \"quantidadeEstoque\": 20\n}"
+            },
+            "description": "O ID gerado aqui deve ser usado ao adicionar peças à OS no Atendimento"
+          }
+        },
+        {
+          "name": "Listar Peças",
+          "request": {
+            "method": "GET",
+            "url": "{{base_estoque}}/estoque/pecas"
+          }
+        },
+        {
+          "name": "Obter Peça por ID",
+          "request": {
+            "method": "GET",
+            "url": "{{base_estoque}}/estoque/pecas/{{peca_id}}",
+            "description": "Verificar estoque atual. Após finalizar OS deve reduzir conforme itens da OS"
+          }
+        },
+        {
+          "name": "Atualizar Peça",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_estoque}}/estoque/pecas/{{peca_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"{{peca_id}}\",\n  \"nome\": \"Pastilha de Freio Dianteira Premium\",\n  \"descricao\": \"Pastilha de freio premium para veículos de passeio\",\n  \"valor\": 99.90\n}"
+            }
+          }
+        },
+        {
+          "name": "Consultar Disponibilidade",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{base_estoque}}/estoque/disponibilidade",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"itens\": [\n    { \"pecaId\": \"{{peca_id}}\", \"quantidade\": 2 }\n  ]\n}"
+            },
+            "description": "Verifica se há estoque suficiente para os itens informados"
+          }
+        },
+        {
+          "name": "Remover Peça",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_estoque}}/estoque/pecas/{{peca_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Atendimento / Serviços",
+      "item": [
+        {
+          "name": "Criar Serviço",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('servico_id', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/servicos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Troca de pastilhas de freio\",\n  \"descricao\": \"Substituição das pastilhas dianteiras e traseiras\",\n  \"preco\": 150.00,\n  \"tempoConclusaoMinutos\": 60\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Serviços",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/servicos"
+          }
+        },
+        {
+          "name": "Obter Serviço por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/servicos/{{servico_id}}"
+          }
+        },
+        {
+          "name": "Atualizar Serviço",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/servicos/{{servico_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Troca de pastilhas de freio\",\n  \"descricao\": \"Substituição das pastilhas dianteiras e traseiras com teste de funcionamento\",\n  \"preco\": 180.00,\n  \"tempoConclusaoMinutos\": 90\n}"
+            }
+          }
+        },
+        {
+          "name": "Desativar Serviço",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/servicos/{{servico_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Atendimento / Clientes",
+      "item": [
+        {
+          "name": "Criar Cliente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('cliente_id', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/clientes",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Carlos Eduardo Souza\",\n  \"documento\": \"52998224725\",\n  \"email\": \"carlos@email.com\",\n  \"telefone\": \"11999998888\",\n  \"endereco\": \"Rua das Palmeiras, 456 - São Paulo/SP\"\n}"
+            },
+            "description": "CPF 52998224725 é fictício mas matematicamente válido"
+          }
+        },
+        {
+          "name": "Listar Clientes",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/clientes"
+          }
+        },
+        {
+          "name": "Buscar Cliente (nome/CPF/email)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_atendimento}}/clientes?busca=Carlos",
+              "host": ["{{base_atendimento}}"],
+              "path": ["clientes"],
+              "query": [{ "key": "busca", "value": "Carlos" }]
+            }
+          }
+        },
+        {
+          "name": "Obter Cliente por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/clientes/{{cliente_id}}"
+          }
+        },
+        {
+          "name": "Atualizar Cliente",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/clientes/{{cliente_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Carlos Eduardo Souza\",\n  \"email\": \"carlos.novo@email.com\",\n  \"telefone\": \"11988887777\",\n  \"endereco\": \"Av. Paulista, 1000 - São Paulo/SP\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Desativar Cliente",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/clientes/{{cliente_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — Atendimento / Veículos",
+      "item": [
+        {
+          "name": "Criar Veículo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) pm.collectionVariables.set('veiculo_id', json.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/veiculos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": \"{{cliente_id}}\",\n  \"placa\": \"BRA2E19\",\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Corolla\",\n  \"ano\": 2022,\n  \"cor\": \"Prata\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Listar Veículos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/veiculos"
+          }
+        },
+        {
+          "name": "Obter Veículo por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/veiculos/{{veiculo_id}}"
+          }
+        },
+        {
+          "name": "Listar Veículos do Cliente",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/veiculos/cliente/{{cliente_id}}"
+          }
+        },
+        {
+          "name": "Buscar Veículos por CPF do Cliente",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/veiculos/cliente/documento/52998224725"
+          }
+        },
+        {
+          "name": "Atualizar Veículo",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/veiculos/{{veiculo_id}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Corolla XEi\",\n  \"ano\": 2022,\n  \"cor\": \"Cinza Metálico\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Remover Veículo",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/veiculos/{{veiculo_id}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — Fluxo OS End-to-End",
+      "description": "Fluxo completo de uma Ordem de Serviço.\n\nMáquina de estados:\nRecebida(1) → EmDiagnostico(2) → AguardandoAprovacao(3) → EmExecucao(4) → Finalizada(5) → Entregue(6)\n\nAo Finalizar a OS, um evento é publicado no RabbitMQ e o Estoque reduz automaticamente o estoque das peças usadas.",
+      "item": [
+        {
+          "name": "1. Abrir OS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var json = pm.response.json();",
+                  "if (json.id) {",
+                  "  pm.collectionVariables.set('os_id', json.id);",
+                  "  console.log('OS ID:', json.id);",
+                  "}",
+                  "if (json.numero) pm.collectionVariables.set('os_numero', json.numero);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/ordens-servico",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": \"{{cliente_id}}\",\n  \"veiculoId\": \"{{veiculo_id}}\",\n  \"descricaoProblema\": \"Barulho ao frear — suspeita de desgaste nas pastilhas\",\n  \"pecas\": [\n    { \"pecaId\": \"{{peca_id}}\", \"quantidade\": 2 }\n  ]\n}"
+            },
+            "description": "O array 'pecas' na abertura é apenas para verificar disponibilidade em estoque. As peças são adicionadas formalmente na etapa 3."
+          }
+        },
+        {
+          "name": "2. Status → EmDiagnostico",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"novoStatus\": 2\n}"
+            },
+            "description": "1=Recebida, 2=EmDiagnostico, 3=AguardandoAprovacao, 4=EmExecucao, 5=Finalizada, 6=Entregue"
+          }
+        },
+        {
+          "name": "3. Adicionar Peça à OS",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/pecas",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pecaId\": \"{{peca_id}}\",\n  \"quantidade\": 2\n}"
+            },
+            "description": "Só permitido em EmDiagnostico ou EmExecucao. O pecaId DEVE ser o ID cadastrado no Estoque ({{peca_id}})"
+          }
+        },
+        {
+          "name": "3b. Adicionar Serviço à OS",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/servicos",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"servicoId\": \"{{servico_id}}\"\n}"
+            },
+            "description": "Só permitido em EmDiagnostico ou EmExecucao"
+          }
+        },
+        {
+          "name": "4. Status → AguardandoAprovacao",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"novoStatus\": 3\n}"
+            }
+          }
+        },
+        {
+          "name": "5. Aprovar Orçamento",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/orcamento",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"aprovado\": true\n}"
+            },
+            "description": "Aprovado=true avança para EmExecucao. Aprovado=false cancela (Recusado)"
+          }
+        },
+        {
+          "name": "6. Status → EmExecucao",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"novoStatus\": 4\n}"
+            }
+          }
+        },
+        {
+          "name": "7. Status → Finalizada  ★ publica evento RabbitMQ",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"novoStatus\": 5\n}"
+            },
+            "description": "Publica OsFinalizadaEvent no RabbitMQ. O consumer do Estoque processa e reduz o estoque das peças."
+          }
+        },
+        {
+          "name": "8. Status → Entregue",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"novoStatus\": 6\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — Consultas OS",
+      "item": [
+        {
+          "name": "Listar Todas as OS",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/ordens-servico"
+          }
+        },
+        {
+          "name": "Obter OS por ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}"
+          }
+        },
+        {
+          "name": "Consultar Status da OS",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status"
+          }
+        },
+        {
+          "name": "Acompanhar OS (público, sem auth)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_atendimento}}/ordens-servico/acompanhar/{{os_numero}}",
+            "description": "Endpoint público — não exige JWT. Cliente pode acompanhar pelo número da OS"
+          }
+        },
+        {
+          "name": "Tempo Médio de Execução",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/ordens-servico/tempo-medio"
+          }
+        },
+        {
+          "name": "Tempo Individual da OS",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_numero}}/tempo"
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 — Verificação Estoque (pós-finalização)",
+      "description": "Execute estas requisições APÓS finalizar a OS (passo 7 do fluxo).\nAguarde ~2s para o consumer RabbitMQ processar o evento.",
+      "item": [
+        {
+          "name": "Verificar Estoque da Peça",
+          "request": {
+            "method": "GET",
+            "url": "{{base_estoque}}/estoque/pecas/{{peca_id}}",
+            "description": "Esperado: quantidadeEstoque reduzida conforme os itens da OS finalizada"
+          }
+        },
+        {
+          "name": "Listar Todas as Peças",
+          "request": {
+            "method": "GET",
+            "url": "{{base_estoque}}/estoque/pecas"
+          }
+        },
+        {
+          "name": "Verificar Falhas de Processamento",
+          "request": {
+            "method": "GET",
+            "url": "{{base_estoque}}/estoque/falhas",
+            "description": "Deve estar vazio se o evento foi processado com sucesso"
+          }
+        },
+        {
+          "name": "Falhas de uma OS específica",
+          "request": {
+            "method": "GET",
+            "url": "{{base_estoque}}/estoque/falhas/{{os_id}}"
+          }
+        }
+      ]
+    }
+  ]
+}
