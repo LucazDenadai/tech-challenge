@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using OficinaMecanica.Atendimento.Application.Ports.Out;
+using OficinaMecanica.Atendimento.Domain.Enums;
 using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Persistence;
 using Testcontainers.PostgreSql;
 
@@ -37,6 +39,12 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
 
             services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(_postgres.GetConnectionString()));
+
+            // Substitui EmailSmtpAdapter por stub no ambiente de testes
+            var emailDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEmailPort));
+            if (emailDescriptor is not null)
+                services.Remove(emailDescriptor);
+            services.AddScoped<IEmailPort, NoOpEmailAdapter>();
         });
 
         builder.UseEnvironment("Test");
@@ -49,4 +57,10 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         await db.Database.EnsureDeletedAsync();
         await db.Database.MigrateAsync();
     }
+}
+
+file class NoOpEmailAdapter : IEmailPort
+{
+    public Task EnviarAtualizacaoStatusAsync(string destinatario, string numeroOS, StatusOrdemServico novoStatus, CancellationToken ct = default)
+        => Task.CompletedTask;
 }

@@ -3,11 +3,15 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
+using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Email;
+using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Http;
 using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Messaging;
 using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Persistence;
 using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Persistence.Repositories;
 using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Security;
 using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Stubs;
+using Polly;
+using Polly.Extensions.Http;
 
 namespace OficinaMecanica.Atendimento.Infrastructure;
 
@@ -30,8 +34,28 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IPecaRepository, PecaRepository>();
 
         services.AddScoped<ITokenService, JwtTokenService>();
-        services.AddScoped<IEstoquePort, EstoqueHttpStub>();
-        services.AddScoped<IEmailPort, EmailStub>();
+        services.AddScoped<IEmailPort, EmailSmtpAdapter>();
+
+        var estoqueUrl = configuration["EstoqueServiceUrl"] ?? "http://localhost:8081";
+        var usarEstoqueReal = configuration.GetValue<bool>("EstoqueHttp:Enabled");
+
+        if (usarEstoqueReal)
+        {
+            services.AddHttpClient<IEstoquePort, EstoqueHttpAdapter>(client =>
+                {
+                    client.BaseAddress = new Uri(estoqueUrl);
+                })
+                .AddPolicyHandler(HttpPolicyExtensions
+                    .HandleTransientHttpError()
+                    .WaitAndRetryAsync(2, _ => TimeSpan.FromMilliseconds(500)))
+                .AddPolicyHandler(HttpPolicyExtensions
+                    .HandleTransientHttpError()
+                    .CircuitBreakerAsync(3, TimeSpan.FromSeconds(30)));
+        }
+        else
+        {
+            services.AddScoped<IEstoquePort, EstoqueHttpStub>();
+        }
 
         var rabbitHost = configuration["RabbitMq:Host"] ?? "localhost";
         var usarRabbit = configuration.GetValue<bool>("RabbitMq:Enabled");

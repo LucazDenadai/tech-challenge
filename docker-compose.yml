@@ -17,10 +17,19 @@ services:
       - Jwt__ExpiracaoMinutos=${JWT_EXPIRACAO_MINUTOS}
       - RabbitMq__Enabled=true
       - RabbitMq__Host=rabbitmq
+      - EstoqueHttp__Enabled=true
+      - EstoqueServiceUrl=http://estoque-api:8080
+      - Smtp__Host=${SMTP_HOST:-localhost}
+      - Smtp__Port=${SMTP_PORT:-587}
+      - Smtp__User=${SMTP_USER:-}
+      - Smtp__Password=${SMTP_PASSWORD:-}
+      - Smtp__From=${SMTP_FROM:-Oficina Mecânica <oficina@exemplo.com>}
     depends_on:
       db:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      estoque-api:
         condition: service_healthy
     restart: unless-stopped
 
