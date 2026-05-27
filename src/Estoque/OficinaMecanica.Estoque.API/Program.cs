@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using OficinaMecanica.Estoque.API.Adapters.In.Messaging;
 using OficinaMecanica.Estoque.API.Filters;
 using OficinaMecanica.Estoque.Application.UseCases;
 using OficinaMecanica.Estoque.Infrastructure;
@@ -12,6 +13,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddScoped<GerenciarPecaUseCase>();
 builder.Services.AddScoped<ConsultarDisponibilidadeUseCase>();
 builder.Services.AddScoped<BaixarEstoqueUseCase>();
+
+// ── Consumers (IHostedService) ─────────────────────────────────────────────────
+builder.Services.AddHostedService<BaixaEstoqueConsumer>();
 
 // ── Controllers + Filters ──────────────────────────────────────────────────────
 builder.Services.AddControllers(options =>
