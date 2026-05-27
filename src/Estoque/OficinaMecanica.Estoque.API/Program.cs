@@ -28,6 +28,7 @@ if (usarRabbit)
     builder.Services.AddMassTransit(x =>
     {
         x.AddConsumer<BaixaEstoqueConsumer>();
+        x.AddConsumer<BaixaEstoqueConsumerFaultConsumer>();
 
         x.UsingRabbitMq((ctx, cfg) =>
         {
@@ -37,13 +38,15 @@ if (usarRabbit)
                 h.Password("guest");
             });
 
-            // Fila onde o consumer escuta mensagens OsFinalizadaEvent
             cfg.ReceiveEndpoint("estoque.baixa", e =>
             {
-                // Retry: tenta 3x com intervalos crescentes antes de mover para _error queue
                 e.UseMessageRetry(r => r.Intervals(1000, 5000, 10000));
-
                 e.ConfigureConsumer<BaixaEstoqueConsumer>(ctx);
+            });
+
+            cfg.ReceiveEndpoint("estoque.falhas", e =>
+            {
+                e.ConfigureConsumer<BaixaEstoqueConsumerFaultConsumer>(ctx);
             });
 
             // Registra o tipo do evento para que o MassTransit crie o exchange correto

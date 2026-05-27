@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Peca> Pecas => Set<Peca>();
     public DbSet<MovimentacaoEstoque> Movimentacoes => Set<MovimentacaoEstoque>();
+    public DbSet<FalhaProcessamento> Falhas => Set<FalhaProcessamento>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

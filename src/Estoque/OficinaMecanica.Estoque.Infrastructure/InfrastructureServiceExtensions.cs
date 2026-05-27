@@ -20,6 +20,7 @@ public static class InfrastructureServiceExtensions
 
         services.AddScoped<IPecaRepository, PecaRepository>();
         services.AddScoped<IMovimentacaoRepository, MovimentacaoRepository>();
+        services.AddScoped<IFalhaRepository, FalhaRepository>();
 
         return services;
     }
