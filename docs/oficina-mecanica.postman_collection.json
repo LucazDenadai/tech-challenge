@@ -2,7 +2,7 @@
   "info": {
     "name": "Oficina Mecânica — Tech Challenge",
     "_postman_id": "oficina-mecanica-tech-challenge",
-    "description": "Collection completa do sistema de oficina mecânica.\n\n**Serviços:**\n- Atendimento: http://localhost:8080\n- Estoque: http://localhost:8081\n\n**Fluxo recomendado:**\n1. Health Check\n2. Registrar usuário → Login (captura token automaticamente)\n3. Cadastrar peça no Estoque (fonte da verdade)\n4. Cadastrar serviços, clientes e veículos no Atendimento\n5. Executar o fluxo completo da OS\n6. Verificar baixa automática no estoque via RabbitMQ",
+    "description": "Collection completa do sistema de oficina mecânica.\n\n**Serviços:**\n- Atendimento: http://localhost:8080\n- Estoque: http://localhost:8081\n\n**Fluxo recomendado:**\n1. Health Check (00)\n2. Login → token salvo automaticamente (01)\n3. Criar peça no Estoque — fonte da verdade (03)\n4. Criar serviço, cliente e veículo no Atendimento (04, 05, 06)\n5. Executar o fluxo completo da OS (07)\n6. Verificar baixa automática no estoque via RabbitMQ (09)\n\n**Status da OS (enum):**\nRecebida=1 | EmDiagnostico=2 | AguardandoAprovacao=3 | EmExecucao=4 | Finalizada=5 | Entregue=6\n\n**Perfis de usuário:**\nAdmin=0 | Atendente=1 | Mecanico=2",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -23,38 +23,17 @@
       "item": [
         {
           "name": "Health Atendimento",
-          "request": {
-            "method": "GET",
-            "url": "{{base_atendimento}}/health",
-            "description": "Esperado: 200 Healthy"
-          }
+          "request": { "method": "GET", "url": "{{base_atendimento}}/health" }
         },
         {
           "name": "Health Estoque",
-          "request": {
-            "method": "GET",
-            "url": "{{base_estoque}}/health",
-            "description": "Esperado: 200 Healthy"
-          }
+          "request": { "method": "GET", "url": "{{base_estoque}}/health" }
         }
       ]
     },
     {
       "name": "01 — Autenticação",
       "item": [
-        {
-          "name": "Registrar Usuário Admin",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "url": "{{base_atendimento}}/auth/registrar",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"nome\": \"Admin Oficina\",\n  \"email\": \"admin@oficina.com\",\n  \"senha\": \"Admin@123\",\n  \"perfil\": 0\n}"
-            },
-            "description": "Perfil: 0=Admin, 1=Atendente, 2=Mecanico"
-          }
-        },
         {
           "name": "Login",
           "event": [
@@ -80,7 +59,7 @@
               "mode": "raw",
               "raw": "{\n  \"email\": \"admin@oficina.com\",\n  \"senha\": \"Admin@123\"\n}"
             },
-            "description": "Salva o JWT em {{token}} automaticamente via script de test"
+            "description": "Usuário admin é criado automaticamente na primeira inicialização do serviço. Salva {{token}} via script."
           }
         }
       ]
@@ -89,29 +68,7 @@
       "name": "02 — Usuários",
       "item": [
         {
-          "name": "Listar Usuários",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{base_atendimento}}/usuarios",
-            "description": "Requer perfil Admin"
-          }
-        },
-        {
-          "name": "Buscar por E-mail",
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": {
-              "raw": "{{base_atendimento}}/usuarios?email=admin@oficina.com",
-              "host": ["{{base_atendimento}}"],
-              "path": ["usuarios"],
-              "query": [{ "key": "email", "value": "admin@oficina.com" }]
-            }
-          }
-        },
-        {
-          "name": "Criar Usuário Mecanico",
+          "name": "Criar Usuário",
           "event": [
             {
               "listen": "test",
@@ -134,6 +91,28 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"João Mecânico\",\n  \"email\": \"mecanico@oficina.com\",\n  \"senha\": \"Mecanico@123\",\n  \"perfil\": 2\n}"
+            },
+            "description": "Perfil: 0=Admin | 1=Atendente | 2=Mecanico. Requer token de Admin."
+          }
+        },
+        {
+          "name": "Listar Usuários",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/usuarios"
+          }
+        },
+        {
+          "name": "Buscar por E-mail",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_atendimento}}/usuarios?email=mecanico@oficina.com",
+              "host": ["{{base_atendimento}}"],
+              "path": ["usuarios"],
+              "query": [{ "key": "email", "value": "mecanico@oficina.com" }]
             }
           }
         },
@@ -157,7 +136,8 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"João Mecânico Silva\",\n  \"email\": \"mecanico@oficina.com\",\n  \"perfil\": 2\n}"
-            }
+            },
+            "description": "Senha é opcional na atualização. Perfil obrigatório."
           }
         },
         {
@@ -172,7 +152,7 @@
     },
     {
       "name": "03 — Estoque / Peças (fonte da verdade)",
-      "description": "O Estoque é a fonte da verdade para peças. Cadastre aqui PRIMEIRO. O ID gerado aqui é o que será usado na OS do Atendimento.",
+      "description": "Peças são cadastradas EXCLUSIVAMENTE aqui. O ID gerado é usado ao adicionar peças à OS no Atendimento.",
       "item": [
         {
           "name": "Criar Peça",
@@ -184,7 +164,7 @@
                   "var json = pm.response.json();",
                   "if (json.id) {",
                   "  pm.collectionVariables.set('peca_id', json.id);",
-                  "  console.log('Peça ID salvo:', json.id);",
+                  "  console.log('Peca ID salvo:', json.id);",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -198,8 +178,7 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Pastilha de Freio Dianteira\",\n  \"descricao\": \"Pastilha de freio para veículos de passeio\",\n  \"valor\": 89.90,\n  \"quantidadeEstoque\": 20\n}"
-            },
-            "description": "O ID gerado aqui deve ser usado ao adicionar peças à OS no Atendimento"
+            }
           }
         },
         {
@@ -214,7 +193,7 @@
           "request": {
             "method": "GET",
             "url": "{{base_estoque}}/estoque/pecas/{{peca_id}}",
-            "description": "Verificar estoque atual. Após finalizar OS deve reduzir conforme itens da OS"
+            "description": "Após finalizar OS deve reduzir conforme os itens"
           }
         },
         {
@@ -225,8 +204,9 @@
             "url": "{{base_estoque}}/estoque/pecas/{{peca_id}}",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": \"{{peca_id}}\",\n  \"nome\": \"Pastilha de Freio Dianteira Premium\",\n  \"descricao\": \"Pastilha de freio premium para veículos de passeio\",\n  \"valor\": 99.90\n}"
-            }
+              "raw": "{\n  \"id\": \"{{peca_id}}\",\n  \"nome\": \"Pastilha de Freio Dianteira Premium\",\n  \"descricao\": \"Pastilha de freio premium\",\n  \"valor\": 99.90\n}"
+            },
+            "description": "O campo 'id' no body deve coincidir com o id da rota."
           }
         },
         {
@@ -238,8 +218,7 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"itens\": [\n    { \"pecaId\": \"{{peca_id}}\", \"quantidade\": 2 }\n  ]\n}"
-            },
-            "description": "Verifica se há estoque suficiente para os itens informados"
+            }
           }
         },
         {
@@ -277,8 +256,9 @@
             "url": "{{base_atendimento}}/servicos",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Troca de pastilhas de freio\",\n  \"descricao\": \"Substituição das pastilhas dianteiras e traseiras\",\n  \"preco\": 150.00,\n  \"tempoConclusaoMinutos\": 60\n}"
-            }
+              "raw": "{\n  \"nome\": \"Troca de pastilhas de freio\",\n  \"descricao\": \"Substituição das pastilhas dianteiras\",\n  \"preco\": 150.00,\n  \"tempoConclusaoMinutos\": 60\n}"
+            },
+            "description": "Requer perfil Admin."
           }
         },
         {
@@ -308,7 +288,7 @@
             "url": "{{base_atendimento}}/servicos/{{servico_id}}",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nome\": \"Troca de pastilhas de freio\",\n  \"descricao\": \"Substituição das pastilhas dianteiras e traseiras com teste de funcionamento\",\n  \"preco\": 180.00,\n  \"tempoConclusaoMinutos\": 90\n}"
+              "raw": "{\n  \"nome\": \"Troca de pastilhas de freio\",\n  \"descricao\": \"Substituição com teste de funcionamento\",\n  \"preco\": 180.00,\n  \"tempoConclusaoMinutos\": 90\n}"
             }
           }
         },
@@ -350,7 +330,7 @@
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Carlos Eduardo Souza\",\n  \"documento\": \"52998224725\",\n  \"email\": \"carlos@email.com\",\n  \"telefone\": \"11999998888\",\n  \"endereco\": \"Rua das Palmeiras, 456 - São Paulo/SP\"\n}"
             },
-            "description": "CPF 52998224725 é fictício mas matematicamente válido"
+            "description": "CPF 52998224725 é fictício mas matematicamente válido. Aceita CPF (11 dígitos) ou CNPJ (14 dígitos)."
           }
         },
         {
@@ -362,7 +342,7 @@
           }
         },
         {
-          "name": "Buscar Cliente (nome/CPF/email)",
+          "name": "Buscar Cliente (nome / CPF / e-mail)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -394,7 +374,8 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"nome\": \"Carlos Eduardo Souza\",\n  \"email\": \"carlos.novo@email.com\",\n  \"telefone\": \"11988887777\",\n  \"endereco\": \"Av. Paulista, 1000 - São Paulo/SP\"\n}"
-            }
+            },
+            "description": "Documento (CPF/CNPJ) não pode ser alterado após cadastro."
           }
         },
         {
@@ -462,7 +443,7 @@
           }
         },
         {
-          "name": "Buscar Veículos por CPF do Cliente",
+          "name": "Buscar por CPF do Cliente",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -481,7 +462,8 @@
             "body": {
               "mode": "raw",
               "raw": "{\n  \"marca\": \"Toyota\",\n  \"modelo\": \"Corolla XEi\",\n  \"ano\": 2022,\n  \"cor\": \"Cinza Metálico\"\n}"
-            }
+            },
+            "description": "Placa não pode ser alterada."
           }
         },
         {
@@ -496,7 +478,7 @@
     },
     {
       "name": "07 — Fluxo OS End-to-End",
-      "description": "Fluxo completo de uma Ordem de Serviço.\n\nMáquina de estados:\nRecebida(1) → EmDiagnostico(2) → AguardandoAprovacao(3) → EmExecucao(4) → Finalizada(5) → Entregue(6)\n\nAo Finalizar a OS, um evento é publicado no RabbitMQ e o Estoque reduz automaticamente o estoque das peças usadas.",
+      "description": "Máquina de estados:\nRecebida(1) → EmDiagnostico(2) → AguardandoAprovacao(3) → EmExecucao(4) → Finalizada(5) → Entregue(6)\n\nAo Finalizar a OS, evento é publicado no RabbitMQ e o Estoque reduz automaticamente o estoque das peças.",
       "item": [
         {
           "name": "1. Abrir OS",
@@ -506,10 +488,7 @@
               "script": {
                 "exec": [
                   "var json = pm.response.json();",
-                  "if (json.id) {",
-                  "  pm.collectionVariables.set('os_id', json.id);",
-                  "  console.log('OS ID:', json.id);",
-                  "}",
+                  "if (json.id) pm.collectionVariables.set('os_id', json.id);",
                   "if (json.numero) pm.collectionVariables.set('os_numero', json.numero);"
                 ],
                 "type": "text/javascript"
@@ -525,9 +504,9 @@
             "url": "{{base_atendimento}}/ordens-servico",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"clienteId\": \"{{cliente_id}}\",\n  \"veiculoId\": \"{{veiculo_id}}\",\n  \"descricaoProblema\": \"Barulho ao frear — suspeita de desgaste nas pastilhas\",\n  \"pecas\": [\n    { \"pecaId\": \"{{peca_id}}\", \"quantidade\": 2 }\n  ]\n}"
+              "raw": "{\n  \"clienteId\": \"{{cliente_id}}\",\n  \"veiculoId\": \"{{veiculo_id}}\",\n  \"observacoes\": \"Barulho ao frear — suspeita de desgaste nas pastilhas\",\n  \"pecas\": [\n    { \"pecaId\": \"{{peca_id}}\", \"quantidade\": 2 }\n  ]\n}"
             },
-            "description": "O array 'pecas' na abertura é apenas para verificar disponibilidade em estoque. As peças são adicionadas formalmente na etapa 3."
+            "description": "O array 'pecas' é apenas para verificar disponibilidade. Peças são adicionadas formalmente no passo 3.\nSalva {{os_id}} e {{os_numero}} automaticamente."
           }
         },
         {
@@ -543,7 +522,7 @@
               "mode": "raw",
               "raw": "{\n  \"novoStatus\": 2\n}"
             },
-            "description": "1=Recebida, 2=EmDiagnostico, 3=AguardandoAprovacao, 4=EmExecucao, 5=Finalizada, 6=Entregue"
+            "description": "1=Recebida | 2=EmDiagnostico | 3=AguardandoAprovacao | 4=EmExecucao | 5=Finalizada | 6=Entregue"
           }
         },
         {
@@ -559,7 +538,7 @@
               "mode": "raw",
               "raw": "{\n  \"pecaId\": \"{{peca_id}}\",\n  \"quantidade\": 2\n}"
             },
-            "description": "Só permitido em EmDiagnostico ou EmExecucao. O pecaId DEVE ser o ID cadastrado no Estoque ({{peca_id}})"
+            "description": "Só permitido em EmDiagnostico ou EmExecucao.\n{{peca_id}} deve ser o ID cadastrado no Estoque."
           }
         },
         {
@@ -575,7 +554,7 @@
               "mode": "raw",
               "raw": "{\n  \"servicoId\": \"{{servico_id}}\"\n}"
             },
-            "description": "Só permitido em EmDiagnostico ou EmExecucao"
+            "description": "Só permitido em EmDiagnostico ou EmExecucao."
           }
         },
         {
@@ -587,10 +566,7 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"novoStatus\": 3\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"novoStatus\": 3\n}" }
           }
         },
         {
@@ -606,7 +582,7 @@
               "mode": "raw",
               "raw": "{\n  \"aprovado\": true\n}"
             },
-            "description": "Aprovado=true avança para EmExecucao. Aprovado=false cancela (Recusado)"
+            "description": "aprovado=true → EmExecucao | aprovado=false → Cancelada"
           }
         },
         {
@@ -618,10 +594,7 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"novoStatus\": 4\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"novoStatus\": 4\n}" }
           }
         },
         {
@@ -633,11 +606,8 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"novoStatus\": 5\n}"
-            },
-            "description": "Publica OsFinalizadaEvent no RabbitMQ. O consumer do Estoque processa e reduz o estoque das peças."
+            "body": { "mode": "raw", "raw": "{\n  \"novoStatus\": 5\n}" },
+            "description": "Publica OsFinalizadaEvent no RabbitMQ.\nO consumer do Estoque processa e reduz o estoque das peças em ~2s."
           }
         },
         {
@@ -649,10 +619,7 @@
               { "key": "Authorization", "value": "Bearer {{token}}" }
             ],
             "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"novoStatus\": 6\n}"
-            }
+            "body": { "mode": "raw", "raw": "{\n  \"novoStatus\": 6\n}" }
           }
         }
       ]
@@ -689,7 +656,7 @@
           "request": {
             "method": "GET",
             "url": "{{base_atendimento}}/ordens-servico/acompanhar/{{os_numero}}",
-            "description": "Endpoint público — não exige JWT. Cliente pode acompanhar pelo número da OS"
+            "description": "Endpoint público — cliente acompanha pelo número da OS sem precisar de JWT."
           }
         },
         {
@@ -712,14 +679,14 @@
     },
     {
       "name": "09 — Verificação Estoque (pós-finalização)",
-      "description": "Execute estas requisições APÓS finalizar a OS (passo 7 do fluxo).\nAguarde ~2s para o consumer RabbitMQ processar o evento.",
+      "description": "Execute após o passo 7 (Finalizada). Aguarde ~2s para o consumer RabbitMQ processar.",
       "item": [
         {
           "name": "Verificar Estoque da Peça",
           "request": {
             "method": "GET",
             "url": "{{base_estoque}}/estoque/pecas/{{peca_id}}",
-            "description": "Esperado: quantidadeEstoque reduzida conforme os itens da OS finalizada"
+            "description": "quantidadeEstoque deve ter reduzido conforme os itens da OS finalizada."
           }
         },
         {
@@ -730,11 +697,11 @@
           }
         },
         {
-          "name": "Verificar Falhas de Processamento",
+          "name": "Falhas de Processamento",
           "request": {
             "method": "GET",
             "url": "{{base_estoque}}/estoque/falhas",
-            "description": "Deve estar vazio se o evento foi processado com sucesso"
+            "description": "Deve estar vazio se o evento foi processado com sucesso."
           }
         },
         {
