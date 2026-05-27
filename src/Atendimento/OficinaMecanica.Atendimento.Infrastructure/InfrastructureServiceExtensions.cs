@@ -1,7 +1,9 @@
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
+using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Messaging;
 using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Persistence;
 using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Persistence.Repositories;
 using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Security;
@@ -28,9 +30,31 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IPecaRepository, PecaRepository>();
 
         services.AddScoped<ITokenService, JwtTokenService>();
-        services.AddScoped<IEventPublisher, EventPublisherStub>();
         services.AddScoped<IEstoquePort, EstoqueHttpStub>();
         services.AddScoped<IEmailPort, EmailStub>();
+
+        var rabbitHost = configuration["RabbitMq:Host"] ?? "localhost";
+        var usarRabbit = configuration.GetValue<bool>("RabbitMq:Enabled");
+
+        if (usarRabbit)
+        {
+            services.AddMassTransit(x =>
+            {
+                x.UsingRabbitMq((_, cfg) =>
+                {
+                    cfg.Host(rabbitHost, "/", h =>
+                    {
+                        h.Username("guest");
+                        h.Password("guest");
+                    });
+                });
+            });
+            services.AddScoped<IEventPublisher, RabbitMqEventPublisher>();
+        }
+        else
+        {
+            services.AddScoped<IEventPublisher, EventPublisherStub>();
+        }
 
         return services;
     }

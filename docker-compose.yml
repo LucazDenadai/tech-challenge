@@ -15,8 +15,12 @@ services:
       - Jwt__Issuer=${JWT_ISSUER}
       - Jwt__Audience=${JWT_AUDIENCE}
       - Jwt__ExpiracaoMinutos=${JWT_EXPIRACAO_MINUTOS}
+      - RabbitMq__Enabled=true
+      - RabbitMq__Host=rabbitmq
     depends_on:
       db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     restart: unless-stopped
 
@@ -30,14 +34,34 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=oficina_estoque;Username=postgres;Password=${POSTGRES_PASSWORD}
+      - RabbitMq__Enabled=true
+      - RabbitMq__Host=rabbitmq
     depends_on:
       db:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/swagger/index.html || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: oficina-rabbitmq
+    ports:
+      - "5672:5672"    # porta AMQP (usada pelos serviços para publicar/consumir)
+      - "15672:15672"  # porta da management UI (browser)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   db:

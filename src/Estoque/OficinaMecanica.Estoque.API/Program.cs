@@ -1,9 +1,12 @@
+using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OficinaMecanica.Estoque.API.Adapters.In.Messaging;
 using OficinaMecanica.Estoque.API.Filters;
+using OficinaMecanica.Estoque.Application.Events;
 using OficinaMecanica.Estoque.Application.UseCases;
 using OficinaMecanica.Estoque.Infrastructure;
+using OficinaMecanica.Estoque.Infrastructure.Adapters.In.Messaging;
 using OficinaMecanica.Estoque.Infrastructure.Adapters.Out.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,8 +19,43 @@ builder.Services.AddScoped<GerenciarPecaUseCase>();
 builder.Services.AddScoped<ConsultarDisponibilidadeUseCase>();
 builder.Services.AddScoped<BaixarEstoqueUseCase>();
 
-// ── Consumers (IHostedService) ─────────────────────────────────────────────────
-builder.Services.AddHostedService<BaixaEstoqueConsumer>();
+// ── MassTransit + RabbitMQ ─────────────────────────────────────────────────────
+var rabbitHost = builder.Configuration["RabbitMq:Host"] ?? "localhost";
+var usarRabbit = builder.Configuration.GetValue<bool>("RabbitMq:Enabled");
+
+if (usarRabbit)
+{
+    builder.Services.AddMassTransit(x =>
+    {
+        x.AddConsumer<BaixaEstoqueConsumer>();
+
+        x.UsingRabbitMq((ctx, cfg) =>
+        {
+            cfg.Host(rabbitHost, "/", h =>
+            {
+                h.Username("guest");
+                h.Password("guest");
+            });
+
+            // Fila onde o consumer escuta mensagens OsFinalizadaEvent
+            cfg.ReceiveEndpoint("estoque.baixa", e =>
+            {
+                // Retry: tenta 3x com intervalos crescentes antes de mover para _error queue
+                e.UseMessageRetry(r => r.Intervals(1000, 5000, 10000));
+
+                e.ConfigureConsumer<BaixaEstoqueConsumer>(ctx);
+            });
+
+            // Registra o tipo do evento para que o MassTransit crie o exchange correto
+            cfg.Message<OsFinalizadaEvent>(x => x.SetEntityName("os-finalizada"));
+        });
+    });
+}
+else
+{
+    // Stub para rodar sem RabbitMQ (desenvolvimento local, testes)
+    builder.Services.AddHostedService<BaixaEstoqueConsumerStub>();
+}
 
 // ── Controllers + Filters ──────────────────────────────────────────────────────
 builder.Services.AddControllers(options =>

@@ -1,4 +1,5 @@
 using Moq;
+using OficinaMecanica.Atendimento.Application.Events;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
 using OficinaMecanica.Atendimento.Application.UseCases.OrdemServico;
 using OficinaMecanica.Atendimento.Domain.Enums;
@@ -57,7 +58,7 @@ public class AtualizarStatusOSUseCaseTests
 
         await _sut.ExecutarAsync(os.Id, StatusOrdemServico.Finalizada);
 
-        _eventMock.Verify(e => e.PublishAsync("os.finalizada", It.IsAny<object>(), default), Times.Once);
+        _eventMock.Verify(e => e.PublishOsFinalizadaAsync(It.IsAny<OsFinalizadaEvent>(), default), Times.Once);
     }
 
     [Fact]

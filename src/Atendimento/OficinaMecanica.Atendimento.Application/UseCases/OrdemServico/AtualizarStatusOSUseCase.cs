@@ -1,3 +1,4 @@
+using OficinaMecanica.Atendimento.Application.Events;
 using OficinaMecanica.Atendimento.Application.Exceptions;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
 using OficinaMecanica.Atendimento.Domain.Enums;
@@ -21,7 +22,17 @@ public class AtualizarStatusOSUseCase(
         await repository.SalvarAsync(ct);
 
         if (novoStatus == StatusOrdemServico.Finalizada)
-            await eventPublisher.PublishAsync("os.finalizada", new { osId = os.Id, numero = os.Numero }, ct);
+        {
+            var evento = new OsFinalizadaEvent
+            {
+                OrdemServicoId = os.Id,
+                NumeroOS = os.Numero,
+                Itens = os.ItensPeca
+                    .Select(p => new ItemBaixaDto(p.PecaId, p.Quantidade))
+                    .ToList()
+            };
+            await eventPublisher.PublishOsFinalizadaAsync(evento, ct);
+        }
 
         var cliente = await clienteRepository.ObterPorIdAsync(os.ClienteId, ct);
         if (cliente is not null)
