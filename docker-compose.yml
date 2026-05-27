@@ -20,6 +20,26 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  estoque-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.estoque
+    container_name: oficina-estoque-api
+    ports:
+      - "8081:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=oficina_estoque;Username=postgres;Password=${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/swagger/index.html || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
   db:
     image: postgres:16-alpine
     container_name: oficina-atendimento-db
