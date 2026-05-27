@@ -116,6 +116,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 
+// ── Health Checks ──────────────────────────────────────────────────────────────
+builder.Services.AddHealthChecks();
+
 // ── Swagger ────────────────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -174,6 +177,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 await app.RunAsync();

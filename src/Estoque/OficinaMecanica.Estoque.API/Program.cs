@@ -80,6 +80,9 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
     };
 });
 
+// ── Health Checks ──────────────────────────────────────────────────────────────
+builder.Services.AddHealthChecks();
+
 // ── Swagger ────────────────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -101,6 +104,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 await app.RunAsync();
