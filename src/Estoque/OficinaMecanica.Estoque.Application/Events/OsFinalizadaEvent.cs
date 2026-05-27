@@ -1,6 +1,6 @@
-namespace OficinaMecanica.Estoque.Application.Events;
+// Namespace idêntico ao do Atendimento — MassTransit filtra mensagens pelo messageType (namespace:tipo)
+namespace OficinaMecanica.Atendimento.Application.Events;
 
-// Contrato espelhado do Atendimento — MassTransit identifica pelo nome do tipo
 public record OsFinalizadaEvent
 {
     public Guid EventId { get; init; }

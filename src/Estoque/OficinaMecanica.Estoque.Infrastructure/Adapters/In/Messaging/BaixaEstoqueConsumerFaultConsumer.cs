@@ -1,6 +1,6 @@
 using System.Text.Json;
 using MassTransit;
-using OficinaMecanica.Estoque.Application.Events;
+using OficinaMecanica.Atendimento.Application.Events;
 using OficinaMecanica.Estoque.Application.Ports.Out;
 using OficinaMecanica.Estoque.Domain.Entities;
 

@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OficinaMecanica.Estoque.API.Adapters.In.Messaging;
 using OficinaMecanica.Estoque.API.Filters;
-using OficinaMecanica.Estoque.Application.Events;
+using OficinaMecanica.Atendimento.Application.Events;
 using OficinaMecanica.Estoque.Application.UseCases;
 using OficinaMecanica.Estoque.Infrastructure;
 using OficinaMecanica.Estoque.Infrastructure.Adapters.In.Messaging;
@@ -42,6 +42,7 @@ if (usarRabbit)
             {
                 e.UseMessageRetry(r => r.Intervals(1000, 5000, 10000));
                 e.ConfigureConsumer<BaixaEstoqueConsumer>(ctx);
+                e.Bind("os-finalizada");
             });
 
             cfg.ReceiveEndpoint("estoque.falhas", e =>
