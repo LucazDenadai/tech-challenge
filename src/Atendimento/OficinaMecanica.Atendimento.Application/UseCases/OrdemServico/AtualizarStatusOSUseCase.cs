@@ -36,6 +36,9 @@ public class AtualizarStatusOSUseCase(
 
         var cliente = await clienteRepository.ObterPorIdAsync(os.ClienteId, ct);
         if (cliente is not null)
-            await emailPort.EnviarAtualizacaoStatusAsync(cliente.Email, os.Numero, novoStatus, ct);
+        {
+            try { await emailPort.EnviarAtualizacaoStatusAsync(cliente.Email, os.Numero, novoStatus, ct); }
+            catch { /* falha no SMTP não bloqueia a transição de status */ }
+        }
     }
 }

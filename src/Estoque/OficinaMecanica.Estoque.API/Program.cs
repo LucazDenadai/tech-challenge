@@ -93,6 +93,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.ExecuteSqlRawAsync("CREATE SCHEMA IF NOT EXISTS estoque");
     await db.Database.MigrateAsync();
 }
 

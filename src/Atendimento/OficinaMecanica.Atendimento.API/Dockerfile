@@ -11,12 +11,12 @@ RUN dotnet restore src/Atendimento/OficinaMecanica.Atendimento.API/OficinaMecani
 COPY src/ src/
 
 RUN dotnet publish src/Atendimento/OficinaMecanica.Atendimento.API/OficinaMecanica.Atendimento.API.csproj \
-    -c Release -o /app/publish --no-restore
+    -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
-RUN adduser --disabled-password --gecos "" app
 COPY --from=build --chown=app:app /app/publish .
 USER app
 

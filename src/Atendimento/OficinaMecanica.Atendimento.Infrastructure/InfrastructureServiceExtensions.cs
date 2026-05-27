@@ -71,6 +71,9 @@ public static class InfrastructureServiceExtensions
                         h.Username("guest");
                         h.Password("guest");
                     });
+
+                    cfg.Message<OficinaMecanica.Atendimento.Application.Events.OsFinalizadaEvent>(
+                        m => m.SetEntityName("os-finalizada"));
                 });
             });
             services.AddScoped<IEventPublisher, RabbitMqEventPublisher>();
