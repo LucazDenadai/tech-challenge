@@ -3,7 +3,6 @@ using OficinaMecanica.Atendimento.Application.Ports.Out;
 
 namespace OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Stubs;
 
-// Substituído por HTTP client com Polly no CARD-09
 public class EstoqueHttpStub : IEstoquePort
 {
     private readonly ILogger<EstoqueHttpStub> _logger;
@@ -14,5 +13,11 @@ public class EstoqueHttpStub : IEstoquePort
     {
         _logger.LogInformation("Stub: verificando disponibilidade de {Count} peças — retornando true", itens.Count());
         return Task.FromResult(true);
+    }
+
+    public Task<PecaEstoqueDto?> ObterPecaAsync(Guid pecaId, CancellationToken ct = default)
+    {
+        _logger.LogInformation("Stub: obtendo peça {PecaId} — retornando peça fictícia", pecaId);
+        return Task.FromResult<PecaEstoqueDto?>(new(pecaId, "Peça (stub)", "", 0m));
     }
 }

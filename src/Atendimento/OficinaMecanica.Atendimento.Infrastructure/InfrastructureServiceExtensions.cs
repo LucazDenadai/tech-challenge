@@ -31,7 +31,6 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IVeiculoRepository, VeiculoRepository>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IServicoRepository, ServicoRepository>();
-        services.AddScoped<IPecaRepository, PecaRepository>();
 
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IEmailPort, EmailSmtpAdapter>();

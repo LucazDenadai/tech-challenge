@@ -13,7 +13,6 @@ public class AppDbContext : DbContext
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Veiculo> Veiculos => Set<Veiculo>();
     public DbSet<Servico> Servicos => Set<Servico>();
-    public DbSet<Peca> Pecas => Set<Peca>();
     [ExcludeFromCodeCoverage] public DbSet<OrdemServico> OrdensServico => Set<OrdemServico>();
     [ExcludeFromCodeCoverage] public DbSet<ItemServico> ItensServico => Set<ItemServico>();
     [ExcludeFromCodeCoverage] public DbSet<ItemPeca> ItensPeca => Set<ItemPeca>();

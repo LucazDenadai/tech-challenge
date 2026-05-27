@@ -11,7 +11,6 @@ using OficinaMecanica.Atendimento.Application.UseCases.Auth;
 using OficinaMecanica.Atendimento.Application.UseCases.Catalogo;
 using OficinaMecanica.Atendimento.Application.UseCases.Cliente;
 using OficinaMecanica.Atendimento.Application.UseCases.OrdemServico;
-using OficinaMecanica.Atendimento.Application.UseCases.Peca;
 using OficinaMecanica.Atendimento.Application.UseCases.Usuario;
 using OficinaMecanica.Atendimento.Application.UseCases.Veiculo;
 using OficinaMecanica.Atendimento.Domain.Entities;
@@ -39,7 +38,6 @@ builder.Services.AddScoped<ObterTempoExecucaoUseCase>();
 builder.Services.AddScoped<GerenciarClienteUseCase>();
 builder.Services.AddScoped<GerenciarVeiculoUseCase>();
 builder.Services.AddScoped<GerenciarCatalogoUseCase>();
-builder.Services.AddScoped<GerenciarPecaUseCase>();
 builder.Services.AddScoped<GerenciarUsuarioUseCase>();
 
 // ── JWT Authentication ─────────────────────────────────────────────────────────

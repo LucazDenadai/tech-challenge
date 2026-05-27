@@ -251,14 +251,10 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         var (osId, _, _) = await AbrirOSAsync();
         await MudarStatusAsync(osId, StatusOrdemServico.EmDiagnostico);
 
-        using var scope = _factory.Services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var peca = new OficinaMecanica.Atendimento.Domain.Entities.Peca("Pastilha", "Pastilha dianteira", 120m);
-        db.Pecas.Add(peca);
-        await db.SaveChangesAsync();
-
+        // FakeEstoqueAdapter retorna valor 120m para qualquer pecaId
+        var pecaId = Guid.NewGuid();
         var response = await _client.PostAsJsonAsync($"/ordens-servico/{osId}/pecas",
-            new { PecaId = peca.Id, Quantidade = 2 });
+            new { PecaId = pecaId, Quantidade = 2 });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var detalhe = await response.Content.ReadFromJsonAsync<OSDetalheResponse>();

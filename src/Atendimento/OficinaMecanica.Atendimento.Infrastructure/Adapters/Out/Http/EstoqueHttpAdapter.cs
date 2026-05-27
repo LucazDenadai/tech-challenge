@@ -20,5 +20,15 @@ public class EstoqueHttpAdapter(HttpClient httpClient) : IEstoquePort
         return resultado?.Disponivel ?? false;
     }
 
+    public async Task<PecaEstoqueDto?> ObterPecaAsync(Guid pecaId, CancellationToken ct = default)
+    {
+        var response = await httpClient.GetAsync($"/estoque/pecas/{pecaId}", ct);
+
+        if (!response.IsSuccessStatusCode)
+            return null;
+
+        return await response.Content.ReadFromJsonAsync<PecaEstoqueDto>(JsonOptions, ct);
+    }
+
     private record DisponibilidadeResponse(bool Disponivel);
 }

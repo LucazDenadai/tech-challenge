@@ -12,6 +12,6 @@ public class ItemPecaConfiguration : IEntityTypeConfiguration<ItemPeca>
         builder.HasKey(i => i.Id);
         builder.Property(i => i.ValorUnitario).HasColumnType("decimal(18,2)").IsRequired();
         builder.Ignore(i => i.ValorTotal);
-        builder.HasOne<Peca>().WithMany().HasForeignKey(i => i.PecaId).OnDelete(DeleteBehavior.Restrict);
+        // PecaId referencia o microserviço Estoque — sem FK local (ADR-004)
     }
 }

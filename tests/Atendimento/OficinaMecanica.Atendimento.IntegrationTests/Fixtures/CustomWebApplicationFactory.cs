@@ -40,11 +40,15 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
             services.AddDbContext<AppDbContext>(options =>
                 options.UseNpgsql(_postgres.GetConnectionString()));
 
-            // Substitui EmailSmtpAdapter por stub no ambiente de testes
             var emailDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEmailPort));
             if (emailDescriptor is not null)
                 services.Remove(emailDescriptor);
             services.AddScoped<IEmailPort, NoOpEmailAdapter>();
+
+            var estoqueDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(IEstoquePort));
+            if (estoqueDescriptor is not null)
+                services.Remove(estoqueDescriptor);
+            services.AddScoped<IEstoquePort, FakeEstoqueAdapter>();
         });
 
         builder.UseEnvironment("Test");
@@ -63,4 +67,13 @@ file class NoOpEmailAdapter : IEmailPort
 {
     public Task EnviarAtualizacaoStatusAsync(string destinatario, string numeroOS, StatusOrdemServico novoStatus, CancellationToken ct = default)
         => Task.CompletedTask;
+}
+
+file class FakeEstoqueAdapter : IEstoquePort
+{
+    public Task<bool> VerificarDisponibilidadeAsync(IEnumerable<ItemPecaRequest> itens, CancellationToken ct = default)
+        => Task.FromResult(true);
+
+    public Task<PecaEstoqueDto?> ObterPecaAsync(Guid pecaId, CancellationToken ct = default)
+        => Task.FromResult<PecaEstoqueDto?>(new(pecaId, "Peça Teste", "Descrição teste", 120m));
 }

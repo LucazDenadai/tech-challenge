@@ -7,7 +7,7 @@ namespace OficinaMecanica.Atendimento.Application.UseCases.OrdemServico;
 public class AdicionarItemOSUseCase(
     IOrdemServicoRepository osRepository,
     IServicoRepository servicoRepository,
-    IPecaRepository pecaRepository)
+    IEstoquePort estoquePort)
 {
     public async Task<OrdemServicoDetalheResponse> AdicionarServicoAsync(Guid osId, Guid servicoId, CancellationToken ct = default)
     {
@@ -28,10 +28,10 @@ public class AdicionarItemOSUseCase(
         var os = await osRepository.ObterComDetalhesAsync(osId, ct)
             ?? throw new NotFoundException("OrdemServico", osId);
 
-        var peca = await pecaRepository.ObterPorIdAsync(pecaId, ct)
+        var peca = await estoquePort.ObterPecaAsync(pecaId, ct)
             ?? throw new NotFoundException("Peca", pecaId);
 
-        os.AdicionarItemPeca(new ItemPeca(os.Id, peca.Id, quantidade, peca.Preco));
+        os.AdicionarItemPeca(new ItemPeca(os.Id, peca.Id, quantidade, peca.Valor));
         await osRepository.AtualizarAsync(os, ct);
         await osRepository.SalvarAsync(ct);
         return ObterOrdemServicoUseCase.ToDetalhe(os);
