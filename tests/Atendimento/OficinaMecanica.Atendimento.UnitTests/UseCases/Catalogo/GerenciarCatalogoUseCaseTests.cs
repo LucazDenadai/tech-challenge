@@ -21,9 +21,9 @@ public class GerenciarCatalogoUseCaseTests
     {
         var request = new CriarServicoRequest("Troca de óleo", "Troca completa", 150m, 60);
 
-        var id = await _sut.CriarServicoAsync(request);
+        var response = await _sut.CriarServicoAsync(request);
 
-        Assert.NotEqual(Guid.Empty, id);
+        Assert.NotEqual(Guid.Empty, response.Id);
         _servicoRepoMock.Verify(r => r.AdicionarAsync(It.IsAny<Servico>(), default), Times.Once);
         _servicoRepoMock.Verify(r => r.SalvarAsync(default), Times.Once);
     }
