@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OficinaMecanica.Estoque.API.Adapters.In.Messaging;
 using OficinaMecanica.Estoque.API.Filters;
 using OficinaMecanica.Estoque.Application.UseCases;
 using OficinaMecanica.Estoque.Infrastructure;
+using OficinaMecanica.Estoque.Infrastructure.Adapters.Out.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +44,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+// ── Migration automática ───────────────────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.MigrateAsync();
+}
 
 // ── Middleware pipeline ────────────────────────────────────────────────────────
 if (app.Environment.IsDevelopment())
