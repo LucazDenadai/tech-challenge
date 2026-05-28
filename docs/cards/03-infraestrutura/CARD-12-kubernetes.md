@@ -7,134 +7,52 @@
 
 ---
 
-## Contexto
+## Objetivo
 
-Criar os manifestos Kubernetes para deploy de todos os componentes do sistema. O cluster pode ser local (Kind, Minikube, Docker Desktop K8s) ou cloud. Os manifestos devem ser aplicáveis com `kubectl apply -f k8s/`.
+Implantar todos os componentes do sistema em Kubernetes, criando os manifestos YAML que descrevem o estado desejado do cluster. Ao final, `kubectl apply -f k8s/` sobe o ambiente completo e os dois serviços respondem via Postman.
+
+## Por que Kubernetes?
+
+Docker Compose roda vários containers em **uma máquina**. Kubernetes roda, escala e recupera containers em um **cluster de máquinas**:
+
+- O K8s decide **onde** cada container roda (scheduling)
+- Se um container morrer, o K8s **reinicia automaticamente** (self-healing)
+- Se a CPU subir, o K8s **cria mais réplicas** (HPA)
+- Configuração e segredos são **recursos do cluster**, não arquivos locais
+
+---
+
+## Sub-cards
+
+| Sub-card | Arquivo | Entregável |
+|---|---|---|
+| CARD-12a | [CARD-12a-kind-cluster.md](CARD-12a-kind-cluster.md) | Cluster local com 2 nós em `Ready` |
+| CARD-12b | [CARD-12b-namespace.md](CARD-12b-namespace.md) | Namespace `oficina-mecanica` criado |
+| CARD-12c | [CARD-12c-postgres.md](CARD-12c-postgres.md) | Pod postgres rodando com PVC |
+| CARD-12d | [CARD-12d-rabbitmq.md](CARD-12d-rabbitmq.md) | Pod rabbitmq-0 rodando com PVC |
+| CARD-12e | [CARD-12e-atendimento.md](CARD-12e-atendimento.md) | 2 Pods atendimento + HPA ativos |
+| CARD-12f | [CARD-12f-estoque.md](CARD-12f-estoque.md) | 2 Pods estoque + HPA ativos |
+| CARD-12g | [CARD-12g-validacao.md](CARD-12g-validacao.md) | Fluxo end-to-end via Postman no cluster |
+
+---
+
+## Ordem de execução
+
+```
+12a → 12b → 12c → 12d → 12e → 12f → 12g
+```
+
+Cada sub-card tem sua própria validação — só avançar quando o entregável do anterior estiver confirmado.
 
 ---
 
 ## Critérios de aceite
 
 - [ ] `kubectl apply -f k8s/` sobe todos os recursos sem erro
-- [ ] Atendimento e Estoque acessíveis via Service
-- [ ] HPA configurado para ambos os serviços (escala por CPU)
-- [ ] Secrets usados para JWT, credenciais de banco e SMTP (não ConfigMap)
+- [ ] Atendimento acessível em `localhost:30080`, Estoque em `localhost:30081`
+- [ ] HPA configurado para ambos os serviços
+- [ ] Secrets usados para JWT, credenciais de banco e SMTP
 - [ ] ConfigMaps para configurações não sensíveis
 - [ ] Todos os Pods com `readinessProbe` e `livenessProbe`
 - [ ] RabbitMQ com PersistentVolumeClaim
-
----
-
-## Estrutura de arquivos
-
-```
-k8s/
-├── namespace.yaml
-├── postgres/
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── pvc.yaml
-│   └── secret.yaml
-├── rabbitmq/
-│   ├── statefulset.yaml
-│   ├── service.yaml
-│   └── pvc.yaml
-├── atendimento/
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   ├── configmap.yaml
-│   ├── secret.yaml
-│   └── hpa.yaml
-└── estoque/
-    ├── deployment.yaml
-    ├── service.yaml
-    ├── configmap.yaml
-    ├── secret.yaml
-    └── hpa.yaml
-```
-
----
-
-## Especificações dos recursos
-
-### Deployments
-
-```yaml
-# Atendimento e Estoque seguem o mesmo padrão
-replicas: 2
-resources:
-  requests:
-    cpu: "100m"
-    memory: "128Mi"
-  limits:
-    cpu: "500m"
-    memory: "256Mi"
-```
-
-### HPA — Horizontal Pod Autoscaler
-
-```yaml
-# k8s/atendimento/hpa.yaml
-minReplicas: 2
-maxReplicas: 10
-metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
-```
-
-### Secrets (não commitar valores reais)
-
-```yaml
-# k8s/atendimento/secret.yaml
-apiVersion: v1
-kind: Secret
-metadata:
-  name: atendimento-secrets
-type: Opaque
-data:
-  JWT_KEY: <base64>
-  DB_PASSWORD: <base64>
-  SMTP_PASSWORD: <base64>
-```
-
-> Valores reais injetados pelo CI/CD via `kubectl create secret` com variáveis do repositório (CARD-14).
-
-### Probes
-
-```yaml
-readinessProbe:
-  httpGet:
-    path: /health
-    port: 8080
-  initialDelaySeconds: 10
-  periodSeconds: 5
-livenessProbe:
-  httpGet:
-    path: /health
-    port: 8080
-  initialDelaySeconds: 30
-  periodSeconds: 10
-```
-
----
-
-## Passos
-
-1. Criar `namespace.yaml` (`oficina-mecanica`)
-2. Criar manifestos do PostgreSQL com PVC
-3. Criar manifestos do RabbitMQ com StatefulSet e PVC
-4. Criar manifestos do Atendimento (Deployment, Service, ConfigMap, Secret, HPA)
-5. Criar manifestos do Estoque (Deployment, Service, ConfigMap, Secret, HPA)
-6. Adicionar endpoint `/health` nos dois serviços (ASP.NET Core Health Checks)
-7. Validar com `kubectl apply -f k8s/` em cluster local
-8. Validar HPA com `kubectl get hpa`
+- [ ] Fluxo end-to-end validado via Postman dentro do cluster
