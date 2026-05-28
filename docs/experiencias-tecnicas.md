@@ -233,6 +233,124 @@ A collection ficou alinhada com o código real. O passo de "criar usuário" na d
 
 ---
 
+## EXP-007 — Liveness probe derrubando Pod do RabbitMQ antes de inicializar
+
+### Situação
+
+Ao aplicar o StatefulSet do RabbitMQ no Minikube, o Pod entrava em loop de restart (`RESTARTS: 1, 2...`). O status mostrava `Running` mas `0/1` — o container estava vivo mas nunca passava no readiness. O `kubectl describe` revelou: `Liveness probe failed: command timed out: "rabbitmq-diagnostics ping" timed out after 1s`.
+
+### Tarefa
+
+Entender por que a liveness probe estava matando o Pod antes do RabbitMQ terminar de inicializar e corrigir os parâmetros sem remover a probe.
+
+### Ação
+
+O problema tinha duas causas sobrepostas:
+
+1. **`timeoutSeconds` padrão é 1s** — o comando `rabbitmq-diagnostics ping` no Minikube (ambiente com menos recursos que produção) demora mais de 1s para responder, causando timeout mesmo quando o broker estava saudável.
+
+2. **`initialDelaySeconds: 60` insuficiente** — o RabbitMQ no Minikube levava mais de 60s para estar totalmente pronto, então a liveness começava a checar antes do broker responder.
+
+A correção foi ajustar ambos os parâmetros:
+
+```yaml
+readinessProbe:
+  exec:
+    command: ["rabbitmq-diagnostics", "ping"]
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 10      # de 1s para 10s
+  failureThreshold: 6
+
+livenessProbe:
+  exec:
+    command: ["rabbitmq-diagnostics", "ping"]
+  initialDelaySeconds: 120  # de 60s para 120s
+  periodSeconds: 15
+  timeoutSeconds: 10        # de 1s para 10s
+  failureThreshold: 3
+```
+
+Após aplicar o manifesto atualizado, o Pod não recriou automaticamente com os novos valores — o StatefulSet não força recriação do Pod ao ser atualizado. Foi necessário deletar o Pod manualmente para o StatefulSet recriar com as novas configurações:
+
+```powershell
+kubectl delete pod rabbitmq-0 -n oficina-mecanica
+```
+
+### Resultado
+
+Após a recriação com os novos timeouts, o `rabbitmq-0` subiu para `1/1 Running` sem restarts. A Management UI ficou acessível via port-forward confirmando o broker saudável.
+
+**Conceito transmissível:** probes com `timeoutSeconds: 1` (padrão) são frágeis em ambientes locais com menos recursos (Minikube, CI) e em aplicações que levam tempo para inicializar. Sempre ajustar `timeoutSeconds` e `initialDelaySeconds` de acordo com o comportamento real da aplicação no ambiente alvo — não apenas no ambiente de produção. Além disso, StatefulSets não recriam Pods automaticamente ao serem atualizados: é necessário deletar o Pod manualmente para aplicar novos valores de probe.
+
+---
+
+## EXP-008 — NodePort inacessível pelo IP do nó no Minikube com driver Docker no Windows
+
+### Situação
+
+Após subir o Deployment do Atendimento com Service do tipo NodePort na porta 30080, o health check via `http://192.168.49.2:30080/health` retornava "Impossível conectar-se ao servidor remoto". Os Pods estavam `1/1 Running` e os logs mostravam o serviço escutando normalmente na porta 8080.
+
+### Tarefa
+
+Entender por que o NodePort não estava acessível pelo IP do nó e encontrar a forma correta de acessar serviços do Minikube no Windows.
+
+### Ação
+
+O Minikube com `--driver=docker` no Windows cria o cluster dentro de um container Docker. O IP `192.168.49.2` é o IP interno da rede Docker — não é roteável diretamente pelo Windows Host, diferente do que acontece no Linux onde o IP do nó é acessível diretamente.
+
+A solução é usar o comando nativo do Minikube que cria um túnel local:
+
+```powershell
+minikube service atendimento-svc -n oficina-mecanica --url
+# retorna: http://127.0.0.1:63934
+# ! Because you are using a Docker driver on windows, the terminal needs to be open to run it.
+```
+
+O terminal precisa ficar aberto mantendo o túnel ativo. O teste é feito em um segundo terminal usando a URL retornada.
+
+### Resultado
+
+Com o túnel ativo, `Invoke-RestMethod http://127.0.0.1:63934/health` retornou `Healthy`. O mesmo padrão foi aplicado ao Estoque (porta diferente a cada execução).
+
+**Conceito transmissível:** no Minikube com driver Docker no Windows, o IP do nó (`minikube ip`) não é acessível diretamente — é necessário usar `minikube service <nome> --url` para criar um túnel. Em Linux isso não é necessário. Em produção (EKS, GKE) o NodePort é substituído por LoadBalancer ou Ingress, que expõem IPs acessíveis externamente de forma nativa.
+
+---
+
+## EXP-009 — Token JWT não persiste entre sessões do PowerShell
+
+### Situação
+
+Ao executar o fluxo de testes end-to-end do Kubernetes em múltiplos comandos PowerShell separados, o token JWT obtido no login não estava disponível nos comandos seguintes. As requisições retornavam HTTP 401.
+
+### Tarefa
+
+Executar o fluxo completo de autenticação e chamadas à API em uma única sessão sem perder o token entre os passos.
+
+### Ação
+
+Variáveis no PowerShell vivem apenas na sessão (processo) atual. Cada bloco de comando executado em uma nova invocação do PowerShell começa sem as variáveis definidas anteriormente. A solução foi consolidar todo o fluxo — login, criação de entidades e transições de status — em um único bloco de script executado de uma vez:
+
+```powershell
+# Login e captura do token
+$login = Invoke-RestMethod -Uri "$atendimento/auth/login" -Method POST ...
+$token = $login.token
+$h = @{ Authorization = "Bearer $token"; "Content-Type" = "application/json" }
+
+# Todos os passos seguintes usando $h na mesma sessão
+$peca   = Invoke-RestMethod -Uri "$estoque/estoque/pecas" -Headers $h ...
+$cliente = Invoke-RestMethod -Uri "$atendimento/clientes" -Headers $h ...
+# ...
+```
+
+### Resultado
+
+O fluxo completo executou sem erros de autenticação: login → criar peça → criar cliente → criar veículo → abrir OS → transições de status → finalizar → verificar estoque reduzido de 10 para 8 com 0 falhas registradas.
+
+**Conceito transmissível:** variáveis de ambiente e de sessão têm escopo limitado ao processo. Em scripts de automação e testes, sempre executar fluxos encadeados em um único script ou pipeline — nunca assumir que uma variável definida em um comando anterior estará disponível no próximo. O mesmo princípio vale para tokens JWT: eles são credenciais de sessão e devem ser passados explicitamente em cada requisição.
+
+---
+
 ## Referência rápida
 
 | # | Problema | Tecnologia | Conceito-chave |
@@ -243,3 +361,6 @@ A collection ficou alinhada com o código real. O passo de "criar usuário" na d
 | EXP-004 | CPF fictício rejeitado | Domain validation | Dígito verificador CPF |
 | EXP-005 | IDs de peça incompatíveis entre serviços | Microserviços | Fonte única da verdade |
 | EXP-006 | Endpoint documentado mas inexistente | ASP.NET Core | Documentação derivada do código |
+| EXP-007 | Liveness probe derrubando Pod no Minikube | Kubernetes | `timeoutSeconds` e `initialDelaySeconds` |
+| EXP-008 | NodePort inacessível no Windows com Minikube | Kubernetes / Minikube | `minikube service --url` como túnel |
+| EXP-009 | Token JWT perdido entre sessões PowerShell | PowerShell / Testes | Escopo de variáveis de sessão |
