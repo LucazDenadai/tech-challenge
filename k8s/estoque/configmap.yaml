@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: estoque-config
+  namespace: oficina-mecanica
+data:
+  ASPNETCORE_ENVIRONMENT: Production
+  ASPNETCORE_URLS: http://+:8080
+  RabbitMq__Enabled: "true"
+  RabbitMq__Host: rabbitmq-svc
