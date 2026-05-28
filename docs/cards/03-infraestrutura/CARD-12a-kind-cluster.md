@@ -1,56 +1,67 @@
-# CARD-12.1 — Cluster local com Kind
+# CARD-12a — Cluster local com Minikube
 
 **Depende de:** Docker Desktop rodando  
-**Bloqueia:** CARD-12.2
+**Bloqueia:** CARD-12b
 
 ---
 
 ## Contexto
 
-Kind roda um cluster Kubernetes inteiro dentro de containers Docker — 1 container por nó. É o padrão para desenvolvimento local: você controla a versão, pode destruir e recriar em segundos.
+Minikube cria um cluster Kubernetes local dentro de um container Docker. É o ambiente de desenvolvimento local mais usado em cursos — os manifestos YAML são idênticos aos de um cluster real (EKS).
 
 ---
 
 ## Tarefas
 
-**1. Instalar Kind**
+**1. Instalar Minikube**
 
 ```powershell
-winget install Kubernetes.kind
+winget install Kubernetes.minikube
 # fechar e reabrir o terminal
-kind version
+minikube version
 ```
 
-**2. Criar o arquivo de configuração do cluster**
-
-```yaml
-# k8s/kind-config.yaml
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-nodes:
-  - role: control-plane
-  - role: worker
-```
-
-**3. Criar o cluster**
+**2. Iniciar o cluster**
 
 ```powershell
-kind create cluster --name oficina --config k8s/kind-config.yaml
+minikube start --driver=docker --cpus=2 --memory=4096
+```
+
+Usa o Docker Desktop como backend — sem VM separada. Na primeira execução baixa a imagem base do K8s (~500MB).
+
+**3. Verificar**
+
+```powershell
+kubectl config current-context   # deve retornar: minikube
+kubectl get nodes                # 1 nó em Ready
 ```
 
 ---
 
-## Validação
+## Diferença importante: imagens locais no Minikube
+
+Imagens buildadas na sua máquina não ficam visíveis dentro do cluster automaticamente. A solução é apontar o Docker para buildar direto dentro do Minikube — usaremos isso nos CARDs 12e e 12f:
 
 ```powershell
-kubectl config current-context   # deve retornar: kind-oficina
-kubectl get nodes                # ambos os nós em STATUS=Ready
+# Executar antes de cada "docker build"
+minikube docker-env | Invoke-Expression
+```
+
+---
+
+## Comandos úteis
+
+```powershell
+minikube status      # estado do cluster
+minikube stop        # pausar sem destruir
+minikube delete      # destruir e recriar do zero
+minikube dashboard   # painel web do K8s no browser
 ```
 
 ---
 
 ## Entregável
 
-- [ ] `kind version` sem erro
-- [ ] 2 nós em `Ready`
-- [ ] Contexto ativo: `kind-oficina`
+- [ ] `minikube version` sem erro
+- [ ] `kubectl get nodes` mostra nó `minikube` em `Ready`
+- [ ] `kubectl config current-context` retorna `minikube`

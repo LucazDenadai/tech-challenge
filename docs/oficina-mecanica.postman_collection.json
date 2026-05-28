@@ -621,6 +621,15 @@
             "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
             "body": { "mode": "raw", "raw": "{\n  \"novoStatus\": 6\n}" }
           }
+        },
+        {
+          "name": "9. Cancelar Item da OS (opcional)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/itens/:itemId",
+            "description": "Remove um item (peça ou serviço) da OS. Só permitido no status EmDiagnostico. Substitua :itemId pelo ID do item retornado no detalhe da OS."
+          }
         }
       ]
     },
