@@ -33,7 +33,12 @@ public static class InfrastructureServiceExtensions
         services.AddScoped<IServicoRepository, ServicoRepository>();
 
         services.AddScoped<ITokenService, JwtTokenService>();
-        services.AddScoped<IEmailPort, EmailSmtpAdapter>();
+
+        var usarEmailReal = configuration.GetValue<bool>("Smtp:Enabled");
+        if (usarEmailReal)
+            services.AddScoped<IEmailPort, EmailSmtpAdapter>();
+        else
+            services.AddScoped<IEmailPort, EmailStub>();
 
         var estoqueUrl = configuration["EstoqueServiceUrl"] ?? "http://localhost:8081";
         var usarEstoqueReal = configuration.GetValue<bool>("EstoqueHttp:Enabled");

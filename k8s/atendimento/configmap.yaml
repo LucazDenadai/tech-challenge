@@ -13,7 +13,5 @@ data:
   Jwt__Issuer: oficina-atendimento
   Jwt__Audience: oficina-atendimento-api
   Jwt__ExpiracaoMinutos: "60"
-  Smtp__Host: smtp.gmail.com
-  Smtp__Port: "587"
-  Smtp__From: "Oficina Mecanica <oficina@exemplo.com>"
+  Smtp__Enabled: "false"
   Jaeger__Endpoint: http://jaeger-svc.observabilidade.svc.cluster.local:4318
