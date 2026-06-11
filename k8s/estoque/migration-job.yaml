@@ -7,6 +7,7 @@ spec:
   ttlSecondsAfterFinished: 300
   template:
     spec:
+      automountServiceAccountToken: false
       restartPolicy: Never
       containers:
         - name: migration
@@ -18,4 +19,10 @@ spec:
                 name: estoque-config
             - secretRef:
                 name: estoque-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              memory: "256Mi"
   backoffLimit: 2
