@@ -137,69 +137,68 @@ jobs:
 
   deploy:
     name: Deploy to Kubernetes
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: docker
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Configure kubectl
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
       - name: Criar secrets no K8s
         env:
           JWT_KEY: ${{ secrets.JWT_KEY }}
           ATENDIMENTO_CONN: ${{ secrets.ATENDIMENTO_CONNECTION_STRING }}
           ESTOQUE_CONN: ${{ secrets.ESTOQUE_CONNECTION_STRING }}
+        shell: pwsh
         run: |
-          kubectl create secret generic atendimento-secrets \
-            --from-literal=Jwt__Key="$JWT_KEY" \
-            --from-literal=ConnectionStrings__Default="$ATENDIMENTO_CONN" \
-            --namespace=oficina-mecanica \
+          kubectl create secret generic atendimento-secrets `
+            --from-literal=Jwt__Key="$env:JWT_KEY" `
+            --from-literal=ConnectionStrings__Default="$env:ATENDIMENTO_CONN" `
+            --namespace=oficina-mecanica `
             --dry-run=client -o yaml | kubectl apply -f -
 
-          kubectl create secret generic estoque-secrets \
-            --from-literal=ConnectionStrings__Default="$ESTOQUE_CONN" \
-            --namespace=oficina-mecanica \
+          kubectl create secret generic estoque-secrets `
+            --from-literal=ConnectionStrings__Default="$env:ESTOQUE_CONN" `
+            --namespace=oficina-mecanica `
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Normalize repository name to lowercase
         id: repo
-        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+        shell: pwsh
+        run: |
+          $name = "${{ github.repository }}".ToLower()
+          echo "name=$name" >> $env:GITHUB_OUTPUT
 
       - name: Aplicar migration Atendimento
+        shell: pwsh
         run: |
           kubectl delete job atendimento-migration -n oficina-mecanica --ignore-not-found
           kubectl apply -f k8s/atendimento/migration-job.yaml -n oficina-mecanica
-          kubectl wait --for=condition=complete job/atendimento-migration \
-            --timeout=120s -n oficina-mecanica
+          kubectl wait --for=condition=complete job/atendimento-migration --timeout=120s -n oficina-mecanica
 
       - name: Aplicar migration Estoque
+        shell: pwsh
         run: |
           kubectl delete job estoque-migration -n oficina-mecanica --ignore-not-found
           kubectl apply -f k8s/estoque/migration-job.yaml -n oficina-mecanica
-          kubectl wait --for=condition=complete job/estoque-migration \
-            --timeout=120s -n oficina-mecanica
+          kubectl wait --for=condition=complete job/estoque-migration --timeout=120s -n oficina-mecanica
 
       - name: Aplicar manifestos K8s
+        shell: pwsh
         run: |
           kubectl apply -f k8s/ -n oficina-mecanica
           kubectl apply -f k8s/observabilidade/ -n observabilidade
 
       - name: Atualizar imagem nos deployments
+        shell: pwsh
         run: |
-          kubectl set image deployment/atendimento \
-            atendimento=ghcr.io/${{ steps.repo.outputs.name }}/oficina-atendimento:${{ github.sha }} \
-            -n oficina-mecanica
-          kubectl set image deployment/estoque \
-            estoque=ghcr.io/${{ steps.repo.outputs.name }}/oficina-estoque:${{ github.sha }} \
-            -n oficina-mecanica
+          $repo = "${{ steps.repo.outputs.name }}"
+          $sha = "${{ github.sha }}"
+          kubectl set image deployment/atendimento atendimento=ghcr.io/$repo/oficina-atendimento:$sha -n oficina-mecanica
+          kubectl set image deployment/estoque estoque=ghcr.io/$repo/oficina-estoque:$sha -n oficina-mecanica
 
       - name: Aguardar rollout
+        shell: pwsh
         run: |
           kubectl rollout status deployment/atendimento -n oficina-mecanica
           kubectl rollout status deployment/estoque -n oficina-mecanica
