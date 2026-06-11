@@ -1,155 +1,114 @@
-# CARD-16 — Observabilidade: OpenTelemetry + Jaeger + Prometheus + Grafana
+# CARD-16 — Observabilidade: OpenTelemetry + Jaeger + Prometheus + Loki + Grafana
 
 **Tipo:** Infra / Aplicação  
 **Status:** To Do  
-**Depende de:** CARD-13 (namespace `observabilidade` provisionado), CARD-17 (logs revisados)  
-**Bloqueia:** nenhum
+**Depende de:** CARD-13 (namespace `observabilidade` provisionado)  
+**Bloqueia:** nenhum  
+**Sub-cards:**
+- [CARD-16a](CARD-16a-logs-estruturados.md) — Logs estruturados (pré-requisito)
+- [CARD-16b](CARD-16b-otel-instrumentacao.md) — Instrumentação OpenTelemetry no código
+- [CARD-16c](CARD-16c-infra-k8s.md) — Infraestrutura K8s da stack de observabilidade
+- [CARD-16d](CARD-16d-validacao.md) — Validação end-to-end e correlação
 
 ---
 
 ## Contexto
 
-Com os dois microsserviços em produção no Kubernetes, precisamos de visibilidade sobre o comportamento do sistema em tempo real. Sem observabilidade, falhas silenciosas (ex: mensagens perdidas no RabbitMQ, latência alta entre serviços) são invisíveis até o usuário reportar.
+Com os dois microsserviços rodando no Kubernetes, precisamos de visibilidade sobre o comportamento do sistema em tempo real. Sem observabilidade, falhas silenciosas (mensagens perdidas no RabbitMQ, latência alta, erros intermitentes) são invisíveis até o usuário reportar.
 
-Os três pilares da observabilidade são cobridos por esta stack:
+Este card implementa os **três pilares da observabilidade** com a stack padrão de mercado:
 
 | Pilar | Ferramenta | O que responde |
 |---|---|---|
 | **Traces** | OpenTelemetry + Jaeger | "Onde essa requisição foi lenta ou falhou?" |
 | **Métricas** | Prometheus + Grafana | "Como o sistema está se comportando ao longo do tempo?" |
-| **Logs** | Estruturados via OTel (ver CARD-17) | "O que aconteceu neste contexto específico?" |
+| **Logs** | Loki + Promtail + Grafana | "O que aconteceu neste contexto específico?" |
+
+O Grafana é a **interface unificada** dos três pilares — você parte de uma métrica anômala, clica no TraceId, vai direto ao trace no Jaeger, e de lá correlaciona com os logs no Loki.
 
 ---
 
-## Critérios de aceite
+## Como as peças se conectam
 
-### Instrumentação (código)
-- [ ] SDK OpenTelemetry instalado em `OficinaMecanica.Atendimento.API` e `OficinaMecanica.Estoque.API`
-- [ ] Traces automáticos de requisições HTTP (via `AddAspNetCoreInstrumentation`)
-- [ ] Traces automáticos de queries SQL via EF Core (via `AddEntityFrameworkCoreInstrumentation`)
-- [ ] Traces automáticos de mensagens RabbitMQ/MassTransit (via `AddMassTransitInstrumentation`)
-- [ ] `TraceId` propagado entre Atendimento e Estoque via headers HTTP e mensagens do broker
-- [ ] Métricas HTTP exportadas para Prometheus (via `AddPrometheusExporter`)
+```
+Pod (Atendimento / Estoque)
+    │
+    ├── spans (OTLP/gRPC) ──────────────────► Jaeger
+    │                                              └── UI: localhost:30086
+    │
+    ├── GET /metrics (HTTP) ◄── scrape ──────── Prometheus
+    │                                              └── UI: localhost:30090
+    │
+    └── stdout JSON ──► Promtail ──────────► Loki
+                                                └── Grafana (datasource)
+                                                        └── UI: localhost:30300
+```
 
-### Infraestrutura (K8s)
-- [ ] Jaeger rodando no namespace `observabilidade` (all-in-one para demo)
-- [ ] Prometheus rodando no namespace `observabilidade` com scrape configurado para os serviços
-- [ ] Grafana rodando com datasource Prometheus configurado
-- [ ] Dashboard básico no Grafana: latência p50/p95, taxa de erro, requisições/s
-- [ ] Services K8s expostos via NodePort para acesso local
-
-### Validação
-- [ ] Trace de uma ordem de serviço completa visível no Jaeger (Atendimento → RabbitMQ → Estoque)
-- [ ] Métricas de Atendimento e Estoque visíveis no Prometheus
-- [ ] Dashboard no Grafana mostrando dados reais
+O **Promtail** roda como DaemonSet — um agente por nó que lê os logs dos containers diretamente do filesystem do nó (`/var/log/pods/`) e os envia ao Loki. As aplicações não precisam saber que o Loki existe.
 
 ---
 
-## O que é cada ferramenta (didático)
+## Glossário didático
 
 ### OpenTelemetry (OTel)
-É o SDK que instrumenta o código. Ele captura automaticamente spans (unidades de trace) para cada requisição HTTP, query SQL e mensagem de fila, sem precisar adicionar código em cada endpoint. Você configura uma vez no `Program.cs` e ele instrumenta tudo.
+SDK instalado no código da aplicação. Captura automaticamente spans para cada requisição HTTP, query SQL e mensagem de fila — sem instrumentação manual em cada endpoint. Configurado uma vez no `Program.cs`.
+
+### Span e Trace
+Um **span** é uma unidade de trabalho com início, fim e metadados (ex: `POST /ordens-servico`, duração 230ms). Um **trace** é a árvore de spans de uma requisição completa — do recebimento no Atendimento até o consumo no Estoque via RabbitMQ.
 
 ### Jaeger
-É o backend de **traces distribuídos**. Armazena e visualiza o caminho completo de uma requisição entre serviços. Você consegue ver: "essa requisição de criar OS levou 230ms — 20ms na API, 180ms no banco, 30ms para publicar no RabbitMQ".
+Backend de traces distribuídos. Armazena e visualiza traces. Permite ver: "essa requisição levou 230ms — 20ms na API, 180ms no banco, 30ms no RabbitMQ".
 
 ### Prometheus
-É o banco de dados de **métricas**. Periodicamente "raspa" (scrape) os endpoints `/metrics` dos serviços e armazena séries temporais. Responde perguntas como: "quantas requisições por segundo o Atendimento está recebendo agora?"
+Banco de dados de séries temporais para métricas. Periodicamente "raspa" (scrape) o endpoint `/metrics` de cada serviço e armazena os valores. Responde: "quantas requisições/s agora?", "qual a latência p95?".
+
+### Loki
+Backend de logs. Indexa apenas os metadados (labels como `namespace`, `pod`, `app`) e armazena o conteúdo dos logs comprimido. Muito mais leve que o ElasticSearch para logs.
+
+### Promtail
+Agente coletor de logs. Roda em cada nó do cluster, lê os logs dos containers do filesystem e os envia ao Loki com labels automáticas do Kubernetes (namespace, pod, container).
 
 ### Grafana
-É a camada de **visualização**. Conecta no Prometheus e exibe dashboards com gráficos. Também suporta alertas (fora do escopo deste card).
+Interface de visualização unificada. Conecta em Prometheus (métricas), Loki (logs) e Jaeger (traces) como datasources. Permite correlacionar os três na mesma tela.
 
 ---
 
-## Estrutura de arquivos
+## Ordem de execução dos sub-cards
 
 ```
-k8s/
-└── observabilidade/
-    ├── namespace.yaml       ← (já criado pelo Terraform/CARD-13)
-    ├── jaeger.yaml          ← Deployment + Service (NodePort)
-    ├── prometheus/
-    │   ├── deployment.yaml
-    │   ├── service.yaml
-    │   └── configmap.yaml   ← scrape config apontando para os serviços
-    └── grafana/
-        ├── deployment.yaml
-        ├── service.yaml
-        └── configmap.yaml   ← datasource Prometheus pré-configurado
+CARD-16a  →  CARD-16b  →  CARD-16c  →  CARD-16d
+(logs)       (OTel)        (K8s)         (validação)
+```
 
+Cada sub-card tem seus próprios critérios de aceite e pode ser comitado separadamente.
+
+---
+
+## Estrutura de arquivos ao final
+
+```
 src/
 ├── Atendimento/OficinaMecanica.Atendimento.API/
-│   └── Extensions/
-│       └── OpenTelemetryExtensions.cs   ← configuração do SDK OTel
+│   └── Extensions/OpenTelemetryExtensions.cs
 └── Estoque/OficinaMecanica.Estoque.API/
-    └── Extensions/
-        └── OpenTelemetryExtensions.cs
+    └── Extensions/OpenTelemetryExtensions.cs
+
+k8s/observabilidade/
+├── jaeger.yaml
+├── prometheus/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── configmap.yaml       ← scrape config
+├── loki/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── configmap.yaml       ← storage config
+├── promtail/
+│   ├── daemonset.yaml
+│   ├── serviceaccount.yaml
+│   └── configmap.yaml       ← pipeline de coleta
+└── grafana/
+    ├── deployment.yaml
+    ├── service.yaml
+    └── configmap.yaml       ← datasources pré-configurados
 ```
-
----
-
-## Pacotes NuGet necessários (por serviço)
-
-```
-OpenTelemetry
-OpenTelemetry.Extensions.Hosting
-OpenTelemetry.Instrumentation.AspNetCore
-OpenTelemetry.Instrumentation.EntityFrameworkCore
-OpenTelemetry.Instrumentation.MassTransit   ← ou OpenTelemetry.Instrumentation.Quartz
-OpenTelemetry.Exporter.Jaeger
-OpenTelemetry.Exporter.Prometheus.AspNetCore
-```
-
----
-
-## Configuração no Program.cs (exemplo)
-
-```csharp
-builder.Services.AddOpenTelemetry()
-    .WithTracing(tracing => tracing
-        .SetResourceBuilder(ResourceBuilder.CreateDefault()
-            .AddService("OficinaMecanica.Atendimento"))
-        .AddAspNetCoreInstrumentation()
-        .AddEntityFrameworkCoreInstrumentation()
-        .AddMassTransitInstrumentation()
-        .AddJaegerExporter(o =>
-        {
-            o.AgentHost = builder.Configuration["Jaeger:Host"] ?? "localhost";
-            o.AgentPort = 6831;
-        }))
-    .WithMetrics(metrics => metrics
-        .SetResourceBuilder(ResourceBuilder.CreateDefault()
-            .AddService("OficinaMecanica.Atendimento"))
-        .AddAspNetCoreInstrumentation()
-        .AddPrometheusExporter());
-
-// Expõe /metrics para o Prometheus raspar
-app.MapPrometheusScrapingEndpoint();
-```
-
----
-
-## Impacto no CARD-14 (CI/CD)
-
-O `cd.yml` precisa aplicar os manifestos de observabilidade no deploy:
-
-```yaml
-- name: Aplicar stack de observabilidade
-  run: kubectl apply -f k8s/observabilidade/ -n observabilidade
-```
-
-Isso é adicionado **após** o deploy dos serviços de aplicação e não bloqueia o rollout deles.
-
----
-
-## Passos
-
-1. Adicionar pacotes NuGet de OTel nos dois projetos de API
-2. Criar `OpenTelemetryExtensions.cs` e registrar no `Program.cs` de cada serviço
-3. Criar manifestos K8s para Jaeger (all-in-one)
-4. Criar manifestos K8s para Prometheus com scrape config
-5. Criar manifestos K8s para Grafana com datasource pré-configurado
-6. Adicionar variável `Jaeger__Host` nos ConfigMaps dos serviços
-7. Validar traces no Jaeger com uma requisição end-to-end
-8. Validar métricas no Prometheus (`/metrics` dos serviços)
-9. Criar dashboard básico no Grafana e exportar como JSON (commitar em `k8s/observabilidade/grafana/`)
