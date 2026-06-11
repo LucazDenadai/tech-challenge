@@ -20,7 +20,7 @@ spec:
       containers:
         - name: atendimento
           image: ghcr.io/lucazdenadai/tech-challenge/oficina-atendimento:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
