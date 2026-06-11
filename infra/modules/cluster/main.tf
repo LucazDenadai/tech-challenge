@@ -40,6 +40,21 @@ resource "kind_cluster" "this" {
         container_port = 30090
         host_port      = 30090
       }
+
+      extra_port_mappings {
+        container_port = 30086
+        host_port      = 30086
+      }
+
+      extra_port_mappings {
+        container_port = 30317
+        host_port      = 30317
+      }
+
+      extra_port_mappings {
+        container_port = 30300
+        host_port      = 30300
+      }
     }
   }
 }
