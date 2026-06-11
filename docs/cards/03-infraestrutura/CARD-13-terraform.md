@@ -1,34 +1,41 @@
-# CARD-13 — Terraform: infraestrutura como código
+d# CARD-13 — Terraform: infraestrutura como código
 
 **Tipo:** Infra  
 **Status:** To Do  
 **Depende de:** CARD-12  
-**Bloqueia:** CARD-14 (CI/CD)
+**Bloqueia:** CARD-14 (CI/CD)  
+**Decisão arquitetural:** [ADR-005](../../adr/ADR-005-infraestrutura-como-codigo-terraform.md)
 
 ---
 
 ## Contexto
 
-Criar scripts Terraform para provisionar o cluster Kubernetes e o banco de dados. O objetivo é que qualquer pessoa do time consiga recriar o ambiente do zero com `terraform apply`. O alvo pode ser local (Kind via Terraform) ou cloud (EKS, GKE ou AKS).
+Criar scripts Terraform para provisionar o cluster Kubernetes (Kind local via Docker) e o banco de dados PostgreSQL. O objetivo é que qualquer pessoa consiga recriar o ambiente do zero com `terraform apply`. A estrutura modular permite substituir Kind por cloud (GKE/EKS) sem alterar o módulo de banco.
+
+O módulo `cluster` provisiona dois namespaces: `oficina-mecanica` (serviços de aplicação) e `observabilidade` (reservado para o CARD-16 — Jaeger, Prometheus, Grafana).
 
 ---
 
 ## Critérios de aceite
 
-- [ ] `terraform init` e `terraform apply` executam sem erro
-- [ ] Cluster Kubernetes provisionado
-- [ ] Banco de dados PostgreSQL provisionado com schemas `atendimento` e `estoque`
-- [ ] Outputs documentados (endpoint do cluster, connection string do banco)
-- [ ] `README` em `/infra` explicando os recursos criados e como aplicar
+- [ ] `terraform init` executa sem erro
+- [ ] `terraform plan` mostra os recursos a criar sem erros
+- [ ] `terraform apply` provisiona cluster Kind + container PostgreSQL do zero
+- [ ] Namespace `oficina-mecanica` criado no cluster
+- [ ] Namespace `observabilidade` criado no cluster
+- [ ] Container PostgreSQL acessível com schemas `atendimento` e `estoque` criados
+- [ ] Outputs documentados: kubeconfig path + connection string do banco
 - [ ] `terraform destroy` desfaz tudo sem erro
+- [ ] `terraform.tfstate` adicionado ao `.gitignore`
+- [ ] `README.md` em `/infra` com pré-requisitos, comandos e outputs
 
 ---
 
-## Abordagem recomendada: Kind local
+## Pré-requisitos do ambiente
 
-Kind (Kubernetes in Docker) é a opção mais simples para o desafio — roda no Docker sem conta em cloud, demonstrável no vídeo, sem custo.
-
-Se o time preferir cloud, usar **GKE Autopilot** (free tier) ou **EKS** (conta AWS existente).
+- Docker rodando
+- Terraform >= 1.6 instalado
+- Kind instalado (usado internamente pelo provider)
 
 ---
 
@@ -36,17 +43,18 @@ Se o time preferir cloud, usar **GKE Autopilot** (free tier) ou **EKS** (conta A
 
 ```
 infra/
-├── main.tf
-├── variables.tf
-├── outputs.tf
-├── versions.tf
+├── versions.tf               ← versões fixas dos providers
+├── main.tf                   ← orquestra os módulos
+├── variables.tf              ← variáveis com defaults documentados
+├── outputs.tf                ← kubeconfig path + connection string
+├── terraform.tfvars.example  ← exemplo de valores sem dados sensíveis
 └── modules/
     ├── cluster/
-    │   ├── main.tf        # Kind cluster ou cloud K8s
+    │   ├── main.tf           ← Kind cluster + namespaces + service account
     │   ├── variables.tf
     │   └── outputs.tf
     └── database/
-        ├── main.tf        # PostgreSQL (container local ou RDS/Cloud SQL)
+        ├── main.tf           ← container PostgreSQL + scripts de schema
         ├── variables.tf
         └── outputs.tf
 ```
@@ -56,66 +64,80 @@ infra/
 ## Recursos provisionados
 
 ### Módulo `cluster`
-- Cluster Kubernetes (Kind ou cloud)
+- Cluster Kind (`oficina-mecanica`)
 - Namespace `oficina-mecanica`
-- Service Account com permissões mínimas
+- Namespace `observabilidade`
+- ServiceAccount com permissões mínimas
 
 ### Módulo `database`
-- Instância PostgreSQL
-- Banco de dados `oficinamecanica`
+- Container Docker com `postgres:16`
+- Banco `oficinamecanica`
 - Schemas `atendimento` e `estoque`
-- Usuário com senha (output sensível)
+- Usuário e senha via variáveis (não hardcoded)
 
 ---
 
-## Exemplo de uso (Kind local)
+## Providers utilizados
 
-```hcl
-# infra/main.tf
-module "cluster" {
-  source       = "./modules/cluster"
-  cluster_name = "oficina-mecanica"
-  k8s_version  = "v1.31.0"
-}
+| Provider | Versão | Função |
+|---|---|---|
+| `tehcyx/kind` | ~> 0.4 | Criar cluster Kind via Docker |
+| `hashicorp/kubernetes` | ~> 2.x | Criar namespaces e service account |
+| `kreuzwerker/docker` | ~> 3.x | Criar container PostgreSQL |
+| `hashicorp/null` | ~> 3.x | Executar scripts SQL de schema |
 
-module "database" {
-  source      = "./modules/database"
-  db_name     = "oficinamecanica"
-  db_user     = var.db_user
-  db_password = var.db_password
-}
-```
+---
+
+## Exemplo de uso
 
 ```bash
-# Aplicar
 cd infra
+
+# Primeira vez
 terraform init
+
+# Ver o que será criado (seguro, não altera nada)
 terraform plan
+
+# Provisionar tudo
 terraform apply
 
-# Destruir
+# Destruir tudo
 terraform destroy
 ```
+
+---
+
+## Outputs esperados
+
+| Output | Descrição |
+|---|---|
+| `cluster_endpoint` | Endereço do API server do Kind |
+| `kubeconfig_path` | Caminho do kubeconfig gerado |
+| `postgres_connection_string` | Connection string para uso nas aplicações |
 
 ---
 
 ## README obrigatório em /infra
 
 Deve conter:
-1. Quais recursos são criados
-2. Pré-requisitos (Docker, Kind, Terraform)
-3. Como aplicar (`terraform init` → `terraform apply`)
-4. Como destruir
-5. Outputs e como usá-los
+1. Pré-requisitos (Docker, Terraform, Kind)
+2. Como inicializar (`terraform init`)
+3. Como provisionar (`terraform plan` → `terraform apply`)
+4. Outputs e como usá-los
+5. Como destruir (`terraform destroy`)
+6. O que **não** commitar (`terraform.tfstate`, `terraform.tfvars`)
 
 ---
 
 ## Passos
 
 1. Criar estrutura de pastas em `/infra`
-2. Implementar módulo `cluster` (Kind ou cloud)
-3. Implementar módulo `database`
-4. Criar `variables.tf` com todas as variáveis documentadas
-5. Criar `outputs.tf` com endpoint do cluster e connection string
-6. Validar `terraform apply` do zero
-7. Escrever `README.md` em `/infra`
+2. Criar `versions.tf` com versões fixas de todos os providers
+3. Implementar `modules/cluster/` (Kind + namespaces)
+4. Implementar `modules/database/` (PostgreSQL + schemas)
+5. Criar `main.tf`, `variables.tf` e `outputs.tf` na raiz
+6. Criar `terraform.tfvars.example`
+7. Adicionar `terraform.tfstate*` e `terraform.tfvars` ao `.gitignore`
+8. Validar ciclo completo: `init` → `plan` → `apply` → `destroy`
+9. Escrever `README.md` em `/infra`

@@ -2,7 +2,7 @@
 
 **Tipo:** Infra  
 **Status:** To Do  
-**Depende de:** CARD-07, CARD-11, CARD-12, CARD-13  
+**Depende de:** CARD-07, CARD-11, CARD-12, CARD-13, CARD-16  
 **Bloqueia:** nenhum
 
 ---
@@ -145,6 +145,9 @@ jobs:
 
       - name: Aplicar manifestos K8s
         run: kubectl apply -f k8s/ -n oficina-mecanica
+
+      - name: Aplicar stack de observabilidade
+        run: kubectl apply -f k8s/observabilidade/ -n observabilidade
 
       - name: Aguardar rollout
         run: |
