@@ -10,7 +10,7 @@ public static class OpenTelemetryExtensions
     public static IHostApplicationBuilder AddOpenTelemetry(
         this IHostApplicationBuilder builder, string serviceName)
     {
-        var jaegerEndpoint = builder.Configuration["Jaeger__Endpoint"] ?? "http://jaeger:4317";
+        var jaegerEndpoint = builder.Configuration["Jaeger:Endpoint"] ?? "http://jaeger:4318";
 
         builder.Services.AddOpenTelemetry()
             .WithTracing(tracing => tracing
@@ -20,8 +20,8 @@ public static class OpenTelemetryExtensions
                 .AddMassTransitInstrumentation()
                 .AddOtlpExporter(o =>
                 {
-                    o.Endpoint = new Uri(jaegerEndpoint);
-                    o.Protocol = OtlpExportProtocol.Grpc;
+                    o.Endpoint = new Uri($"{jaegerEndpoint.TrimEnd('/')}/v1/traces");
+                    o.Protocol = OtlpExportProtocol.HttpProtobuf;
                 }))
             .WithMetrics(metrics => metrics
                 .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(serviceName))

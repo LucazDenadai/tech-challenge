@@ -8,4 +8,4 @@ data:
   ASPNETCORE_URLS: http://+:8080
   RabbitMq__Enabled: "true"
   RabbitMq__Host: rabbitmq-svc
-  Jaeger__Endpoint: http://jaeger-svc:4317
+  Jaeger__Endpoint: http://jaeger-svc.observabilidade.svc.cluster.local:4318
