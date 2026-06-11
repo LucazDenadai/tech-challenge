@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OficinaMecanica.Atendimento.API.Extensions;
 using OficinaMecanica.Atendimento.API.Filters;
 using OficinaMecanica.Atendimento.Application.UseCases.Auth;
 using OficinaMecanica.Atendimento.Application.UseCases.Catalogo;
@@ -27,6 +28,9 @@ builder.Logging.AddJsonConsole(o =>
     o.TimestampFormat = "O";
     o.JsonWriterOptions = new System.Text.Json.JsonWriterOptions { Indented = false };
 });
+
+// ── OpenTelemetry (traces → Jaeger, métricas → Prometheus) ───────────────────
+builder.AddOpenTelemetry("OficinaMecanica.Atendimento");
 
 // ── Infrastructure (repositórios, stubs, DbContext, JWT service) ──────────────
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -184,6 +188,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHealthChecks("/health");
+app.MapPrometheusScrapingEndpoint();
 app.MapControllers();
 
 await app.RunAsync();
