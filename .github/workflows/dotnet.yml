@@ -17,12 +17,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
 
       - name: Setup .NET ${{ env.DOTNET_VERSION }}
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab # v4.3.0
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -89,10 +89,10 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -100,7 +100,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -108,10 +108,10 @@ jobs:
             type=raw,value=latest
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
       - name: Build and push Atendimento
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6.16.0
         with:
           context: .
           file: src/Atendimento/OficinaMecanica.Atendimento.API/Dockerfile
@@ -122,7 +122,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push Estoque
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6.16.0
         with:
           context: .
           file: src/Estoque/OficinaMecanica.Estoque.API/Dockerfile
@@ -139,23 +139,27 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Configure kubectl
-        uses: azure/k8s-set-context@v4
+        uses: azure/k8s-set-context@212a19233d93f03eceaac31ae5a1d1acf650b6ef # v4.0.1
         with:
           kubeconfig: ${{ secrets.KUBECONFIG }}
 
       - name: Criar secrets no K8s
+        env:
+          JWT_KEY: ${{ secrets.JWT_KEY }}
+          ATENDIMENTO_CONN: ${{ secrets.ATENDIMENTO_CONNECTION_STRING }}
+          ESTOQUE_CONN: ${{ secrets.ESTOQUE_CONNECTION_STRING }}
         run: |
           kubectl create secret generic atendimento-secrets \
-            --from-literal=Jwt__Key=${{ secrets.JWT_KEY }} \
-            --from-literal=ConnectionStrings__Default=${{ secrets.ATENDIMENTO_CONNECTION_STRING }} \
+            --from-literal=Jwt__Key="$JWT_KEY" \
+            --from-literal=ConnectionStrings__Default="$ATENDIMENTO_CONN" \
             --namespace=oficina-mecanica \
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl create secret generic estoque-secrets \
-            --from-literal=ConnectionStrings__Default=${{ secrets.ESTOQUE_CONNECTION_STRING }} \
+            --from-literal=ConnectionStrings__Default="$ESTOQUE_CONN" \
             --namespace=oficina-mecanica \
             --dry-run=client -o yaml | kubectl apply -f -
 
