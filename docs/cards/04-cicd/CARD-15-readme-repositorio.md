@@ -80,6 +80,10 @@ docker-compose up --build
 
 ### 4. Deploy em Kubernetes
 
+> **Nota sobre o CI/CD:** o job de deploy do pipeline roda em self-hosted runner (ADR-006).
+> O histórico de execuções está disponível no GitHub Actions. Para re-executar o deploy
+> manualmente, siga os passos abaixo com `kubectl` apontando para o cluster local.
+
 ```bash
 # Pré-requisitos: kubectl configurado apontando para o cluster
 
