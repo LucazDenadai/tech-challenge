@@ -19,8 +19,8 @@ spec:
           command: ["sh", "-c", "until pg_isready -h postgres-svc -p 5432; do sleep 2; done"]
       containers:
         - name: atendimento
-          image: oficina-atendimento:latest
-          imagePullPolicy: Always
+          image: ghcr.io/lucazdenadai/tech-challenge/oficina-atendimento:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
           envFrom:

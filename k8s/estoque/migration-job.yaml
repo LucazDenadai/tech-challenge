@@ -11,8 +11,8 @@ spec:
       restartPolicy: Never
       containers:
         - name: migration
-          image: oficina-estoque:latest
-          imagePullPolicy: Always
+          image: ghcr.io/lucazdenadai/tech-challenge/oficina-estoque:latest
+          imagePullPolicy: IfNotPresent
           command: ["dotnet", "ef", "database", "update", "--no-build"]
           envFrom:
             - configMapRef:
