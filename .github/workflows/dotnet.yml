@@ -91,6 +91,10 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
+      - name: Normalize repository name to lowercase
+        id: repo
+        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3.4.0
         with:
@@ -102,7 +106,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@902fa8ec7d6ecbf8d84d538b9b233a880e428804 # v5.7.0
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.repo.outputs.name }}
           tags: |
             type=sha,prefix=sha-
             type=raw,value=latest
@@ -116,7 +120,7 @@ jobs:
           context: .
           file: src/Atendimento/OficinaMecanica.Atendimento.API/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/oficina-atendimento:${{ github.sha }},ghcr.io/${{ github.repository }}/oficina-atendimento:latest
+          tags: ghcr.io/${{ steps.repo.outputs.name }}/oficina-atendimento:${{ github.sha }},ghcr.io/${{ steps.repo.outputs.name }}/oficina-atendimento:latest
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -127,7 +131,7 @@ jobs:
           context: .
           file: src/Estoque/OficinaMecanica.Estoque.API/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/oficina-estoque:${{ github.sha }},ghcr.io/${{ github.repository }}/oficina-estoque:latest
+          tags: ghcr.io/${{ steps.repo.outputs.name }}/oficina-estoque:${{ github.sha }},ghcr.io/${{ steps.repo.outputs.name }}/oficina-estoque:latest
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -175,13 +179,17 @@ jobs:
           kubectl wait --for=condition=complete job/estoque-migration \
             --timeout=120s -n oficina-mecanica
 
+      - name: Normalize repository name to lowercase
+        id: repo
+        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Atualizar imagem nos deployments
         run: |
           kubectl set image deployment/atendimento \
-            atendimento=ghcr.io/${{ github.repository }}/oficina-atendimento:${{ github.sha }} \
+            atendimento=ghcr.io/${{ steps.repo.outputs.name }}/oficina-atendimento:${{ github.sha }} \
             -n oficina-mecanica
           kubectl set image deployment/estoque \
-            estoque=ghcr.io/${{ github.repository }}/oficina-estoque:${{ github.sha }} \
+            estoque=ghcr.io/${{ steps.repo.outputs.name }}/oficina-estoque:${{ github.sha }} \
             -n oficina-mecanica
 
       - name: Aplicar manifestos K8s
