@@ -9,7 +9,6 @@ on:
 env:
   DOTNET_VERSION: '10.0.x'
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-test:
@@ -146,9 +145,10 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Configure kubectl
-        uses: azure/k8s-set-context@212a19233d93f03eceaac31ae5a1d1acf650b6ef # v4.0.1
-        with:
-          kubeconfig: ${{ secrets.KUBECONFIG }}
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
 
       - name: Criar secrets no K8s
         env:
@@ -167,21 +167,28 @@ jobs:
             --namespace=oficina-mecanica \
             --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Normalize repository name to lowercase
+        id: repo
+        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
       - name: Aplicar migration Atendimento
         run: |
+          kubectl delete job atendimento-migration -n oficina-mecanica --ignore-not-found
           kubectl apply -f k8s/atendimento/migration-job.yaml -n oficina-mecanica
           kubectl wait --for=condition=complete job/atendimento-migration \
             --timeout=120s -n oficina-mecanica
 
       - name: Aplicar migration Estoque
         run: |
+          kubectl delete job estoque-migration -n oficina-mecanica --ignore-not-found
           kubectl apply -f k8s/estoque/migration-job.yaml -n oficina-mecanica
           kubectl wait --for=condition=complete job/estoque-migration \
             --timeout=120s -n oficina-mecanica
 
-      - name: Normalize repository name to lowercase
-        id: repo
-        run: echo "name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+      - name: Aplicar manifestos K8s
+        run: |
+          kubectl apply -f k8s/ -n oficina-mecanica
+          kubectl apply -f k8s/observabilidade/ -n observabilidade
 
       - name: Atualizar imagem nos deployments
         run: |
@@ -191,11 +198,6 @@ jobs:
           kubectl set image deployment/estoque \
             estoque=ghcr.io/${{ steps.repo.outputs.name }}/oficina-estoque:${{ github.sha }} \
             -n oficina-mecanica
-
-      - name: Aplicar manifestos K8s
-        run: |
-          kubectl apply -f k8s/ -n oficina-mecanica
-          kubectl apply -f k8s/observabilidade/ -n observabilidade
 
       - name: Aguardar rollout
         run: |
