@@ -149,7 +149,7 @@ jobs:
           JWT_KEY: ${{ secrets.JWT_KEY }}
           ATENDIMENTO_CONN: ${{ secrets.ATENDIMENTO_CONNECTION_STRING }}
           ESTOQUE_CONN: ${{ secrets.ESTOQUE_CONNECTION_STRING }}
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl create secret generic atendimento-secrets `
             --from-literal=Jwt__Key="$env:JWT_KEY" `
@@ -164,33 +164,33 @@ jobs:
 
       - name: Normalize repository name to lowercase
         id: repo
-        shell: pwsh
+        shell: powershell
         run: |
           $name = "${{ github.repository }}".ToLower()
           echo "name=$name" >> $env:GITHUB_OUTPUT
 
       - name: Aplicar migration Atendimento
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl delete job atendimento-migration -n oficina-mecanica --ignore-not-found
           kubectl apply -f k8s/atendimento/migration-job.yaml -n oficina-mecanica
           kubectl wait --for=condition=complete job/atendimento-migration --timeout=120s -n oficina-mecanica
 
       - name: Aplicar migration Estoque
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl delete job estoque-migration -n oficina-mecanica --ignore-not-found
           kubectl apply -f k8s/estoque/migration-job.yaml -n oficina-mecanica
           kubectl wait --for=condition=complete job/estoque-migration --timeout=120s -n oficina-mecanica
 
       - name: Aplicar manifestos K8s
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl apply -f k8s/ -n oficina-mecanica
           kubectl apply -f k8s/observabilidade/ -n observabilidade
 
       - name: Atualizar imagem nos deployments
-        shell: pwsh
+        shell: powershell
         run: |
           $repo = "${{ steps.repo.outputs.name }}"
           $sha = "${{ github.sha }}"
@@ -198,7 +198,7 @@ jobs:
           kubectl set image deployment/estoque estoque=ghcr.io/$repo/oficina-estoque:$sha -n oficina-mecanica
 
       - name: Aguardar rollout
-        shell: pwsh
+        shell: powershell
         run: |
           kubectl rollout status deployment/atendimento -n oficina-mecanica
           kubectl rollout status deployment/estoque -n oficina-mecanica
