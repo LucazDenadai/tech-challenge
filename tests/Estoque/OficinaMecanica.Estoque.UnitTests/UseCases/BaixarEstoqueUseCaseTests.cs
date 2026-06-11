@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using OficinaMecanica.Estoque.Application.Ports.Out;
 using OficinaMecanica.Estoque.Application.UseCases;
@@ -14,7 +15,7 @@ public class BaixarEstoqueUseCaseTests
 
     public BaixarEstoqueUseCaseTests()
     {
-        _sut = new BaixarEstoqueUseCase(_pecaRepoMock.Object, _movRepoMock.Object);
+        _sut = new BaixarEstoqueUseCase(_pecaRepoMock.Object, _movRepoMock.Object, NullLogger<BaixarEstoqueUseCase>.Instance);
     }
 
     [Fact]

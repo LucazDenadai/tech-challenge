@@ -20,6 +20,14 @@ using OficinaMecanica.Atendimento.Infrastructure.Adapters.Out.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Logging estruturado em JSON ────────────────────────────────────────────────
+builder.Logging.AddJsonConsole(o =>
+{
+    o.IncludeScopes = true;
+    o.TimestampFormat = "O";
+    o.JsonWriterOptions = new System.Text.Json.JsonWriterOptions { Indented = false };
+});
+
 // ── Infrastructure (repositórios, stubs, DbContext, JWT service) ──────────────
 builder.Services.AddInfrastructure(builder.Configuration);
 
