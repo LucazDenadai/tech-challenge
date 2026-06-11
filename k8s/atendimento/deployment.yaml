@@ -20,7 +20,7 @@ spec:
       containers:
         - name: atendimento
           image: oficina-atendimento:latest
-          imagePullPolicy: Never
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:

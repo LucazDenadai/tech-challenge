@@ -20,7 +20,7 @@ spec:
       containers:
         - name: estoque
           image: oficina-estoque:latest
-          imagePullPolicy: Never
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:

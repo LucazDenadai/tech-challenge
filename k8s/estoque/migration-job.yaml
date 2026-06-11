@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: estoque-migration
+  namespace: oficina-mecanica
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migration
+          image: oficina-estoque:latest
+          imagePullPolicy: Always
+          command: ["dotnet", "ef", "database", "update", "--no-build"]
+          envFrom:
+            - configMapRef:
+                name: estoque-config
+            - secretRef:
+                name: estoque-secrets
+  backoffLimit: 2
