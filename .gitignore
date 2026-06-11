@@ -181,3 +181,12 @@ postgres_data/
 sonarqube_data/
 sonarqube_logs/
 sonarqube_extensions/
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+*.tfplan
+infra/*-config
