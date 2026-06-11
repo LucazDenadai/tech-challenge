@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: observabilidade
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        url: http://prometheus-svc:9090
+        isDefault: true
+        access: proxy
+      - name: Loki
+        type: loki
+        url: http://loki-svc:3100
+        access: proxy
+      - name: Jaeger
+        type: jaeger
+        url: http://jaeger-svc:16686
+        access: proxy

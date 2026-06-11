@@ -351,6 +351,194 @@ O fluxo completo executou sem erros de autenticação: login → criar peça →
 
 ---
 
+---
+
+## EXP-010 — Jaeger não reconhecia os serviços .NET (serviços invisíveis na UI)
+
+### Situação
+
+Após instrumentar as APIs com OpenTelemetry (CARD-16b), o Jaeger rodava com status `1/1 Running` e a UI abria normalmente, mas o dropdown de serviços estava vazio — nenhum dos serviços `OficinaMecanica.Atendimento` ou `OficinaMecanica.Estoque` aparecia. A configuração de `serviceName` estava correta no código e o endpoint do Jaeger estava definido no ConfigMap.
+
+### Tarefa
+
+Entender por que o Jaeger não registrava os serviços e fazer os traces chegarem.
+
+### Ação
+
+A investigação revelou **três problemas em camadas**, cada um mascarando o seguinte:
+
+**Camada 1 — APIs em CrashLoopBackOff** (causa raiz imediata): o Jaeger só registra um serviço ao receber o primeiro span. As APIs crashavam no startup porque o Postgres ainda estava em recovery após shutdown não limpo, fazendo `MigrateAsync()` falhar com `Connection refused`. Sem startup, nenhum span era enviado. A solução foi adicionar `initContainer` com `pg_isready` nos deployments:
+
+```yaml
+initContainers:
+  - name: wait-for-postgres
+    image: postgres:16-alpine
+    command: ["sh", "-c", "until pg_isready -h postgres-svc -p 5432; do sleep 2; done"]
+```
+
+**Camada 2 — OTLP gRPC não funciona com .NET 10 sem TLS** (causa raiz do silêncio): após as APIs subirem, os traces ainda não chegavam. O exportador usava `OtlpExportProtocol.Grpc` com `AppContext.SetSwitch("Http2UnencryptedSupport", true)`, que funcionava em versões anteriores do .NET mas no .NET 10 o switch foi deprecado. O exportador falhava silenciosamente — sem nenhum log de erro visível. A solução foi migrar para `OtlpExportProtocol.HttpProtobuf` na porta 4318:
+
+```csharp
+// Antes — gRPC na 4317 (silenciosamente descartado no .NET 10)
+o.Endpoint = new Uri(jaegerEndpoint);
+o.Protocol = OtlpExportProtocol.Grpc;
+
+// Depois — HTTP/protobuf na 4318 com path explícito
+o.Endpoint = new Uri($"{jaegerEndpoint.TrimEnd('/')}/v1/traces");
+o.Protocol = OtlpExportProtocol.HttpProtobuf;
+```
+
+**Camada 3 — chave de configuração errada** (causa raiz do endpoint errado): mesmo com o protocolo correto, o exportador enviava para `localhost:4317` em vez do Jaeger. O `appsettings.json` tinha `"Jaeger__Endpoint": "http://localhost:4317"` (chave literal com `__`), lida por `builder.Configuration["Jaeger__Endpoint"]`. Mas a variável de ambiente do ConfigMap (`Jaeger__Endpoint=...`) é interpretada pelo ASP.NET Core como `Configuration["Jaeger:Endpoint"]` — chave hierárquica com `:`. As duas chaves são diferentes para o sistema de configuração. O appsettings sempre vencia:
+
+```json
+// Antes — chave literal com __ (não é sobrescrita pelo env var)
+"Jaeger__Endpoint": "http://localhost:4317"
+
+// Depois — estrutura hierárquica correta
+"Jaeger": {
+  "Endpoint": "http://localhost:4318"
+}
+```
+
+```csharp
+// Código também atualizado
+var jaegerEndpoint = builder.Configuration["Jaeger:Endpoint"] ?? "http://jaeger:4318";
+```
+
+### Resultado
+
+Após as três correções, `curl http://localhost:30086/api/services` retornou `["OficinaMecanica.Estoque", "OficinaMecanica.Atendimento", "jaeger-all-in-one"]`. Consultas de trace no Jaeger mostram spans completos incluindo instrumentação EF Core (queries SQL) e MassTransit.
+
+**Conceito transmissível:** no ASP.NET Core, `__` em variáveis de ambiente é o separador de hierarquia — `Jaeger__Endpoint` mapeia para `Configuration["Jaeger:Endpoint"]`, não para `Configuration["Jaeger__Endpoint"]`. Uma chave literal com `__` no `appsettings.json` nunca será sobrescrita por uma variável de ambiente com o mesmo nome. Sempre usar estrutura JSON aninhada no `appsettings.json` e ler com `"Secao:Chave"`.
+
+---
+
+## EXP-011 — Prometheus com `context deadline exceeded` em todos os targets
+
+### Situação
+
+Após subir o stack de observabilidade, os três targets do Prometheus (`atendimento`, `estoque`, `jaeger`) estavam com `health: down` e o erro `context deadline exceeded`. O endpoint `/metrics` respondia normalmente via `curl http://localhost:30080/metrics` (HTTP 200), então o problema não era na API.
+
+### Tarefa
+
+Entender por que o Prometheus não conseguia alcançar os endpoints que respondiam corretamente para o host.
+
+### Ação
+
+O diagnóstico foi executar um `wget` de dentro do próprio pod do Prometheus para o target:
+
+```bash
+kubectl exec -n observabilidade deploy/prometheus -- wget -qO- http://atendimento-svc.oficina-mecanica:8080/metrics
+# resultado: Connection refused
+```
+
+A causa: o Service do Atendimento expõe a porta **80** externamente (com forward para 8080 no container), mas o Prometheus estava configurado para scrape na porta **8080** diretamente. Como o ClusterIP do Service só escuta na 80, a conexão era recusada.
+
+```bash
+kubectl exec ... -- wget -qO- http://atendimento-svc.oficina-mecanica:80/metrics
+# resultado: métricas .NET retornadas corretamente
+```
+
+Correção no ConfigMap do Prometheus:
+
+```yaml
+# Antes
+- targets: ['atendimento-svc.oficina-mecanica:8080']
+
+# Depois — porta do Service, não do container
+- targets: ['atendimento-svc.oficina-mecanica:80']
+```
+
+O mesmo problema afetava o target `jaeger`: a porta de métricas do Jaeger é a `14269` (admin), mas ela não estava exposta no Service. Foi necessário adicionar a porta ao `jaeger-svc` e ao Deployment.
+
+### Resultado
+
+Após a correção, `curl http://localhost:30090/api/v1/targets` retornou todos os três targets com `health: up`. Métricas de runtime do .NET (`process_runtime_dotnet_gc_collections_count_total`, etc.) ficaram disponíveis para consulta no Prometheus e no Grafana.
+
+**Conceito transmissível:** o Prometheus scrapa usando o DNS e a porta do **Service** do Kubernetes, não do container diretamente. A porta no `targets` do `prometheus.yml` deve ser a porta do Service (`spec.ports[].port`), não a porta do container (`containerPort`). Testar a conectividade com `kubectl exec` de dentro do pod do Prometheus é o diagnóstico definitivo — se falha ali, o problema é de rede/serviço; se funciona ali mas não no Prometheus, o problema é de configuração.
+
+---
+
+## EXP-012 — Loki em CrashLoopBackOff por configuração de retenção incompleta
+
+### Situação
+
+O pod do Loki entrava em `CrashLoopBackOff` imediatamente após o start. O `kubectl logs` mostrava:
+
+```
+level=error msg="validating config" err="CONFIG ERROR: invalid compactor config:
+compactor.delete-request-store should be configured when retention is enabled"
+```
+
+### Tarefa
+
+Corrigir a configuração do Loki sem quebrar o comportamento de logs.
+
+### Ação
+
+O `configmap.yaml` do Loki tinha:
+
+```yaml
+limits_config:
+  retention_period: 24h
+compactor:
+  retention_enabled: true
+```
+
+A versão do Loki usada (2.x+) exige que, ao habilitar retenção, o campo `compactor.delete-request-store` também seja configurado para especificar onde as requisições de deleção são armazenadas. Para um ambiente de desenvolvimento sem necessidade de expiração automática de logs, a solução mais simples foi remover a configuração de retenção completamente:
+
+```yaml
+limits_config:
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+```
+
+### Resultado
+
+O Loki subiu com `1/1 Running` e passou a aceitar logs do Promtail. Em produção, se retenção for necessária, o `delete-request-store` deve apontar para um store compatível (filesystem, S3, etc.) junto com a configuração do compactor.
+
+**Conceito transmissível:** em ferramentas do stack Grafana (Loki, Tempo, Mimir), features avançadas como retenção têm dependências implícitas de configuração que só aparecem em runtime — não em tempo de escrita do YAML. Sempre testar o startup após mudanças de configuração e ler o log de erro completo antes de tentar ajustar: neste caso a mensagem era clara e específica.
+
+---
+
+## EXP-013 — Promtail não enviava logs ao Loki (path de scrape ausente)
+
+### Situação
+
+O Promtail rodava com `1/1 Running`, o Loki estava acessível pelo Promtail (`wget` para `loki-svc:3100` funcionava), mas o Loki não recebia nenhum dado. A query `{job="kubernetes-pods"}` retornava streams vazios.
+
+### Tarefa
+
+Entender por que o Promtail descobria os pods mas não enviava os logs.
+
+### Ação
+
+O ConfigMap do Promtail usava `kubernetes_sd_configs` para descoberta de pods, mas o `relabel_configs` não definia o label especial `__path__` — que informa ao Promtail **onde no filesystem ler os logs** de cada pod descoberto. Sem `__path__`, o Promtail encontrava os pods mas não sabia de onde ler.
+
+A tentativa com `kubernetes_sd_configs` + `__path__` via regex no `replacement` falhou porque o interpolador do Promtail 3.x interpreta `$1` como referência ao grupo de captura do regex, não como posição no array de `source_labels`. O pattern `*$1/$2/*.log` gerava um glob inválido.
+
+A solução foi trocar para `static_configs` com um glob fixo baseado no padrão de path do Kubernetes (`/var/log/pods/<namespace>_*/*/*.log`):
+
+```yaml
+scrape_configs:
+  - job_name: kubernetes-pods
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: kubernetes-pods
+          __path__: /var/log/pods/oficina-mecanica_*/*/*.log
+```
+
+O path `/var/log/pods/<namespace>_<podname>_<uid>/<container>/0.log` é o padrão do containerd no Kubernetes para arquivos de log de containers — confirmado inspecionando o volume montado no pod do Promtail.
+
+### Resultado
+
+Após a mudança para `static_configs`, o Promtail logou `"Seeked /var/log/pods/oficina-mecanica_atendimento-...`.log"` para cada container descoberto e o Loki passou a receber dados. Os logs estruturados JSON das APIs (incluindo `TraceId` e `SpanId`) ficaram disponíveis no Grafana.
+
+**Conceito transmissível:** com `kubernetes_sd_configs` o `__path__` é obrigatório — sem ele, o Promtail descobre pods mas não lê nenhum arquivo. Para ambientes simples (namespace fixo), um glob estático em `static_configs` é mais confiável do que tentar compor o path via `replacement` com `$N`. O path padrão dos logs no Kubernetes (containerd) é `/var/log/pods/<namespace>_<pod>_<uid>/<container>/<N>.log`.
+
+---
+
 ## Referência rápida
 
 | # | Problema | Tecnologia | Conceito-chave |
@@ -364,3 +552,7 @@ O fluxo completo executou sem erros de autenticação: login → criar peça →
 | EXP-007 | Liveness probe derrubando Pod no Minikube | Kubernetes | `timeoutSeconds` e `initialDelaySeconds` |
 | EXP-008 | NodePort inacessível no Windows com Minikube | Kubernetes / Minikube | `minikube service --url` como túnel |
 | EXP-009 | Token JWT perdido entre sessões PowerShell | PowerShell / Testes | Escopo de variáveis de sessão |
+| EXP-010 | Jaeger não reconhecia serviços .NET | OpenTelemetry / ASP.NET Core | CrashLoop + OTLP gRPC no .NET 10 + chave de config `__` vs `:` |
+| EXP-011 | Prometheus com `context deadline exceeded` | Prometheus / Kubernetes | Porta do Service vs. porta do container |
+| EXP-012 | Loki em CrashLoopBackOff | Loki | `retention_enabled` exige `delete-request-store` |
+| EXP-013 | Promtail não enviava logs ao Loki | Promtail | `__path__` obrigatório no scrape config |

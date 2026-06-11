@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using OficinaMecanica.Atendimento.Application.Exceptions;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
@@ -14,7 +15,7 @@ public class AprovarOrcamentoUseCaseTests
 
     public AprovarOrcamentoUseCaseTests()
     {
-        _sut = new AprovarOrcamentoUseCase(_repoMock.Object);
+        _sut = new AprovarOrcamentoUseCase(_repoMock.Object, NullLogger<AprovarOrcamentoUseCase>.Instance);
     }
 
     private static DomainOS CriarOSEmAguardandoAprovacao()

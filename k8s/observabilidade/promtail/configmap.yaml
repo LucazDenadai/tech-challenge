@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: observabilidade
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://loki-svc:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: kubernetes-pods
+        static_configs:
+          - targets: [localhost]
+            labels:
+              job: kubernetes-pods
+              __path__: /var/log/pods/oficina-mecanica_*/*/*.log
+        pipeline_stages:
+          - json:
+              expressions:
+                level: Level
+                message: Message
+                traceId: TraceId
+          - labels:
+              level:
+        relabel_configs:
+          - source_labels: [__path__]
+            regex: /var/log/pods/([^_]+)_([^_]+)_[^/]+/([^/]+)/.+
+            target_label: namespace
+            replacement: $1
+          - source_labels: [__path__]
+            regex: /var/log/pods/([^_]+)_([^_]+)_[^/]+/([^/]+)/.+
+            target_label: app
+            replacement: $2
+          - source_labels: [__path__]
+            regex: /var/log/pods/([^_]+)_([^_]+)_[^/]+/([^/]+)/.+
+            target_label: container
+            replacement: $3

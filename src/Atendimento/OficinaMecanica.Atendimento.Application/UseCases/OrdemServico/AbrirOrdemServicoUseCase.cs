@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using OficinaMecanica.Atendimento.Application.Exceptions;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
 using DomainOS = OficinaMecanica.Atendimento.Domain.Entities.OrdemServico;
@@ -7,7 +8,8 @@ namespace OficinaMecanica.Atendimento.Application.UseCases.OrdemServico;
 public class AbrirOrdemServicoUseCase(
     IOrdemServicoRepository osRepository,
     IVeiculoRepository veiculoRepository,
-    IEstoquePort estoquePort)
+    IEstoquePort estoquePort,
+    ILogger<AbrirOrdemServicoUseCase> logger)
 {
     public async Task<AbrirOrdemServicoResponse> ExecutarAsync(AbrirOrdemServicoRequest request, CancellationToken ct = default)
     {
@@ -30,6 +32,9 @@ public class AbrirOrdemServicoUseCase(
 
         await osRepository.AdicionarAsync(os, ct);
         await osRepository.SalvarAsync(ct);
+
+        logger.LogInformation("OS criada com sucesso. OrdemServicoId={OrdemServicoId} VeiculoId={VeiculoId}",
+            os.Id, request.VeiculoId);
 
         return new AbrirOrdemServicoResponse(os.Id, os.Numero);
     }

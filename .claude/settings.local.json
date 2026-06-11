@@ -16,7 +16,8 @@
       "Bash(xargs grep:*)",
       "Bash(cat)",
       "Bash(python /tmp/find_all_uncovered.py)",
-      "Bash(grep -E \"\\\\.\\(md|txt|yml|yaml|env\\)$\")"
+      "Bash(grep -E \"\\\\.\\(md|txt|yml|yaml|env\\)$\")",
+      "Bash(kubectl get *)"
     ]
   }
 }

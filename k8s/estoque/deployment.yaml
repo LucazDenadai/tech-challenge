@@ -13,6 +13,10 @@ spec:
       labels:
         app: estoque
     spec:
+      initContainers:
+        - name: wait-for-postgres
+          image: postgres:16-alpine
+          command: ["sh", "-c", "until pg_isready -h postgres-svc -p 5432; do sleep 2; done"]
       containers:
         - name: estoque
           image: oficina-estoque:latest

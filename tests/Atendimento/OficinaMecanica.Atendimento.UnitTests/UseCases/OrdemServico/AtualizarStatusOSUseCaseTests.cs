@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using OficinaMecanica.Atendimento.Application.Events;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
@@ -18,7 +19,7 @@ public class AtualizarStatusOSUseCaseTests
 
     public AtualizarStatusOSUseCaseTests()
     {
-        _sut = new AtualizarStatusOSUseCase(_repoMock.Object, _eventMock.Object, _emailMock.Object, _clienteRepoMock.Object);
+        _sut = new AtualizarStatusOSUseCase(_repoMock.Object, _eventMock.Object, _emailMock.Object, _clienteRepoMock.Object, NullLogger<AtualizarStatusOSUseCase>.Instance);
     }
 
     private static DomainOS CriarOS()

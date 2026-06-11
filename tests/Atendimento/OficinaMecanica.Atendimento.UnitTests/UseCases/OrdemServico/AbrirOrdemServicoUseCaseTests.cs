@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
 using OficinaMecanica.Atendimento.Application.UseCases.OrdemServico;
@@ -18,7 +19,7 @@ public class AbrirOrdemServicoUseCaseTests
 
     public AbrirOrdemServicoUseCaseTests()
     {
-        _sut = new AbrirOrdemServicoUseCase(_osRepoMock.Object, _veiculoRepoMock.Object, _estoqueMock.Object);
+        _sut = new AbrirOrdemServicoUseCase(_osRepoMock.Object, _veiculoRepoMock.Object, _estoqueMock.Object, NullLogger<AbrirOrdemServicoUseCase>.Instance);
     }
 
     [Fact]

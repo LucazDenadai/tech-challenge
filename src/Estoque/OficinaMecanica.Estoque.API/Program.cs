@@ -2,6 +2,7 @@ using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using OficinaMecanica.Estoque.API.Adapters.In.Messaging;
+using OficinaMecanica.Estoque.API.Extensions;
 using OficinaMecanica.Estoque.API.Filters;
 using OficinaMecanica.Atendimento.Application.Events;
 using OficinaMecanica.Estoque.Application.UseCases;
@@ -10,6 +11,17 @@ using OficinaMecanica.Estoque.Infrastructure.Adapters.In.Messaging;
 using OficinaMecanica.Estoque.Infrastructure.Adapters.Out.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Logging estruturado em JSON ────────────────────────────────────────────────
+builder.Logging.AddJsonConsole(o =>
+{
+    o.IncludeScopes = true;
+    o.TimestampFormat = "O";
+    o.JsonWriterOptions = new System.Text.Json.JsonWriterOptions { Indented = false };
+});
+
+// ── OpenTelemetry (traces → Jaeger, métricas → Prometheus) ───────────────────
+builder.AddOpenTelemetry("OficinaMecanica.Estoque");
 
 // ── Infrastructure (repositórios, DbContext) ───────────────────────────────────
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -107,6 +119,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.MapHealthChecks("/health");
+app.MapPrometheusScrapingEndpoint();
 app.MapControllers();
 
 await app.RunAsync();
