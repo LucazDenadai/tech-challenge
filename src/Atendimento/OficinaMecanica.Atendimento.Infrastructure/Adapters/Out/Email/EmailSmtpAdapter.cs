@@ -14,7 +14,7 @@ public class EmailSmtpAdapter(IConfiguration configuration) : IEmailPort
         var host = configuration["Smtp:Host"] ?? "localhost";
         var port = configuration.GetValue<int>("Smtp:Port", 587);
         var user = configuration["Smtp:User"] ?? string.Empty;
-        var password = configuration["Smtp:Password"] ?? string.Empty;
+        var password = configuration["Smtp:Pwd"] ?? string.Empty;
         var from = configuration["Smtp:From"] ?? user;
 
         var message = new MimeMessage();

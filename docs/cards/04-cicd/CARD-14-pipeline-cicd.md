@@ -32,8 +32,8 @@ Criar a pipeline GitHub Actions que executa build, testes, build de imagem Docke
 ```
 .github/
 └── workflows/
-    ├── ci.yml       # build + testes (PRs e push)
-    └── cd.yml       # docker build + push + deploy (apenas push em main)
+    └── dotnet.yml   # CI e CD como jobs sequenciais no mesmo arquivo
+                     # build-and-test → docker → deploy
 ```
 
 ---

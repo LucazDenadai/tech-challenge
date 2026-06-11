@@ -1,0 +1,28 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: atendimento-migration
+  namespace: oficina-mecanica
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      automountServiceAccountToken: false
+      restartPolicy: Never
+      containers:
+        - name: migration
+          image: oficina-atendimento:latest
+          imagePullPolicy: Always
+          command: ["dotnet", "ef", "database", "update", "--no-build"]
+          envFrom:
+            - configMapRef:
+                name: atendimento-config
+            - secretRef:
+                name: atendimento-secrets
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              memory: "256Mi"
+  backoffLimit: 2
