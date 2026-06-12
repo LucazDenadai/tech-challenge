@@ -35,7 +35,9 @@ public class AbrirOrdemServicoUseCaseTests
 
         Assert.NotEqual(Guid.Empty, result.Id);
         Assert.Equal("OS-001", result.Numero);
-        _osRepoMock.Verify(r => r.AdicionarAsync(It.IsAny<DomainOS>(), default), Times.Once);
+        _osRepoMock.Verify(r => r.AdicionarAsync(
+            It.Is<DomainOS>(os => os.Status == OficinaMecanica.Atendimento.Domain.Enums.StatusOrdemServico.Recebida),
+            default), Times.Once);
         _osRepoMock.Verify(r => r.SalvarAsync(default), Times.Once);
     }
 
