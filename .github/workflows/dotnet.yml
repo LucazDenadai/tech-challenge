@@ -54,26 +54,22 @@ jobs:
           dotnet test tests/Atendimento/OficinaMecanica.Atendimento.UnitTests \
             --no-build --configuration Release \
             --settings coverlet.runsettings \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./coverage
+            --results-directory ./coverage/atendimento-unit
           dotnet test tests/Estoque/OficinaMecanica.Estoque.UnitTests \
             --no-build --configuration Release \
             --settings coverlet.runsettings \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./coverage
+            --results-directory ./coverage/estoque-unit
 
       - name: Run Integration Tests
         run: |
           dotnet test tests/Atendimento/OficinaMecanica.Atendimento.IntegrationTests \
             --no-build --configuration Release \
             --settings coverlet.runsettings \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./coverage
+            --results-directory ./coverage/atendimento-integration
           dotnet test tests/Estoque/OficinaMecanica.Estoque.IntegrationTests \
             --no-build --configuration Release \
             --settings coverlet.runsettings \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./coverage
+            --results-directory ./coverage/estoque-integration
 
       - name: End SonarCloud analysis
         env:
