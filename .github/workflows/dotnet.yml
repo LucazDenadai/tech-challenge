@@ -66,10 +66,12 @@ jobs:
         run: |
           dotnet test tests/Atendimento/OficinaMecanica.Atendimento.IntegrationTests \
             --no-build --configuration Release \
+            --settings coverlet.runsettings \
             --collect:"XPlat Code Coverage" \
             --results-directory ./coverage
           dotnet test tests/Estoque/OficinaMecanica.Estoque.IntegrationTests \
             --no-build --configuration Release \
+            --settings coverlet.runsettings \
             --collect:"XPlat Code Coverage" \
             --results-directory ./coverage
 
