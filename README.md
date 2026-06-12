@@ -1,8 +1,31 @@
 # Tech Challenge — Oficina Mecânica
 
+![.NET](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet)
+![C#](https://img.shields.io/badge/C%23-13-239120?logo=csharp)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?logo=postgresql&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-3-FF6600?logo=rabbitmq&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-1.31-326CE5?logo=kubernetes&logoColor=white)
+![Terraform](https://img.shields.io/badge/Terraform-1.6+-844FBA?logo=terraform&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)
+![SonarCloud](https://img.shields.io/badge/SonarCloud-análise-F3702A?logo=sonarcloud&logoColor=white)
+
 Sistema de gerenciamento de oficina mecânica construído com arquitetura de **microsserviços hexagonal**, comunicação assíncrona via **RabbitMQ/MassTransit** e persistência em **PostgreSQL**.
 
 Projeto acadêmico da pós-graduação em Software Architecture — FIAP.
+
+---
+
+## Descrição da solução
+
+O sistema gerencia o ciclo completo de uma ordem de serviço: abertura, execução, aprovação de orçamento, finalização e baixa de estoque. É dividido em dois microsserviços independentes que se comunicam via mensageria:
+
+- **Atendimento**: clientes, veículos, catálogo de serviços, ordens de serviço e autenticação JWT
+- **Estoque**: cadastro de peças, movimentações e baixa automática ao finalizar uma OS
+
+**Objetivos desta fase:** escalabilidade (HPA), resiliência (circuit breaker, retry, dead letter), observabilidade (Prometheus, Grafana, Loki, Jaeger) e CI/CD completo com GitHub Actions.
+
+Decisões arquiteturais registradas em [`docs/adr/`](docs/adr/).
 
 ---
 
@@ -12,7 +35,7 @@ Projeto acadêmico da pós-graduação em Software Architecture — FIAP.
 ┌──────────────────────────────────┐     evento RabbitMQ      ┌──────────────────────────────┐
 │   Microserviço Atendimento       │ ─── OsFinalizadaEvent ──► │   Microserviço Estoque       │
 │   porta 8080                     │                           │   porta 8081                 │
-│                                  │                           │                              │
+│                                  │◄── HTTP (disponib.) ─────│                              │
 │  Hexagonal (Ports & Adapters)    │                           │  Hexagonal (Ports & Adapters)│
 │  ├── Domain                      │                           │  ├── Domain                  │
 │  ├── Application (use cases)     │                           │  ├── Application (use cases) │
@@ -53,6 +76,47 @@ PATCH /ordens-servico/{id}/status → Finalizada
 
 Em caso de falha no consumer, o MassTransit faz **retry automático** (3 tentativas: 1s → 5s → 10s). Após esgotar, a mensagem vai para a queue `estoque.baixa_error`.
 
+### Infraestrutura Kubernetes
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                   Namespace: oficina-mecanica                   │
+│                                                                 │
+│  Deployment: atendimento  (2–10 réplicas, HPA cpu 70% mem 80%) │
+│  Deployment: estoque      (2–10 réplicas, HPA cpu 70% mem 80%) │
+│  Deployment: postgres     (1 réplica, PVC 1Gi)                 │
+│  StatefulSet: rabbitmq    (1 réplica, PVC 1Gi)                 │
+│                                                                 │
+│  ConfigMaps : atendimento-config, estoque-config               │
+│  Secrets    : atendimento-secrets, estoque-secrets             │
+└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                  Namespace: observabilidade                     │
+│                                                                 │
+│  Deployment : prometheus   Deployment : grafana                │
+│  Deployment : loki         Deployment : jaeger                 │
+│  DaemonSet  : promtail                                         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Fluxo de CI/CD
+
+```
+Pull Request → main
+  → build-and-test  (ubuntu-latest)
+      dotnet build + dotnet test + SonarCloud
+      ✔ obrigatório passar para o PR ser mergeável
+
+Merge do PR → main
+  → docker          (ubuntu-latest)
+      docker build + push → ghcr.io/<repo>/oficina-atendimento:latest
+      docker build + push → ghcr.io/<repo>/oficina-estoque:latest
+  → deploy          (self-hosted runner, needs: docker)
+      kubectl apply -f k8s/
+      kubectl set image deployment/atendimento ...
+      kubectl rollout status (aguarda pods saudáveis)
+```
+
 ---
 
 ## Tecnologias
@@ -67,9 +131,12 @@ Em caso de falha no consumer, o MassTransit faz **retry automático** (3 tentati
 | Autenticação | JWT (HMAC-SHA256) + BCrypt |
 | Documentação | Swagger / Swashbuckle |
 | Containerização | Docker + Docker Compose |
+| Orquestração | Kubernetes 1.31 (Kind local) |
+| Infra como código | Terraform >= 1.6 |
 | Testes | xUnit + Moq + FluentAssertions + Testcontainers |
 | Cobertura | coverlet (OpenCover) |
-| Qualidade | SonarAnalyzer for C# |
+| Qualidade | SonarAnalyzer for C# + SonarCloud |
+| Observabilidade | Prometheus + Grafana + Loki + Promtail + Jaeger |
 
 ---
 
@@ -80,7 +147,7 @@ src/
 ├── Atendimento/
 │   ├── OficinaMecanica.Atendimento.Domain/          # Entidades, enums, regras de negócio
 │   ├── OficinaMecanica.Atendimento.Application/     # Use cases, ports (interfaces), eventos
-│   ├── OficinaMecanica.Atendimento.Infrastructure/  # EF Core, repositórios, RabbitMQ publisher, stubs
+│   ├── OficinaMecanica.Atendimento.Infrastructure/  # EF Core, repositórios, RabbitMQ publisher
 │   └── OficinaMecanica.Atendimento.API/             # Controllers, filtros, Program.cs
 │
 └── Estoque/
@@ -97,9 +164,26 @@ tests/
     ├── OficinaMecanica.Estoque.UnitTests/           # Testes unitários dos use cases
     └── OficinaMecanica.Estoque.IntegrationTests/    # HTTP + PostgreSQL real (Testcontainers)
 
+k8s/
+├── namespace.yaml
+├── atendimento/     # deployment, service, configmap, secret, hpa
+├── estoque/         # deployment, service, configmap, secret, hpa
+├── postgres/        # deployment, service, secret, pvc
+├── rabbitmq/        # statefulset, service, pvc
+└── observabilidade/ # prometheus, grafana, loki, promtail, jaeger
+
+infra/
+├── main.tf          # raiz: chama módulos cluster e database
+├── variables.tf     # cluster_name, kubernetes_version, db_*
+├── outputs.tf       # cluster_endpoint, postgres_connection_string
+├── versions.tf      # providers: kind, kubernetes, docker, null
+└── modules/
+    ├── cluster/     # kind_cluster + namespaces oficina-mecanica e observabilidade
+    └── database/    # docker_container postgres na rede kind + schemas
+
 docs/
-├── adr/                                             # Architecture Decision Records
-└── cards/                                           # Cartões de implementação por sprint
+├── adr/             # Architecture Decision Records
+└── cards/           # Cartões de implementação por sprint
 ```
 
 ---
@@ -111,11 +195,9 @@ docs/
 
 ---
 
-## Como executar
+## Como executar localmente
 
 ### 1. Configure o arquivo `.env`
-
-Copie o exemplo e ajuste se necessário:
 
 ```bash
 cp .env.example .env
@@ -143,54 +225,104 @@ Isso sobe em ordem: PostgreSQL → RabbitMQ → Atendimento API → Estoque API.
 
 ---
 
-## Observabilidade
+## Deploy em Kubernetes
 
-### Logs dos containers
+### Pré-requisitos
 
-Ver logs em tempo real de todos os serviços:
+- `kubectl` configurado apontando para o cluster
+- Imagens publicadas no GHCR via CI/CD (ou substituir pelas suas)
 
-```bash
-docker compose logs -f
-```
-
-Filtrar por serviço específico:
+### Passo a passo
 
 ```bash
-docker compose logs -f api           # Atendimento
-docker compose logs -f estoque-api   # Estoque
-docker compose logs -f rabbitmq      # RabbitMQ
+# 1. Criar namespace
+kubectl apply -f k8s/namespace.yaml
+
+# 2. Criar secrets (substituir pelos valores reais)
+kubectl create secret generic atendimento-secrets \
+  --from-literal=Jwt__Key=<chave-minimo-32-chars> \
+  --from-literal=ConnectionStrings__DefaultConnection="Host=postgres-svc;Port=5432;Database=oficina_atendimento;Username=postgres;Password=<senha>" \
+  -n oficina-mecanica
+
+kubectl create secret generic estoque-secrets \
+  --from-literal=ConnectionStrings__DefaultConnection="Host=postgres-svc;Port=5432;Database=oficina_estoque;Username=postgres;Password=<senha>" \
+  -n oficina-mecanica
+
+# 3. Aplicar manifestos
+kubectl apply -f k8s/ -n oficina-mecanica
+kubectl apply -f k8s/observabilidade/ -n observabilidade
+
+# 4. Acompanhar rollout
+kubectl rollout status deployment/atendimento -n oficina-mecanica
+kubectl rollout status deployment/estoque -n oficina-mecanica
+
+# 5. Verificar HPA
+kubectl get hpa -n oficina-mecanica
 ```
 
-### O que cada serviço loga
+> **Nota:** o startup da API cria o banco automaticamente se não existir e roda as migrations do EF Core.
 
-**Atendimento** — ao finalizar uma OS:
+---
+
+## Provisionamento com Terraform
+
+O Terraform provisiona o cluster Kind local e o container PostgreSQL, conectando-o à rede Docker do Kind para que os pods consigam acessá-lo.
+
+### Estrutura dos módulos
+
+| Módulo | O que provisiona |
+|---|---|
+| `modules/cluster` | Cluster Kind com `kindest/node:v1.31.0`, expõe portas 30080/30081/30090 no host, cria namespaces `oficina-mecanica` e `observabilidade` |
+| `modules/database` | Container `postgres:16` na rede `kind`, cria schemas `atendimento` e `estoque` via `local-exec` |
+
+### Providers utilizados
+
+| Provider | Versão | Finalidade |
+|---|---|---|
+| `tehcyx/kind` | ~> 0.4 | Criar e configurar o cluster Kind |
+| `hashicorp/kubernetes` | ~> 2.31 | Criar namespaces no cluster |
+| `kreuzwerker/docker` | ~> 3.0 | Gerenciar o container PostgreSQL |
+| `hashicorp/null` | ~> 3.2 | Executar scripts locais pós-provisionamento |
+
+### Variáveis
+
+| Variável | Default | Descrição |
+|---|---|---|
+| `cluster_name` | `oficina-mecanica` | Nome do cluster Kind |
+| `kubernetes_version` | `v1.31.0` | Versão da imagem do nó |
+| `db_name` | `oficinamecanica` | Nome do banco PostgreSQL |
+| `db_user` | `oficina` | Usuário do PostgreSQL |
+| `db_password` | _(obrigatório)_ | Senha do PostgreSQL |
+| `db_port` | `5433` | Porta exposta no host |
+
+### Executar
+
+```bash
+cd infra
+terraform init
+terraform plan -var="db_password=suasenha"
+terraform apply -var="db_password=suasenha"
+
+# Outputs após o apply:
+# cluster_name                  = "oficina-mecanica"
+# cluster_endpoint              = "https://127.0.0.1:..."
+# postgres_connection_string    = <sensitive>
+# postgres_host_connection_string = <sensitive>
+
+# Ver valores sensitive:
+terraform output -raw postgres_host_connection_string
 ```
-info: RabbitMqEventPublisher — publicando OsFinalizadaEvent osId=... itens=2
-```
 
-**Estoque** — ao consumir o evento:
-```
-info: MassTransit — Received message OsFinalizadaEvent
-info: BaixaEstoqueConsumer — baixa processada osId=... 2 itens
-```
+---
 
-**Estoque** — se o consumer falhar (retry):
-```
-warn: MassTransit — Retry 1/3 for OsFinalizadaEvent after 1000ms
-warn: MassTransit — Retry 2/3 for OsFinalizadaEvent after 5000ms
-error: MassTransit — Message moved to estoque.baixa_error after 3 retries
-```
+## APIs — Swagger
 
-### RabbitMQ Management UI
+Após subir a aplicação:
 
-Acesse http://localhost:15672 com `guest` / `guest` para visualizar:
-
-- **Queues** → `estoque.baixa` — mensagens pendentes e taxa de processamento
-- **Queues** → `estoque.baixa_error` — mensagens que falharam após 3 tentativas (dead letter)
-- **Exchanges** → `OficinaMecanica.Estoque.Application.Events:OsFinalizadaEvent` — exchange criado pelo MassTransit
-- **Overview** → throughput global de mensagens
-
-Para **reprocessar** uma mensagem da fila de erro, use o botão "Move messages" na UI do RabbitMQ apontando de `estoque.baixa_error` para `estoque.baixa`.
+| Serviço | Swagger UI |
+|---|---|
+| Atendimento | http://localhost:8080/swagger |
+| Estoque | http://localhost:8081/swagger |
 
 ---
 
@@ -237,8 +369,6 @@ Authorization: Bearer {token}
 | POST | `/veiculos` | Criar veículo | JWT (Admin, Atendente) |
 | GET | `/servicos` | Listar serviços do catálogo | JWT |
 | POST | `/servicos` | Criar serviço | JWT (Admin) |
-| GET | `/pecas` | Listar peças do catálogo | JWT |
-| POST | `/pecas` | Criar peça | JWT (Admin) |
 | GET | `/ordens-servico` | Listar OSs com filtros | JWT |
 | POST | `/ordens-servico` | Abrir OS | JWT (Admin, Atendente) |
 | GET | `/ordens-servico/{id}` | Detalhe da OS | JWT |
@@ -278,18 +408,6 @@ Passed! - Failed: 0, Passed:  8  - OficinaMecanica.Estoque.IntegrationTests
 
 > Os testes de integração requerem **Docker em execução** — o Testcontainers sobe PostgreSQL automaticamente.
 
-### Testes por projeto
-
-```bash
-# Unitários
-dotnet test tests/Atendimento/OficinaMecanica.Atendimento.UnitTests/
-dotnet test tests/Estoque/OficinaMecanica.Estoque.UnitTests/
-
-# Integração
-dotnet test tests/Atendimento/OficinaMecanica.Atendimento.IntegrationTests/
-dotnet test tests/Estoque/OficinaMecanica.Estoque.IntegrationTests/
-```
-
 ### Com relatório de cobertura
 
 ```bash
@@ -300,19 +418,32 @@ Os XMLs são gerados em `tests/**/TestResults/**/coverage.opencover.xml`.
 
 ---
 
-## Qualidade — SonarQube
+## Observabilidade
 
-O SonarQube fica separado do compose principal (imagem pesada ~1 GB).
+### Logs dos containers
 
 ```bash
-# Subir SonarQube
-cd sonar && docker compose up -d
+docker compose logs -f
+docker compose logs -f api           # Atendimento
+docker compose logs -f estoque-api   # Estoque
+```
 
-# Aguarde ~2 min e acesse http://localhost:9000 (admin/admin)
-# Gere um token em: My Account → Security → Generate Token
+### RabbitMQ Management UI
 
-# Da raiz do projeto:
-dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="http://localhost:9000" /d:sonar.token="SEU_TOKEN" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/Program.cs,**/*Tests.cs,**/Migrations/**"
+Acesse http://localhost:15672 com `guest` / `guest` para visualizar:
+
+- **Queues** → `estoque.baixa` — mensagens pendentes
+- **Queues** → `estoque.baixa_error` — dead letter (falhas após 3 retries)
+- **Exchanges** → `OficinaMecanica.Estoque.Application.Events:OsFinalizadaEvent`
+
+---
+
+## Qualidade — SonarCloud
+
+A análise roda automaticamente no CI a cada push em `main`. Para rodar localmente:
+
+```bash
+dotnet sonarscanner begin /k:"tech-challenge" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.token="SEU_TOKEN" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
 dotnet build
 dotnet test --no-build --settings coverlet.runsettings
 dotnet sonarscanner end /d:sonar.token="SEU_TOKEN"
@@ -320,14 +451,9 @@ dotnet sonarscanner end /d:sonar.token="SEU_TOKEN"
 
 ---
 
-## Desenvolvimento local (sem Docker)
+## Vídeo demonstrativo
 
-Para rodar sem Docker, configure o PostgreSQL local e defina a connection string no `appsettings.json` ou via user-secrets. O RabbitMQ pode ficar desligado — basta manter `RabbitMq:Enabled=false` (padrão) nos `appsettings.json`, o que ativa o stub de log.
-
-```bash
-dotnet run --project src/Atendimento/OficinaMecanica.Atendimento.API
-dotnet run --project src/Estoque/OficinaMecanica.Estoque.API
-```
+> Link a ser adicionado após gravação (YouTube ou Vimeo, até 15 minutos).
 
 ---
 
