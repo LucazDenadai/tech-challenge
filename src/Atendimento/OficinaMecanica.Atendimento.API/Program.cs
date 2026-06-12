@@ -96,7 +96,15 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    {
+        var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>();
+        if (origins is { Length: > 0 })
+            policy.WithOrigins(origins).AllowAnyMethod().AllowAnyHeader();
+        else if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test"))
+            policy.WithOrigins("http://localhost", "https://localhost").AllowAnyMethod().AllowAnyHeader();
+        else
+            throw new InvalidOperationException("Cors:Origins não configurado. Defina ao menos uma origem permitida.");
+    });
 });
 
 // ── Controllers + Filters ──────────────────────────────────────────────────────

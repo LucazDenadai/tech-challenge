@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using OficinaMecanica.Atendimento.Application.Ports.Out;
 using OficinaMecanica.Atendimento.Domain.Enums;
@@ -52,6 +53,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
         });
 
         builder.UseEnvironment("Test");
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Cors:Origins:0"] = "http://localhost"
+            });
+        });
     }
 
     public async Task ResetDatabaseAsync()
