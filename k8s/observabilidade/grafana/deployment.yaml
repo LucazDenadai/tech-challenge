@@ -27,6 +27,14 @@ spec:
           volumeMounts:
             - name: datasources
               mountPath: /etc/grafana/provisioning/datasources
+            - name: dashboards-provider
+              mountPath: /etc/grafana/provisioning/dashboards
+            - name: dashboard-aspnet
+              mountPath: /etc/grafana/provisioning/dashboards/aspnet.json
+              subPath: aspnet.json
+            - name: dashboard-kubernetes
+              mountPath: /etc/grafana/provisioning/dashboards/kubernetes.json
+              subPath: kubernetes.json
           resources:
             requests:
               cpu: 100m
@@ -40,3 +48,12 @@ spec:
         - name: datasources
           configMap:
             name: grafana-datasources
+        - name: dashboards-provider
+          configMap:
+            name: grafana-dashboards-provider
+        - name: dashboard-aspnet
+          configMap:
+            name: grafana-dashboard-aspnet
+        - name: dashboard-kubernetes
+          configMap:
+            name: grafana-dashboard-kubernetes

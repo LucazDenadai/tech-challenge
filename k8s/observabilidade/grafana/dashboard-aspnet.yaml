@@ -1,0 +1,152 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-aspnet
+  namespace: observabilidade
+data:
+  aspnet.json: |
+    {
+      "title": "Oficina Mecânica — APIs",
+      "uid": "oficina-aspnet",
+      "schemaVersion": 38,
+      "refresh": "10s",
+      "time": { "from": "now-30m", "to": "now" },
+      "templating": {
+        "list": [
+          {
+            "name": "job",
+            "type": "query",
+            "datasource": "Prometheus",
+            "query": "label_values(http_server_request_duration_seconds_count, job)",
+            "refresh": 2,
+            "includeAll": true,
+            "multi": true,
+            "current": {}
+          }
+        ]
+      },
+      "panels": [
+        {
+          "id": 1,
+          "title": "Requisições por segundo (RPS)",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_request_duration_seconds_count{job=~\"$job\"}[1m])) by (job)",
+              "legendFormat": "{{job}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "custom": { "lineWidth": 2 }
+            }
+          }
+        },
+        {
+          "id": 2,
+          "title": "Taxa de Erros HTTP (4xx + 5xx)",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "sum(rate(http_server_request_duration_seconds_count{job=~\"$job\", http_response_status_code=~\"4..|5..\"}[1m])) by (job, http_response_status_code)",
+              "legendFormat": "{{job}} {{http_response_status_code}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "reqps",
+              "color": { "mode": "palette-classic" },
+              "custom": { "lineWidth": 2 }
+            }
+          }
+        },
+        {
+          "id": 3,
+          "title": "Latência P50 / P95 / P99",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 8, "w": 24, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "histogram_quantile(0.50, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\"}[1m])) by (le, job))",
+              "legendFormat": "P50 {{job}}"
+            },
+            {
+              "expr": "histogram_quantile(0.95, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\"}[1m])) by (le, job))",
+              "legendFormat": "P95 {{job}}"
+            },
+            {
+              "expr": "histogram_quantile(0.99, sum(rate(http_server_request_duration_seconds_bucket{job=~\"$job\"}[1m])) by (le, job))",
+              "legendFormat": "P99 {{job}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "s",
+              "custom": { "lineWidth": 2 }
+            }
+          }
+        },
+        {
+          "id": 4,
+          "title": "Uso de Memória do Processo",
+          "type": "timeseries",
+          "gridPos": { "x": 0, "y": 16, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "process_working_set_bytes{job=~\"$job\"}",
+              "legendFormat": "{{job}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "bytes",
+              "custom": { "lineWidth": 2 }
+            }
+          }
+        },
+        {
+          "id": 5,
+          "title": "GC Collections (.NET Runtime)",
+          "type": "timeseries",
+          "gridPos": { "x": 12, "y": 16, "w": 12, "h": 8 },
+          "datasource": "Prometheus",
+          "targets": [
+            {
+              "expr": "rate(dotnet_gc_collections_total{job=~\"$job\"}[1m])",
+              "legendFormat": "{{job}} Gen{{generation}}"
+            }
+          ],
+          "fieldConfig": {
+            "defaults": {
+              "unit": "ops",
+              "custom": { "lineWidth": 2 }
+            }
+          }
+        },
+        {
+          "id": 6,
+          "title": "Logs da Aplicação",
+          "type": "logs",
+          "gridPos": { "x": 0, "y": 24, "w": 24, "h": 10 },
+          "datasource": "Loki",
+          "targets": [
+            {
+              "expr": "{namespace=\"oficina-mecanica\"}",
+              "legendFormat": ""
+            }
+          ],
+          "options": {
+            "showTime": true,
+            "showLabels": true,
+            "wrapLogMessage": true
+          }
+        }
+      ]
+    }

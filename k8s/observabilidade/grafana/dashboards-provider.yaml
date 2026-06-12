@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-provider
+  namespace: observabilidade
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: oficina-mecanica
+        type: file
+        disableDeletion: true
+        updateIntervalSeconds: 30
+        options:
+          path: /etc/grafana/provisioning/dashboards
