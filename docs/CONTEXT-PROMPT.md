@@ -61,6 +61,7 @@ docs/
 ### Banco de dados
 - 1 instância PostgreSQL com **2 schemas separados**: `atendimento` e `estoque`
 - Migrations do EF Core copiadas do legado (não recriar do zero)
+- Decisão documentada em ADR-007: banco compartilhado é intencional — escala da aplicação é garantida pelo HPA, não pelo banco
 
 ### Testes
 - **TDD** nos use cases do Application (teste primeiro, implementação depois)
