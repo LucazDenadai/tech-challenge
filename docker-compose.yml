@@ -55,6 +55,7 @@ services:
       RabbitMq__Password: ${RABBITMQ_PASSWORD}
       EstoqueHttp__Enabled: "true"
       EstoqueServiceUrl: http://estoque:8080
+      Smtp__Enabled: ${SMTP_ENABLED:-false}
       Smtp__Host: ${SMTP_HOST}
       Smtp__Port: ${SMTP_PORT}
       Smtp__User: ${SMTP_USER}

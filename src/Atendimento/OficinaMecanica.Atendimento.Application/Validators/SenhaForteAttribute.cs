@@ -13,7 +13,7 @@ public sealed class SenhaForteAttribute : ValidationAttribute
     private static readonly Regex TemDigito    = new(@"\d",            RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
     private static readonly Regex TemEspecial  = new(@"[^A-Za-z0-9]", RegexOptions.Compiled, TimeSpan.FromMilliseconds(100));
 
-    protected override ValidationResult? IsValid(object? value, ValidationContext context)
+    protected override ValidationResult? IsValid(object? value, ValidationContext validationContext)
     {
         var senha = value as string;
 
