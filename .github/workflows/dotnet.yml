@@ -178,9 +178,8 @@ jobs:
         shell: powershell
         run: |
           $repo = "${{ steps.repo.outputs.name }}"
-          $sha = "${{ github.sha }}"
-          kubectl set image deployment/atendimento atendimento=ghcr.io/$repo/oficina-atendimento:$sha -n oficina-mecanica
-          kubectl set image deployment/estoque estoque=ghcr.io/$repo/oficina-estoque:$sha -n oficina-mecanica
+          kubectl set image deployment/atendimento atendimento=ghcr.io/$repo/oficina-atendimento:latest -n oficina-mecanica
+          kubectl set image deployment/estoque estoque=ghcr.io/$repo/oficina-estoque:latest -n oficina-mecanica
 
       - name: Aguardar rollout
         shell: powershell
