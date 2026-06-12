@@ -30,5 +30,5 @@ public class EstoqueHttpAdapter(HttpClient httpClient) : IEstoquePort
         return await response.Content.ReadFromJsonAsync<PecaEstoqueDto>(JsonOptions, ct);
     }
 
-    private record DisponibilidadeResponse(bool Disponivel);
+    private sealed record DisponibilidadeResponse(bool Disponivel);
 }

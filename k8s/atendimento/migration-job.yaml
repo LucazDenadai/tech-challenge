@@ -11,7 +11,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: migration
-          image: ghcr.io/lucazdenadai/tech-challenge/oficina-atendimento:latest
+          image: ghcr.io/lucazdenadai/tech-challenge/oficina-atendimento:1.0.0
           imagePullPolicy: IfNotPresent
           command: ["dotnet", "ef", "database", "update", "--no-build"]
           envFrom:
@@ -23,6 +23,8 @@ spec:
             requests:
               cpu: "100m"
               memory: "128Mi"
+              ephemeral-storage: "256Mi"
             limits:
               memory: "256Mi"
+              ephemeral-storage: "512Mi"
   backoffLimit: 2

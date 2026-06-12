@@ -173,5 +173,14 @@ public class OrdensServicoController : ControllerBase
     }
 }
 
-public record AprovarOrcamentoRequest(bool Aprovado);
-public record AtualizarStatusOSRequest(StatusOrdemServico NovoStatus);
+public record AprovarOrcamentoRequest
+{
+    [System.ComponentModel.DataAnnotations.Required]
+    public required bool Aprovado { get; init; }
+}
+
+public record AtualizarStatusOSRequest
+{
+    [System.ComponentModel.DataAnnotations.Required]
+    public required StatusOrdemServico NovoStatus { get; init; }
+}

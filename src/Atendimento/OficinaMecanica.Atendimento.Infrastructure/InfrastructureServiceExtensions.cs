@@ -40,11 +40,13 @@ public static class InfrastructureServiceExtensions
         else
             services.AddScoped<IEmailPort, EmailStub>();
 
-        var estoqueUrl = configuration["EstoqueServiceUrl"] ?? "http://localhost:8081";
         var usarEstoqueReal = configuration.GetValue<bool>("EstoqueHttp:Enabled");
 
         if (usarEstoqueReal)
         {
+            var estoqueUrl = configuration["EstoqueServiceUrl"]
+                ?? throw new InvalidOperationException("EstoqueServiceUrl não configurada.");
+
             services.AddHttpClient<IEstoquePort, EstoqueHttpAdapter>(client =>
                 {
                     client.BaseAddress = new Uri(estoqueUrl);
