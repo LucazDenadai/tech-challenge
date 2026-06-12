@@ -152,12 +152,12 @@ jobs:
         run: |
           kubectl create secret generic atendimento-secrets `
             --from-literal=Jwt__Key="$env:JWT_KEY" `
-            --from-literal=ConnectionStrings__Default="$env:ATENDIMENTO_CONN" `
+            --from-literal=ConnectionStrings__DefaultConnection="$env:ATENDIMENTO_CONN" `
             --namespace=oficina-mecanica `
             --dry-run=client -o yaml | kubectl apply -f -
 
           kubectl create secret generic estoque-secrets `
-            --from-literal=ConnectionStrings__Default="$env:ESTOQUE_CONN" `
+            --from-literal=ConnectionStrings__DefaultConnection="$env:ESTOQUE_CONN" `
             --namespace=oficina-mecanica `
             --dry-run=client -o yaml | kubectl apply -f -
 
