@@ -93,18 +93,17 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
-var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>();
-if (corsOrigins is not { Length: > 0 } && !builder.Environment.IsDevelopment())
-    throw new InvalidOperationException("Cors:Origins não configurado. Defina ao menos uma origem permitida.");
-
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        if (corsOrigins is { Length: > 0 })
-            policy.WithOrigins(corsOrigins).AllowAnyMethod().AllowAnyHeader();
+        var origins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>();
+        if (origins is { Length: > 0 })
+            policy.WithOrigins(origins).AllowAnyMethod().AllowAnyHeader();
+        else if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Test"))
+            policy.WithOrigins("http://localhost", "https://localhost").AllowAnyMethod().AllowAnyHeader();
         else
-            policy.WithOrigins("http://localhost:*", "https://localhost:*").AllowAnyMethod().AllowAnyHeader();
+            throw new InvalidOperationException("Cors:Origins não configurado. Defina ao menos uma origem permitida.");
     });
 });
 
