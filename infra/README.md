@@ -24,6 +24,12 @@ terraform --version
 kind --version
 ```
 
+## Limitação de plataforma
+
+O módulo `database` usa um `local-exec` com **PowerShell** para aguardar o PostgreSQL inicializar e criar os schemas `atendimento` e `estoque` após o `terraform apply`. Por isso, **este Terraform só pode ser executado em Windows**.
+
+Essa é uma decisão intencional de escopo: o ambiente de desenvolvimento do projeto roda em Windows e o uso do PowerShell simplifica a integração com Docker. Em um cenário produtivo, o provisionador seria reescrito com `bash` ou substituído por um recurso nativo (ex: provider `postgresql`).
+
 ## Como usar
 
 ### 1. Configurar variáveis
