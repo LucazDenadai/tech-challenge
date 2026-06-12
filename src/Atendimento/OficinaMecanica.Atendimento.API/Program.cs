@@ -1,5 +1,6 @@
 using System.Text;
 using System.Threading.RateLimiting;
+using Npgsql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -167,6 +168,19 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    var connString = db.Database.GetConnectionString()!;
+    var builder2 = new NpgsqlConnectionStringBuilder(connString);
+    var dbName = builder2.Database;
+    builder2.Database = "postgres";
+    await using (var conn = new NpgsqlConnection(builder2.ConnectionString))
+    {
+        await conn.OpenAsync();
+        var exists = (long)(await new NpgsqlCommand($"SELECT COUNT(*) FROM pg_database WHERE datname = '{dbName}'", conn).ExecuteScalarAsync())! > 0;
+        if (!exists)
+            await new NpgsqlCommand($"CREATE DATABASE \"{dbName}\"", conn).ExecuteNonQueryAsync();
+    }
+
     await db.Database.MigrateAsync();
 
     if (!await db.Usuarios.AnyAsync())
