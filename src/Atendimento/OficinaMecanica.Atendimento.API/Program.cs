@@ -93,10 +93,16 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // ── CORS ───────────────────────────────────────────────────────────────────────
+var corsOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>();
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+    {
+        if (corsOrigins is { Length: > 0 })
+            policy.WithOrigins(corsOrigins).AllowAnyMethod().AllowAnyHeader();
+        else
+            policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader();
+    });
 });
 
 // ── Controllers + Filters ──────────────────────────────────────────────────────

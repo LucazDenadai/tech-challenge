@@ -13,5 +13,6 @@ data:
   Jwt__Issuer: oficina-atendimento
   Jwt__Audience: oficina-atendimento-api
   Jwt__ExpiracaoMinutos: "60"
+  Cors__Origins__0: "http://localhost:3000"
   Smtp__Enabled: "false"
   Jaeger__Endpoint: http://jaeger-svc.observabilidade.svc.cluster.local:4318
