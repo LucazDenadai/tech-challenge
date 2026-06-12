@@ -142,6 +142,42 @@ CARD-01 ──────────── CARD-08 ─────────
 
 ---
 
+## Experiências técnicas — lições aprendidas
+
+### CARD-14: Deploy Kubernetes
+
+**Connection string com `localhost` no cluster**
+O secret do GitHub Actions (`ATENDIMENTO_CONNECTION_STRING`) estava com `Host=localhost` — funciona localmente mas quebra no k8s onde o postgres é um Service separado. O host correto é o nome do Service: `postgres-svc`.
+
+**Nome de chave errado no secret**
+O workflow aplicava `ConnectionStrings__Default` mas o código lê `ConnectionStrings__DefaultConnection` (padrão do `GetConnectionString("DefaultConnection")`). Resultado: connection string nunca era lida, caía no fallback `POSTGRES_CONNECTION` que não existia e lançava exception.
+
+**Banco não existia no PostgreSQL**
+O EF Core `MigrateAsync()` cria tabelas mas não cria o banco. A solução foi adicionar no startup de cada API um bloco que conecta no banco `postgres`, verifica se o banco alvo existe e o cria se necessário — antes de chamar `MigrateAsync()`.
+
+**Pipeline rodando jobs em paralelo sem sentido**
+Os jobs `build-and-test`, `docker` e `deploy` rodavam em paralelo. A ordem correta é sequencial: `build-and-test → docker → deploy`. Corrigido com `needs:` em cada job.
+
+---
+
+## Experiências técnicas — lições aprendidas
+
+### CARD-14: Deploy Kubernetes
+
+**Connection string com `localhost` no cluster**
+O secret do GitHub Actions estava com `Host=localhost` — funciona localmente mas quebra no k8s onde o postgres é um Service separado. O host correto é o nome do Service: `postgres-svc`.
+
+**Nome de chave errado no secret**
+O workflow aplicava `ConnectionStrings__Default` mas o código lê `ConnectionStrings__DefaultConnection` (padrão do `GetConnectionString("DefaultConnection")`). A connection string nunca era lida, caía no fallback e lançava exception.
+
+**Banco não existia no PostgreSQL**
+O EF Core `MigrateAsync()` cria tabelas mas não cria o banco. Solução: no startup de cada API, conectar no banco `postgres`, verificar se o banco alvo existe e criá-lo se necessário — antes de chamar `MigrateAsync()`.
+
+**Pipeline sem ordenação entre jobs**
+Os jobs `build-and-test`, `docker` e `deploy` rodavam em paralelo. A ordem correta é sequencial via `needs:`: `build-and-test → docker → deploy`.
+
+---
+
 ## ADR de referência
 
 A decisão de arquitetura completa com todas as alternativas consideradas está em:
