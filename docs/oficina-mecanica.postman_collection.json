@@ -478,7 +478,7 @@
     },
     {
       "name": "07 — Fluxo OS End-to-End",
-      "description": "Máquina de estados:\nRecebida(1) → EmDiagnostico(2) → AguardandoAprovacao(3) → EmExecucao(4) → Finalizada(5) → Entregue(6)\n\nAo Finalizar a OS, evento é publicado no RabbitMQ e o Estoque reduz automaticamente o estoque das peças.",
+      "description": "Máquina de estados:\nRecebida(1) → EmDiagnostico(2) → AguardandoAprovacao(3) → EmExecucao(4) → Finalizada(5) → Entregue(6)\n\n⚠️ Execute os passos NA ORDEM NUMÉRICA. O passo 5 (Aprovar Orçamento) já transiciona automaticamente para EmExecucao — não existe passo manual para este status.\n\nAo Finalizar a OS (passo 6), evento OsFinalizadaEvent é publicado no RabbitMQ e o Estoque reduz automaticamente as peças em ~2s.",
       "item": [
         {
           "name": "1. Abrir OS",
@@ -570,7 +570,7 @@
           }
         },
         {
-          "name": "5. Aprovar Orçamento",
+          "name": "5. Aprovar Orçamento  ★ transiciona para EmExecucao automaticamente",
           "request": {
             "method": "PUT",
             "header": [
@@ -582,23 +582,11 @@
               "mode": "raw",
               "raw": "{\n  \"aprovado\": true\n}"
             },
-            "description": "aprovado=true → EmExecucao | aprovado=false → Cancelada"
+            "description": "aprovado=true → EmExecucao (automático, sem passo manual)\naprovado=false → Cancelada\n\nApós este passo a OS já estará em EmExecucao."
           }
         },
         {
-          "name": "6. Status → EmExecucao",
-          "request": {
-            "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": "{{base_atendimento}}/ordens-servico/{{os_id}}/status",
-            "body": { "mode": "raw", "raw": "{\n  \"novoStatus\": 4\n}" }
-          }
-        },
-        {
-          "name": "7. Status → Finalizada  ★ publica evento RabbitMQ",
+          "name": "6. Status → Finalizada  ★ publica evento RabbitMQ",
           "request": {
             "method": "PUT",
             "header": [
@@ -611,7 +599,7 @@
           }
         },
         {
-          "name": "8. Status → Entregue",
+          "name": "7. Status → Entregue",
           "request": {
             "method": "PUT",
             "header": [
@@ -623,7 +611,7 @@
           }
         },
         {
-          "name": "9. Cancelar Item da OS (opcional)",
+          "name": "8. Cancelar Item da OS (opcional)",
           "request": {
             "method": "DELETE",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -637,11 +625,12 @@
       "name": "08 — Consultas OS",
       "item": [
         {
-          "name": "Listar Todas as OS",
+          "name": "Listar Todas as OS (painel operacional — ativas)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": "{{base_atendimento}}/ordens-servico"
+            "url": "{{base_atendimento}}/ordens-servico",
+            "description": "Retorna apenas OS em andamento: Recebida, EmDiagnostico, AguardandoAprovacao e EmExecucao.\nOS com status Finalizada, Entregue ou Cancelada não aparecem aqui — use 'Obter OS por ID' para consultá-las individualmente."
           }
         },
         {
