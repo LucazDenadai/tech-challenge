@@ -31,91 +31,31 @@ Decisões arquiteturais registradas em [`docs/adr/`](docs/adr/).
 
 ## Arquitetura
 
-```
-┌──────────────────────────────────┐     evento RabbitMQ      ┌──────────────────────────────┐
-│   Microserviço Atendimento       │ ─── OsFinalizadaEvent ──► │   Microserviço Estoque       │
-│   porta 8080                     │                           │   porta 8081                 │
-│                                  │◄── HTTP (disponib.) ─────│                              │
-│  Hexagonal (Ports & Adapters)    │                           │  Hexagonal (Ports & Adapters)│
-│  ├── Domain                      │                           │  ├── Domain                  │
-│  ├── Application (use cases)     │                           │  ├── Application (use cases) │
-│  ├── Infrastructure              │                           │  ├── Infrastructure          │
-│  └── API (controllers)          │                           │  └── API (controllers)       │
-└──────────────────────────────────┘                           └──────────────────────────────┘
-              │                                                              │
-              └──────────────────────┬───────────────────────────────────────┘
-                                     │
-                          ┌──────────▼──────────┐
-                          │     PostgreSQL       │
-                          │  oficina_atendimento │
-                          │  oficina_estoque     │
-                          └─────────────────────┘
-```
+![Visão geral](docs/images/img-metricas.png)
 
-### Fluxo de mensageria
+### Componentes e comunicação entre serviços
 
-Quando uma Ordem de Serviço é finalizada:
+![Arquitetura — componentes e comunicação](docs/images/img-arquitetura.png)
 
-```
-PATCH /ordens-servico/{id}/status → Finalizada
-        │
-        ▼ AtualizarStatusOSUseCase
-        │  monta OsFinalizadaEvent { osId, itens[] }
-        │
-        ▼ RabbitMqEventPublisher
-        │  publica no exchange "OsFinalizadaEvent"
-        │
-        ▼ Queue: estoque.baixa  (RabbitMQ)
-        │
-        ▼ BaixaEstoqueConsumer
-           chama BaixarEstoqueUseCase
-           → verifica idempotência (evita baixa dupla)
-           → subtrai estoque de cada peça
-           → registra MovimentacaoEstoque
-```
+Dois microserviços independentes com comunicação **síncrona HTTP** apenas na abertura de OS (verificação de disponibilidade de peças via Polly) e **assíncrona via RabbitMQ** na finalização (evento `os.finalizada` → baixa de estoque).
 
 Em caso de falha no consumer, o MassTransit faz **retry automático** (3 tentativas: 1s → 5s → 10s). Após esgotar, a mensagem vai para a queue `estoque.baixa_error`.
 
+### Arquitetura Hexagonal — camadas por serviço
+
+![Arquitetura Hexagonal](docs/images/img-hexagonal.png)
+
+Regra de ouro: `Domain` sem nenhum `using` externo · `Application` não referencia `Infrastructure`.
+
 ### Infraestrutura Kubernetes
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                   Namespace: oficina-mecanica                   │
-│                                                                 │
-│  Deployment: atendimento  (2–10 réplicas, HPA cpu 70% mem 80%) │
-│  Deployment: estoque      (2–10 réplicas, HPA cpu 70% mem 80%) │
-│  Deployment: postgres     (1 réplica, PVC 1Gi)                 │
-│  StatefulSet: rabbitmq    (1 réplica, PVC 1Gi)                 │
-│                                                                 │
-│  ConfigMaps : atendimento-config, estoque-config               │
-│  Secrets    : atendimento-secrets, estoque-secrets             │
-└─────────────────────────────────────────────────────────────────┘
-┌─────────────────────────────────────────────────────────────────┐
-│                  Namespace: observabilidade                     │
-│                                                                 │
-│  Deployment : prometheus   Deployment : grafana                │
-│  Deployment : loki         Deployment : jaeger                 │
-│  DaemonSet  : promtail                                         │
-└─────────────────────────────────────────────────────────────────┘
-```
+![Infraestrutura Kubernetes](docs/images/img-kubernetes.png)
 
-### Fluxo de CI/CD
+### Fluxo de deploy — CI/CD
 
-```
-Pull Request → main
-  → build-and-test  (ubuntu-latest)
-      dotnet build + dotnet test + SonarCloud
-      ✔ obrigatório passar para o PR ser mergeável
+![Pipeline CI/CD](docs/images/img-cicd.png)
 
-Merge do PR → main
-  → docker          (ubuntu-latest)
-      docker build + push → ghcr.io/<repo>/oficina-atendimento:latest
-      docker build + push → ghcr.io/<repo>/oficina-estoque:latest
-  → deploy          (self-hosted runner, needs: docker)
-      kubectl apply -f k8s/
-      kubectl set image deployment/atendimento ...
-      kubectl rollout status (aguarda pods saudáveis)
-```
+Jobs em sequência obrigatória via `needs:` · imagens fixadas por hash de commit (supply chain) · self-hosted runner no cluster local.
 
 ---
 
@@ -315,9 +255,11 @@ terraform output -raw postgres_host_connection_string
 
 ---
 
-## APIs — Swagger
+## APIs — Swagger e Postman
 
-Após subir a aplicação:
+A collection completa do Postman com todos os endpoints está em [`docs/oficina-mecanica.postman_collection.json`](docs/oficina-mecanica.postman_collection.json). Importe no Postman e configure a variável `baseUrl` para `http://localhost:8080`.
+
+Após subir a aplicação, o Swagger também está disponível:
 
 | Serviço | Swagger UI |
 |---|---|
