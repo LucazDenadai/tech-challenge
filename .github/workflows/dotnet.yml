@@ -169,17 +169,39 @@ jobs:
           $name = "${{ github.repository }}".ToLower()
           echo "name=$name" >> $env:GITHUB_OUTPUT
 
-      - name: Aplicar manifestos K8s
+      - name: Aplicar infraestrutura e configuracoes
         shell: powershell
         run: |
-          kubectl apply -f k8s/ -n oficina-mecanica
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/postgres/ -n oficina-mecanica
+          kubectl apply -f k8s/rabbitmq/ -n oficina-mecanica
+          kubectl apply -f k8s/atendimento/configmap.yaml -n oficina-mecanica
+          kubectl apply -f k8s/estoque/configmap.yaml -n oficina-mecanica
           kubectl apply -f k8s/observabilidade/ -n observabilidade
 
-      - name: Atualizar imagem nos deployments
+      - name: Executar migrations
+        shell: powershell
+        run: |
+          kubectl delete job atendimento-migration -n oficina-mecanica --ignore-not-found
+          kubectl apply -f k8s/atendimento/migration-job.yaml -n oficina-mecanica
+          kubectl wait --for=condition=complete job/atendimento-migration --timeout=120s -n oficina-mecanica
+
+          kubectl delete job estoque-migration -n oficina-mecanica --ignore-not-found
+          kubectl apply -f k8s/estoque/migration-job.yaml -n oficina-mecanica
+          kubectl wait --for=condition=complete job/estoque-migration --timeout=120s -n oficina-mecanica
+
+      - name: Aplicar deployments e servicos
         shell: powershell
         run: |
           $repo = "${{ steps.repo.outputs.name }}"
+          kubectl apply -f k8s/atendimento/service.yaml -n oficina-mecanica
+          kubectl apply -f k8s/atendimento/hpa.yaml -n oficina-mecanica
+          kubectl apply -f k8s/atendimento/deployment.yaml -n oficina-mecanica
           kubectl set image deployment/atendimento atendimento=ghcr.io/$repo/oficina-atendimento:latest -n oficina-mecanica
+
+          kubectl apply -f k8s/estoque/service.yaml -n oficina-mecanica
+          kubectl apply -f k8s/estoque/hpa.yaml -n oficina-mecanica
+          kubectl apply -f k8s/estoque/deployment.yaml -n oficina-mecanica
           kubectl set image deployment/estoque estoque=ghcr.io/$repo/oficina-estoque:latest -n oficina-mecanica
 
       - name: Aguardar rollout
