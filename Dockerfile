@@ -15,7 +15,8 @@ RUN dotnet publish src/Atendimento/OficinaMecanica.Atendimento.API/OficinaMecani
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
-COPY --from=build /app/publish .
+COPY --from=build --chown=app:app --chmod=755 /app/publish .
+USER app
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENTRYPOINT ["dotnet", "OficinaMecanica.Atendimento.API.dll"]
