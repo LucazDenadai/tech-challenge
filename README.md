@@ -10,26 +10,46 @@
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)
 ![SonarCloud](https://img.shields.io/badge/SonarCloud-análise-F3702A?logo=sonarcloud&logoColor=white)
 
-Sistema de gerenciamento de oficina mecânica construído com arquitetura de **microsserviços hexagonal**, comunicação assíncrona via **RabbitMQ/MassTransit** e persistência em **PostgreSQL**.
+Oficinas mecânicas gerenciam ordens de serviço, controle de peças e comunicação com clientes de forma manual ou em sistemas monolíticos que não escalam. Este projeto resolve esse problema com uma plataforma back-end distribuída: dois microsserviços independentes que cobrem o ciclo completo de uma OS — da abertura à baixa automática de estoque — com rastreabilidade, resiliência a falhas e observabilidade em produção.
 
-Projeto acadêmico da pós-graduação em Software Architecture — FIAP.
+Projeto de pós-graduação em Software Architecture — FIAP.
 
 ---
 
-## Descrição da solução
+## Início rápido
 
-O sistema gerencia o ciclo completo de uma ordem de serviço: abertura, execução, aprovação de orçamento, finalização e baixa de estoque. É dividido em dois microsserviços independentes que se comunicam via mensageria:
+```bash
+# 1. Clone e configure as variáveis de ambiente
+git clone https://github.com/seu-usuario/tech-challenge.git
+cd tech-challenge
+cp .env.example .env
 
-- **Atendimento**: clientes, veículos, catálogo de serviços, ordens de serviço e autenticação JWT
-- **Estoque**: cadastro de peças, movimentações e baixa automática ao finalizar uma OS
+# 2. Suba tudo
+docker compose up --build
+```
 
-**Objetivos desta fase:** escalabilidade (HPA), resiliência (circuit breaker, retry, dead letter), observabilidade (Prometheus, Grafana, Loki, Jaeger) e CI/CD completo com GitHub Actions.
+Em ~30 segundos:
+- Atendimento API → http://localhost:8080/swagger
+- Estoque API → http://localhost:8081/swagger
+- RabbitMQ UI → http://localhost:15672 (`guest` / `guest`)
 
-Decisões arquiteturais registradas em [`docs/adr/`](docs/adr/).
+Login padrão: `admin@oficina.com` / `Admin@123`
+
+---
+
+## O que o sistema faz
+
+Uma ordem de serviço nasce no **Atendimento** — o atendente cadastra o cliente, o veículo e os serviços a executar. Ao finalizar a OS, um evento é publicado no RabbitMQ e o **Estoque** o consome de forma assíncrona, dando baixa automática nas peças utilizadas. O cliente acompanha o status da OS em tempo real via endpoint público, sem autenticação.
+
+Os dois microsserviços são deployados independentemente, escalam via HPA e se comunicam de forma resiliente: retry automático com backoff, dead letter queue para falhas persistentes e circuit breaker para chamadas HTTP entre serviços.
+
+As principais decisões de arquitetura — por que microsserviços, por que RabbitMQ, por que Kind em vez de cloud pública — estão documentadas em [`docs/adr/`](docs/adr/).
 
 ---
 
 ## Arquitetura
+
+### Visão geral — observabilidade e métricas
 
 ![Visão geral](docs/images/img-metricas.png)
 
@@ -37,25 +57,38 @@ Decisões arquiteturais registradas em [`docs/adr/`](docs/adr/).
 
 ![Arquitetura — componentes e comunicação](docs/images/img-arquitetura.png)
 
-Dois microserviços independentes com comunicação **síncrona HTTP** apenas na abertura de OS (verificação de disponibilidade de peças via Polly) e **assíncrona via RabbitMQ** na finalização (evento `os.finalizada` → baixa de estoque).
+Dois microsserviços com responsabilidades bem delimitadas:
 
-Em caso de falha no consumer, o MassTransit faz **retry automático** (3 tentativas: 1s → 5s → 10s). Após esgotar, a mensagem vai para a queue `estoque.baixa_error`.
+- **Atendimento** expõe a API REST consumida por atendentes e mecânicos. Na abertura de uma OS, faz chamada HTTP síncrona ao Estoque para verificar disponibilidade de peças (via Polly com retry e circuit breaker). Ao finalizar a OS, publica o evento `os.finalizada` no RabbitMQ.
+- **Estoque** consome o evento e executa a baixa das peças. Em caso de falha, o MassTransit reprocessa automaticamente (3 tentativas: 1s → 5s → 10s). Após esgotar as tentativas, a mensagem vai para a dead letter queue `estoque.baixa_error` — nenhuma baixa é perdida silenciosamente.
 
 ### Arquitetura Hexagonal — camadas por serviço
 
 ![Arquitetura Hexagonal](docs/images/img-hexagonal.png)
 
-Regra de ouro: `Domain` sem nenhum `using` externo · `Application` não referencia `Infrastructure`.
+Cada microsserviço segue a mesma estrutura em quatro camadas: `Domain` (regras de negócio puras, sem dependências externas), `Application` (casos de uso e interfaces de porta), `Infrastructure` (EF Core, RabbitMQ, repositórios) e `API` (controllers, filtros, Program.cs). A camada `Application` nunca referencia `Infrastructure` — a inversão de dependência é enforçada por análise estática.
 
 ### Infraestrutura Kubernetes
 
 ![Infraestrutura Kubernetes](docs/images/img-kubernetes.png)
 
+Cada serviço roda em pods isolados no namespace `oficina-mecanica`, com HPA configurado para escalar entre 1 e 5 réplicas com base em CPU. PostgreSQL e RabbitMQ são deployados no mesmo cluster com PersistentVolumeClaims para durabilidade. A stack de observabilidade (Prometheus, Grafana, Loki, Jaeger) roda no namespace `observabilidade`.
+
 ### Fluxo de deploy — CI/CD
 
 ![Pipeline CI/CD](docs/images/img-cicd.png)
 
-Jobs em sequência obrigatória via `needs:` · imagens fixadas por hash de commit (supply chain) · self-hosted runner no cluster local.
+```
+build-and-test (ubuntu-latest)
+       ↓
+    infra (self-hosted)   ← terraform init + apply provisiona cluster Kind e PostgreSQL
+       ↓
+    docker (ubuntu-latest) ← build e push das imagens para GHCR
+       ↓
+    deploy (self-hosted)  ← kubectl apply dos manifestos K8s
+```
+
+Jobs em sequência obrigatória via `needs:` · Terraform orquestrado pelo pipeline (não manual) · imagens fixadas por hash de commit (supply chain) · self-hosted runner no cluster local · `infra` e `deploy` rodam apenas em push para `main`.
 
 ---
 
@@ -125,6 +158,22 @@ docs/
 ├── adr/             # Architecture Decision Records
 └── cards/           # Cartões de implementação por sprint
 ```
+
+---
+
+## Documentação arquitetural
+
+As decisões de design não óbvias estão registradas como Architecture Decision Records em [`docs/adr/`](docs/adr/). Cada ADR documenta o contexto, a decisão tomada, as alternativas consideradas e as consequências.
+
+| ADR | Decisão |
+|---|---|
+| [ADR-001](docs/adr/ADR-001-arquitetura-microservicos-mensageria.md) | Por que dois microsserviços em vez de monolito modular |
+| [ADR-002](docs/adr/ADR-002-observabilidade-falhas-tabela-banco.md) | Rastreamento de falhas em tabela de banco em vez de log externo |
+| [ADR-003](docs/adr/ADR-003-arquitetura-kubernetes.md) | Estratégia de deploy no Kubernetes (namespaces, HPA, secrets) |
+| [ADR-004](docs/adr/ADR-004-estoque-fonte-verdade-pecas.md) | Estoque como fonte de verdade para disponibilidade de peças |
+| [ADR-005](docs/adr/ADR-005-infraestrutura-como-codigo-terraform.md) | Kind local via Terraform em vez de cloud pública |
+| [ADR-006](docs/adr/ADR-006-self-hosted-runner-cicd.md) | Self-hosted runner para o deploy (acesso à rede local do cluster) |
+| [ADR-007](docs/adr/ADR-007-banco-compartilhado-schemas-separados.md) | Banco compartilhado com schemas separados por serviço |
 
 ---
 
@@ -393,9 +442,30 @@ dotnet sonarscanner end /d:sonar.token="SEU_TOKEN"
 
 ---
 
+## Script de demonstração e carga
+
+O script [`scripts/demo-carga.ps1`](scripts/demo-carga.ps1) automatiza a demonstração completa do sistema. Ele busca dados existentes no banco e executa o fluxo de OS do início ao fim, incluindo a baixa de estoque via RabbitMQ.
+
+Três modos de execução:
+
+```powershell
+# Demonstração do fluxo completo (uma OS, passo a passo)
+.\scripts\demo-carga.ps1 -Modo Fluxo -UrlAtendimento http://localhost:30080 -UrlEstoque http://localhost:30081
+
+# Teste de carga (60 OSs simultâneas, valida HPA)
+.\scripts\demo-carga.ps1 -Modo Carga -UrlAtendimento http://localhost:30080 -UrlEstoque http://localhost:30081 -QtdOS 60
+
+# Ambos em sequência
+.\scripts\demo-carga.ps1 -Modo Tudo  -UrlAtendimento http://localhost:30080 -UrlEstoque http://localhost:30081
+```
+
+> Use as portas `30080`/`30081` para o ambiente Kubernetes e `8080`/`8081` para Docker Compose.
+
+---
+
 ## Vídeo demonstrativo
 
-> Link a ser adicionado após gravação (YouTube ou Vimeo, até 15 minutos).
+> Em produção — link será adicionado em breve.
 
 ---
 
