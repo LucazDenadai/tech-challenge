@@ -55,7 +55,17 @@ Regra de ouro: `Domain` sem nenhum `using` externo · `Application` não referen
 
 ![Pipeline CI/CD](docs/images/img-cicd.png)
 
-Jobs em sequência obrigatória via `needs:` · imagens fixadas por hash de commit (supply chain) · self-hosted runner no cluster local.
+```
+build-and-test (ubuntu-latest)
+       ↓
+    infra (self-hosted)   ← terraform init + apply provisiona cluster Kind e PostgreSQL
+       ↓
+    docker (ubuntu-latest) ← build e push das imagens para GHCR
+       ↓
+    deploy (self-hosted)  ← kubectl apply dos manifestos K8s
+```
+
+Jobs em sequência obrigatória via `needs:` · Terraform orquestrado pelo pipeline (não manual) · imagens fixadas por hash de commit (supply chain) · self-hosted runner no cluster local · `infra` e `deploy` rodam apenas em push para `main`.
 
 ---
 
