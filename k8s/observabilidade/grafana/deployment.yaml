@@ -30,10 +30,10 @@ spec:
             - name: dashboards-provider
               mountPath: /etc/grafana/provisioning/dashboards
             - name: dashboard-aspnet
-              mountPath: /etc/grafana/provisioning/dashboards/aspnet.json
+              mountPath: /etc/grafana/dashboards/aspnet.json
               subPath: aspnet.json
             - name: dashboard-kubernetes
-              mountPath: /etc/grafana/provisioning/dashboards/kubernetes.json
+              mountPath: /etc/grafana/dashboards/kubernetes.json
               subPath: kubernetes.json
           resources:
             requests:
