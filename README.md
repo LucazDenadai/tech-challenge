@@ -247,6 +247,10 @@ kubectl rollout status deployment/estoque -n oficina-mecanica
 
 # 5. Verificar HPA
 kubectl get hpa -n oficina-mecanica
+
+# 6. Verificar serviços e pods
+kubectl get svc -n oficina-mecanica
+kubectl get pods -n oficina-mecanica
 ```
 
 > **Nota:** o startup da API cria o banco automaticamente se não existir e roda as migrations do EF Core.
@@ -300,6 +304,12 @@ terraform apply -var="db_password=suasenha"
 
 # Ver valores sensitive:
 terraform output -raw postgres_host_connection_string
+
+# Verificar se tudo foi provisionado corretamente:
+kind get clusters
+kubectl get nodes
+kubectl get namespaces
+docker ps --filter "name=postgres"
 ```
 
 ---

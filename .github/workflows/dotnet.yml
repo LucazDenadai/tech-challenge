@@ -186,13 +186,6 @@ jobs:
             --namespace=oficina-mecanica `
             --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Normalize repository name to lowercase
-        id: repo
-        shell: powershell
-        run: |
-          $name = "${{ github.repository }}".ToLower()
-          echo "name=$name" >> $env:GITHUB_OUTPUT
-
       - name: Aplicar infraestrutura e configuracoes
         shell: powershell
         run: |
@@ -206,16 +199,18 @@ jobs:
       - name: Aplicar deployments e servicos
         shell: powershell
         run: |
-          $repo = "${{ steps.repo.outputs.name }}"
+          $sha = "${{ github.sha }}"
+
+          (Get-Content k8s/atendimento/deployment.yaml) -replace 'GIT_SHA_PLACEHOLDER', $sha | Set-Content k8s/atendimento/deployment.yaml
+          (Get-Content k8s/estoque/deployment.yaml) -replace 'GIT_SHA_PLACEHOLDER', $sha | Set-Content k8s/estoque/deployment.yaml
+
           kubectl apply -f k8s/atendimento/service.yaml -n oficina-mecanica
           kubectl apply -f k8s/atendimento/hpa.yaml -n oficina-mecanica
           kubectl apply -f k8s/atendimento/deployment.yaml -n oficina-mecanica
-          kubectl set image deployment/atendimento atendimento=ghcr.io/$repo/oficina-atendimento:latest -n oficina-mecanica
 
           kubectl apply -f k8s/estoque/service.yaml -n oficina-mecanica
           kubectl apply -f k8s/estoque/hpa.yaml -n oficina-mecanica
           kubectl apply -f k8s/estoque/deployment.yaml -n oficina-mecanica
-          kubectl set image deployment/estoque estoque=ghcr.io/$repo/oficina-estoque:latest -n oficina-mecanica
 
       - name: Aguardar rollout
         shell: powershell
