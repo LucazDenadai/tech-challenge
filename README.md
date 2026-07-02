@@ -72,7 +72,7 @@ Cada microsserviço segue a mesma estrutura em quatro camadas: `Domain` (regras 
 
 ![Infraestrutura Kubernetes](docs/images/img-kubernetes.png)
 
-Cada serviço roda em pods isolados no namespace `oficina-mecanica`, com HPA configurado para escalar entre 1 e 5 réplicas com base em CPU. PostgreSQL e RabbitMQ são deployados no mesmo cluster com PersistentVolumeClaims para durabilidade. A stack de observabilidade (Prometheus, Grafana, Loki, Jaeger) roda no namespace `observabilidade`.
+Cada serviço roda em pods isolados no namespace `oficina-mecanica`, com HPA configurado para escalar entre 2 e 10 réplicas com base em CPU e memória. PostgreSQL e RabbitMQ são deployados no mesmo cluster com PersistentVolumeClaims para durabilidade. A stack de observabilidade (Prometheus, Grafana, Loki, Jaeger) roda no namespace `observabilidade`.
 
 ### Fluxo de deploy — CI/CD
 
@@ -181,6 +181,7 @@ As decisões de design não óbvias estão registradas como Architecture Decisio
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (para rodar tudo com compose)
 - [.NET 10 SDK](https://dotnet.microsoft.com/download) (para desenvolvimento local e testes)
+- Windows PowerShell 5.1+ ou PowerShell 7+ (para rodar os scripts em `scripts/`)
 
 ---
 
@@ -470,6 +471,14 @@ Três modos de execução:
 ```
 
 > Use as portas `30080`/`30081` para o ambiente Kubernetes e `8080`/`8081` para Docker Compose.
+
+O script [`scripts/gerar-carga.ps1`](scripts/gerar-carga.ps1) gera carga contínua e paralela nas APIs (via `ForEach-Object -Parallel`), útil para acionar o HPA de fato e popular os dashboards do Grafana:
+
+```powershell
+.\scripts\gerar-carga.ps1 -DurationSeconds 180 -Parallelism 30
+```
+
+Acompanhe o escalonamento com `kubectl get hpa -n oficina-mecanica -w`.
 
 ---
 
