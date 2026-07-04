@@ -20,7 +20,7 @@ Projeto de pós-graduação em Software Architecture — FIAP.
 
 ```bash
 # 1. Clone e configure as variáveis de ambiente
-git clone https://github.com/seu-usuario/tech-challenge.git
+git clone https://github.com/LucazDenadai/tech-challenge.git
 cd tech-challenge
 cp .env.example .env
 
@@ -317,7 +317,9 @@ docker ps --filter "name=postgres"
 
 ## APIs — Swagger e Postman
 
-A collection completa do Postman com todos os endpoints está em [`docs/oficina-mecanica.postman_collection.json`](docs/oficina-mecanica.postman_collection.json). Importe no Postman e configure a variável `baseUrl` para `http://localhost:8080`.
+A collection completa do Postman com todos os endpoints está disponível em: https://github.com/LucazDenadai/tech-challenge/blob/main/docs/oficina-mecanica.postman_collection.json
+
+Importe no Postman e configure a variável `baseUrl` para `http://localhost:8080`.
 
 Após subir a aplicação, o Swagger também está disponível:
 
@@ -484,7 +486,7 @@ Acompanhe o escalonamento com `kubectl get hpa -n oficina-mecanica -w`.
 
 ## Vídeo demonstrativo
 
-> Em produção — link será adicionado em breve.
+[Demonstração completa — deploy, CI/CD, consumo das APIs e escalabilidade automática](https://youtu.be/Gr7zDqgdNhs)
 
 ---
 
