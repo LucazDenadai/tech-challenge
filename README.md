@@ -163,17 +163,18 @@ docs/
 
 ## Documentação arquitetural
 
-As decisões de design não óbvias estão registradas como Architecture Decision Records em [`docs/adr/`](docs/adr/). Cada ADR documenta o contexto, a decisão tomada, as alternativas consideradas e as consequências.
+As decisões de design não óbvias, RFCs, diagramas e os cards de execução estão centralizados no repositório [`tech-challenge-docs`](https://github.com/LucazDenadai/tech-challenge-docs). Cada ADR documenta o contexto, a decisão tomada, as alternativas consideradas e as consequências.
 
 | ADR | Decisão |
 |---|---|
-| [ADR-001](docs/adr/ADR-001-arquitetura-microservicos-mensageria.md) | Por que dois microsserviços em vez de monolito modular |
-| [ADR-002](docs/adr/ADR-002-observabilidade-falhas-tabela-banco.md) | Rastreamento de falhas em tabela de banco em vez de log externo |
-| [ADR-003](docs/adr/ADR-003-arquitetura-kubernetes.md) | Estratégia de deploy no Kubernetes (namespaces, HPA, secrets) |
-| [ADR-004](docs/adr/ADR-004-estoque-fonte-verdade-pecas.md) | Estoque como fonte de verdade para disponibilidade de peças |
-| [ADR-005](docs/adr/ADR-005-infraestrutura-como-codigo-terraform.md) | Kind local via Terraform em vez de cloud pública |
-| [ADR-006](docs/adr/ADR-006-self-hosted-runner-cicd.md) | Self-hosted runner para o deploy (acesso à rede local do cluster) |
-| [ADR-007](docs/adr/ADR-007-banco-compartilhado-schemas-separados.md) | Banco compartilhado com schemas separados por serviço |
+| [ADR-001](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-001-arquitetura-microservicos-mensageria.md) | Por que dois microsserviços em vez de monolito modular |
+| [ADR-002](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-002-observabilidade-falhas-tabela-banco.md) | Rastreamento de falhas em tabela de banco em vez de log externo |
+| [ADR-003](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-003-arquitetura-kubernetes.md) | Estratégia de deploy no Kubernetes (namespaces, HPA, secrets) |
+| [ADR-004](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-004-estoque-fonte-verdade-pecas.md) | Estoque como fonte de verdade para disponibilidade de peças |
+| [ADR-005](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-005-infraestrutura-como-codigo-terraform.md) | Kind local via Terraform (superseded pelo ADR-009) |
+| [ADR-006](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-006-self-hosted-runner-cicd.md) | Self-hosted runner para o deploy (superseded pelo ADR-009) |
+| [ADR-007](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-007-banco-compartilhado-schemas-separados.md) | Banco compartilhado com schemas separados por serviço |
+| [ADR-009](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-009-migracao-aws-e-separacao-repositorios.md) | Migração para AWS e separação em repositórios (Fase 3) |
 
 ---
 
