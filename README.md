@@ -43,7 +43,7 @@ Uma ordem de serviço nasce no **Atendimento** — o atendente cadastra o client
 
 Os dois microsserviços são deployados independentemente, escalam via HPA e se comunicam de forma resiliente: retry automático com backoff, dead letter queue para falhas persistentes e circuit breaker para chamadas HTTP entre serviços.
 
-As principais decisões de arquitetura — por que microsserviços, por que RabbitMQ, por que Kind em vez de cloud pública — estão documentadas em [`docs/adr/`](docs/adr/).
+As principais decisões de arquitetura — por que microsserviços, por que RabbitMQ, por que AWS — estão documentadas em [`tech-challenge-docs`](https://github.com/LucazDenadai/tech-challenge-docs).
 
 ---
 
@@ -145,18 +145,8 @@ k8s/
 ├── rabbitmq/        # statefulset, service, pvc
 └── observabilidade/ # prometheus, grafana, loki, promtail, jaeger
 
-infra/
-├── main.tf          # raiz: chama módulos cluster e database
-├── variables.tf     # cluster_name, kubernetes_version, db_*
-├── outputs.tf       # cluster_endpoint, postgres_connection_string
-├── versions.tf      # providers: kind, kubernetes, docker, null
-└── modules/
-    ├── cluster/     # kind_cluster + namespaces oficina-mecanica e observabilidade
-    └── database/    # docker_container postgres na rede kind + schemas
-
 docs/
-├── adr/             # Architecture Decision Records
-└── cards/           # Cartões de implementação por sprint
+└── images/          # imagens usadas neste README
 ```
 
 ---
@@ -261,58 +251,14 @@ kubectl get pods -n oficina-mecanica
 
 ## Provisionamento com Terraform
 
-O Terraform provisiona o cluster Kind local e o container PostgreSQL, conectando-o à rede Docker do Kind para que os pods consigam acessá-lo.
+A infraestrutura (cluster Kubernetes e banco de dados) foi extraída para repositórios próprios, cada um com seu próprio Terraform e CI/CD — ver [ADR-009](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-009-migracao-aws-e-separacao-repositorios.md).
 
-### Estrutura dos módulos
-
-| Módulo | O que provisiona |
+| Repositório | O que provisiona |
 |---|---|
-| `modules/cluster` | Cluster Kind com `kindest/node:v1.31.0`, expõe portas 30080/30081/30090 no host, cria namespaces `oficina-mecanica` e `observabilidade` |
-| `modules/database` | Container `postgres:16` na rede `kind`, cria schemas `atendimento` e `estoque` via `local-exec` |
+| [tech-challenge-infra-k8s](https://github.com/LucazDenadai/tech-challenge-infra-k8s) | Cluster Kubernetes, namespaces `oficina-mecanica` e `observabilidade` |
+| [tech-challenge-infra-db](https://github.com/LucazDenadai/tech-challenge-infra-db) | Banco de dados PostgreSQL, schemas `atendimento` e `estoque` |
 
-### Providers utilizados
-
-| Provider | Versão | Finalidade |
-|---|---|---|
-| `tehcyx/kind` | ~> 0.4 | Criar e configurar o cluster Kind |
-| `hashicorp/kubernetes` | ~> 2.31 | Criar namespaces no cluster |
-| `kreuzwerker/docker` | ~> 3.0 | Gerenciar o container PostgreSQL |
-| `hashicorp/null` | ~> 3.2 | Executar scripts locais pós-provisionamento |
-
-### Variáveis
-
-| Variável | Default | Descrição |
-|---|---|---|
-| `cluster_name` | `oficina-mecanica` | Nome do cluster Kind |
-| `kubernetes_version` | `v1.31.0` | Versão da imagem do nó |
-| `db_name` | `oficinamecanica` | Nome do banco PostgreSQL |
-| `db_user` | `oficina` | Usuário do PostgreSQL |
-| `db_password` | _(obrigatório)_ | Senha do PostgreSQL |
-| `db_port` | `5433` | Porta exposta no host |
-
-### Executar
-
-```bash
-cd infra
-terraform init
-terraform plan -var="db_password=suasenha"
-terraform apply -var="db_password=suasenha"
-
-# Outputs após o apply:
-# cluster_name                  = "oficina-mecanica"
-# cluster_endpoint              = "https://127.0.0.1:..."
-# postgres_connection_string    = <sensitive>
-# postgres_host_connection_string = <sensitive>
-
-# Ver valores sensitive:
-terraform output -raw postgres_host_connection_string
-
-# Verificar se tudo foi provisionado corretamente:
-kind get clusters
-kubectl get nodes
-kubectl get namespaces
-docker ps --filter "name=postgres"
-```
+Aplique `tech-challenge-infra-k8s` primeiro, depois `tech-challenge-infra-db` (o banco depende da rede criada pelo cluster). Instruções completas de execução estão no README de cada repositório.
 
 ---
 
