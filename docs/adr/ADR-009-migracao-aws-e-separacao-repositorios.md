@@ -41,7 +41,7 @@ A Function Serverless de autenticação (validar CPF, consultar cliente no RDS, 
 | 1 | `tech-challenge-lambda` | Function Serverless de autenticação (.NET) |
 | 2 | `tech-challenge-infra-k8s` | Terraform: EKS, VPC, API Gateway |
 | 3 | `tech-challenge-infra-db` | Terraform: RDS PostgreSQL |
-| 4 | `tech-challenge-app` (este repositório) | Monorepo com os microsserviços Atendimento + Estoque, manifests K8s da aplicação, CI/CD |
+| 4 | `Tech-challenge` (este repositório) | Monorepo com os microsserviços Atendimento + Estoque, manifests K8s da aplicação, CI/CD |
 
 Os dois microsserviços (Atendimento e Estoque) permanecem no mesmo repositório de aplicação — o desafio pede um único repositório para "Aplicação principal executando em Kubernetes"; separar em repositórios distintos por microsserviço não é exigido e fragmentaria desnecessariamente o pipeline de CI/CD deste componente.
 

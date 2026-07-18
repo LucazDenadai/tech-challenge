@@ -12,20 +12,20 @@
 
 A Fase 3 exige 4 repositórios separados (Lambda, Infra Kubernetes, Infra Banco, Aplicação principal), cada um com CI/CD e deploy automático. O ADR-009 acrescenta um 5º repositório (`tech-challenge-docs`) para centralizar ADRs, RFCs, diagramas e os **cards de execução** (`docs/cards/`), evitando duplicação entre os 4 repositórios exigidos e mantendo um único histórico de planejamento entre app, infra e lambda.
 
-Este card cria os repositórios vazios no GitHub e move o conteúdo já existente deste monorepo (`infra/`, `docs/adr/`, `docs/cards/`) para seus destinos, deixando este repositório (`tech-challenge-app`) apenas com `src/`, `tests/`, `k8s/` (manifests de aplicação) e seu próprio CI/CD.
+Este card cria os repositórios vazios no GitHub e move o conteúdo já existente deste monorepo (`infra/`, `docs/adr/`, `docs/cards/`) para seus destinos, deixando este repositório (`Tech-challenge`) apenas com `src/`, `tests/`, `k8s/` (manifests de aplicação) e seu próprio CI/CD.
 
 ---
 
 ## Critérios de aceite
 
-- [ ] 5 repositórios criados no GitHub: `tech-challenge-docs`, `tech-challenge-lambda`, `tech-challenge-infra-k8s`, `tech-challenge-infra-db`, `tech-challenge-app`
+- [ ] 5 repositórios criados no GitHub: `tech-challenge-docs`, `tech-challenge-lambda`, `tech-challenge-infra-k8s`, `tech-challenge-infra-db`, `Tech-challenge`
 - [ ] Branch `main` protegida em todos (sem commit direto, PR obrigatório) — CARD-27 cuida da configuração de CI/CD, aqui só a proteção de branch
 - [ ] Usuário `soat-architecture` adicionado como colaborador em todos os 5
 - [ ] `tech-challenge-docs` contém todos os ADRs (001 a 009), RFCs, diagramas e todo o conteúdo de `docs/cards/` (incluindo este card)
 - [ ] `infra/modules/cluster` migrado para `tech-challenge-infra-k8s` (a ser reescrito em CARD-28 para AWS)
 - [ ] `infra/modules/database` migrado para `tech-challenge-infra-db` (a ser reescrito em CARD-28 para AWS)
 - [ ] `tech-challenge-lambda` criado vazio com estrutura mínima de solution .NET
-- [ ] Este repositório (`tech-challenge-app`) mantém `src/`, `tests/`, `k8s/atendimento`, `k8s/estoque`, `k8s/postgres`, `k8s/rabbitmq`, `k8s/observabilidade`, `k8s/namespace.yaml`
+- [ ] Este repositório (`Tech-challenge`) mantém `src/`, `tests/`, `k8s/atendimento`, `k8s/estoque`, `k8s/postgres`, `k8s/rabbitmq`, `k8s/observabilidade`, `k8s/namespace.yaml`
 - [ ] READMEs de todos os 5 repositórios linkam entre si (app/lambda/infra-k8s/infra-db → docs; docs → os outros 4)
 - [ ] `git log` histórico não precisa ser preservado na migração (cópia de arquivos, não `git filter-repo`) — simplicidade sobre rastreabilidade de histórico antigo
 
@@ -56,7 +56,7 @@ tech-challenge-infra-db/
 ├── modules/database/  ← reescrito para RDS em CARD-28
 └── README.md
 
-tech-challenge-app/ (este repositório, renomeado se necessário)
+Tech-challenge/ (este repositório, renomeado se necessário)
 ├── src/Atendimento/, src/Estoque/
 ├── tests/
 ├── k8s/

@@ -32,7 +32,7 @@ Consolidar os entregáveis exigidos pelo desafio: diagramas, RFCs, ADRs (já fei
 - [ ] Justificativa formal da escolha do banco de dados com diagrama ER e explicação dos relacionamentos (pode reaproveitar/atualizar ADR-007 e ADR-004)
 
 ### READMEs
-- [ ] `tech-challenge-app/README.md`: propósito, tecnologias, execução/deploy, diagrama específico, link Swagger/Postman
+- [ ] `Tech-challenge/README.md`: propósito, tecnologias, execução/deploy, diagrama específico, link Swagger/Postman
 - [ ] `tech-challenge-lambda/README.md`: idem, com payload de entrada/saída da função
 - [ ] `tech-challenge-infra-k8s/README.md`: idem, com outputs do Terraform
 - [ ] `tech-challenge-infra-db/README.md`: idem, com outputs do Terraform

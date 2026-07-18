@@ -18,9 +18,9 @@ Regras de proteção exigidas pelo desafio: branch `main`/`master` sem commit di
 
 ## Critérios de aceite
 
-- [ ] Branch `main` protegida nos 4 repositórios (`tech-challenge-app`, `tech-challenge-lambda`, `tech-challenge-infra-k8s`, `tech-challenge-infra-db`): sem push direto, PR obrigatório, ao menos 1 check obrigatório antes do merge
+- [ ] Branch `main` protegida nos 4 repositórios (`Tech-challenge`, `tech-challenge-lambda`, `tech-challenge-infra-k8s`, `tech-challenge-infra-db`): sem push direto, PR obrigatório, ao menos 1 check obrigatório antes do merge
 - [ ] IAM role na AWS configurada para trust do OIDC provider do GitHub Actions (por repositório ou role compartilhada com permissões mínimas)
-- [ ] `tech-challenge-app`: pipeline builda, testa (`dotnet test` 100%), builda imagem Docker, push para registry, deploy no EKS via `kubectl apply`
+- [ ] `Tech-challenge`: pipeline builda, testa (`dotnet test` 100%), builda imagem Docker, push para registry, deploy no EKS via `kubectl apply`
 - [ ] `tech-challenge-lambda`: pipeline builda, testa, empacota e publica a Lambda (`aws lambda update-function-code` ou SAM/CDK)
 - [ ] `tech-challenge-infra-k8s`: pipeline roda `terraform plan` em PR e `terraform apply` no merge em `main`
 - [ ] `tech-challenge-infra-db`: pipeline roda `terraform plan` em PR e `terraform apply` no merge em `main`
@@ -34,7 +34,7 @@ Regras de proteção exigidas pelo desafio: branch `main`/`master` sem commit di
 1. Criar OIDC provider do GitHub Actions na conta AWS (`token.actions.githubusercontent.com`)
 2. Criar IAM role(s) com trust policy restrita a `repo:<org>/<repo>:ref:refs/heads/main`
 3. Configurar proteção de branch `main` nos 4 repositórios via `gh api` ou GitHub UI
-4. Adaptar pipeline de `tech-challenge-app` (baseado no `dotnet.yml` atual) removendo o job `self-hosted` e apontando deploy para EKS
+4. Adaptar pipeline de `Tech-challenge` (baseado no `dotnet.yml` atual) removendo o job `self-hosted` e apontando deploy para EKS
 5. Criar pipeline de `tech-challenge-lambda`: build, test, deploy
 6. Criar pipeline de `tech-challenge-infra-k8s`: `terraform fmt -check`, `plan` (PR), `apply` (main)
 7. Criar pipeline de `tech-challenge-infra-db`: `terraform fmt -check`, `plan` (PR), `apply` (main)
