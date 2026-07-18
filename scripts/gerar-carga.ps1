@@ -1,10 +1,11 @@
 #!/usr/bin/env pwsh
-# Gera carga continua nas APIs para popular os dashboards do Grafana.
-# Uso: .\scripts\gerar-carga.ps1 [-DurationSeconds 120] [-DelayMs 200]
+# Gera carga continua e paralela nas APIs para acionar o HPA e popular os dashboards do Grafana.
+# Uso: .\scripts\gerar-carga.ps1 [-DurationSeconds 120] [-DelayMs 200] [-Parallelism 20]
 
 param(
     [int]$DurationSeconds = 120,
-    [int]$DelayMs = 200
+    [int]$DelayMs = 200,
+    [int]$Parallelism = 20
 )
 
 $atendimentoBase = "http://localhost:30080"
@@ -35,40 +36,44 @@ $endpointsEstoque = @(
     "/estoque/pecas"
 )
 
+$targets = @()
+foreach ($path in $endpointsAtendimento) { $targets += [pscustomobject]@{ Url = "$atendimentoBase$path"; Nome = "atendimento$path"; ComAuth = $true } }
+foreach ($path in $endpointsEstoque)     { $targets += [pscustomobject]@{ Url = "$estoqueBase$path";     Nome = "estoque$path";     ComAuth = $false } }
+
+Add-Type -AssemblyName System.Net.Http
+$httpClient = [System.Net.Http.HttpClient]::new()
+
 $deadline  = (Get-Date).AddSeconds($DurationSeconds)
 $iteration = 0
 
 Write-Host ""
-Write-Host "Gerando carga por $DurationSeconds segundos (Ctrl+C para parar antes)..." -ForegroundColor Yellow
+Write-Host "Gerando carga por $DurationSeconds segundos com $Parallelism requisicoes simultaneas (Ctrl+C para parar antes)..." -ForegroundColor Yellow
 Write-Host ""
 
 while ((Get-Date) -lt $deadline) {
     $iteration++
 
-    foreach ($path in $endpointsAtendimento) {
-        try {
-            $resp = Invoke-WebRequest -Method Get -Uri "$atendimentoBase$path" `
-                -Headers $headers -UseBasicParsing -ErrorAction SilentlyContinue
-            Write-Host "[#$iteration] atendimento$path -> $($resp.StatusCode)" -ForegroundColor Green
-        } catch {
-            $code = $_.Exception.Response.StatusCode.value__
-            Write-Host "[#$iteration] atendimento$path -> $code" -ForegroundColor Red
-        }
-        Start-Sleep -Milliseconds $DelayMs
+    $requests = 1..$Parallelism | ForEach-Object {
+        $target = $targets | Get-Random
+        $msg = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::Get, $target.Url)
+        if ($target.ComAuth) { $msg.Headers.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Bearer", $token) }
+        [pscustomobject]@{ Nome = $target.Nome; Task = $httpClient.SendAsync($msg) }
     }
 
-    foreach ($path in $endpointsEstoque) {
-        try {
-            $resp = Invoke-WebRequest -Method Get -Uri "$estoqueBase$path" `
-                -UseBasicParsing -ErrorAction SilentlyContinue
-            Write-Host "[#$iteration] estoque$path -> $($resp.StatusCode)" -ForegroundColor Cyan
-        } catch {
-            $code = $_.Exception.Response.StatusCode.value__
-            Write-Host "[#$iteration] estoque$path -> $code" -ForegroundColor Red
+    [System.Threading.Tasks.Task]::WaitAll(($requests | ForEach-Object { $_.Task }))
+
+    foreach ($r in $requests) {
+        if ($r.Task.IsFaulted) {
+            Write-Host "[#$iteration] $($r.Nome) -> erro" -ForegroundColor Red
+        } else {
+            Write-Host "[#$iteration] $($r.Nome) -> $([int]$r.Task.Result.StatusCode)" -ForegroundColor Green
         }
-        Start-Sleep -Milliseconds $DelayMs
     }
+
+    Start-Sleep -Milliseconds $DelayMs
 }
+
+$httpClient.Dispose()
 
 Write-Host ""
 Write-Host "Carga finalizada apos $DurationSeconds segundos." -ForegroundColor Yellow

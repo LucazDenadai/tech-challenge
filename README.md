@@ -20,7 +20,7 @@ Projeto de pós-graduação em Software Architecture — FIAP.
 
 ```bash
 # 1. Clone e configure as variáveis de ambiente
-git clone https://github.com/seu-usuario/tech-challenge.git
+git clone https://github.com/LucazDenadai/tech-challenge.git
 cd tech-challenge
 cp .env.example .env
 
@@ -72,7 +72,7 @@ Cada microsserviço segue a mesma estrutura em quatro camadas: `Domain` (regras 
 
 ![Infraestrutura Kubernetes](docs/images/img-kubernetes.png)
 
-Cada serviço roda em pods isolados no namespace `oficina-mecanica`, com HPA configurado para escalar entre 1 e 5 réplicas com base em CPU. PostgreSQL e RabbitMQ são deployados no mesmo cluster com PersistentVolumeClaims para durabilidade. A stack de observabilidade (Prometheus, Grafana, Loki, Jaeger) roda no namespace `observabilidade`.
+Cada serviço roda em pods isolados no namespace `oficina-mecanica`, com HPA configurado para escalar entre 2 e 10 réplicas com base em CPU e memória. PostgreSQL e RabbitMQ são deployados no mesmo cluster com PersistentVolumeClaims para durabilidade. A stack de observabilidade (Prometheus, Grafana, Loki, Jaeger) roda no namespace `observabilidade`.
 
 ### Fluxo de deploy — CI/CD
 
@@ -163,17 +163,18 @@ docs/
 
 ## Documentação arquitetural
 
-As decisões de design não óbvias estão registradas como Architecture Decision Records em [`docs/adr/`](docs/adr/). Cada ADR documenta o contexto, a decisão tomada, as alternativas consideradas e as consequências.
+As decisões de design não óbvias, RFCs, diagramas e os cards de execução estão centralizados no repositório [`tech-challenge-docs`](https://github.com/LucazDenadai/tech-challenge-docs). Cada ADR documenta o contexto, a decisão tomada, as alternativas consideradas e as consequências.
 
 | ADR | Decisão |
 |---|---|
-| [ADR-001](docs/adr/ADR-001-arquitetura-microservicos-mensageria.md) | Por que dois microsserviços em vez de monolito modular |
-| [ADR-002](docs/adr/ADR-002-observabilidade-falhas-tabela-banco.md) | Rastreamento de falhas em tabela de banco em vez de log externo |
-| [ADR-003](docs/adr/ADR-003-arquitetura-kubernetes.md) | Estratégia de deploy no Kubernetes (namespaces, HPA, secrets) |
-| [ADR-004](docs/adr/ADR-004-estoque-fonte-verdade-pecas.md) | Estoque como fonte de verdade para disponibilidade de peças |
-| [ADR-005](docs/adr/ADR-005-infraestrutura-como-codigo-terraform.md) | Kind local via Terraform em vez de cloud pública |
-| [ADR-006](docs/adr/ADR-006-self-hosted-runner-cicd.md) | Self-hosted runner para o deploy (acesso à rede local do cluster) |
-| [ADR-007](docs/adr/ADR-007-banco-compartilhado-schemas-separados.md) | Banco compartilhado com schemas separados por serviço |
+| [ADR-001](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-001-arquitetura-microservicos-mensageria.md) | Por que dois microsserviços em vez de monolito modular |
+| [ADR-002](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-002-observabilidade-falhas-tabela-banco.md) | Rastreamento de falhas em tabela de banco em vez de log externo |
+| [ADR-003](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-003-arquitetura-kubernetes.md) | Estratégia de deploy no Kubernetes (namespaces, HPA, secrets) |
+| [ADR-004](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-004-estoque-fonte-verdade-pecas.md) | Estoque como fonte de verdade para disponibilidade de peças |
+| [ADR-005](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-005-infraestrutura-como-codigo-terraform.md) | Kind local via Terraform (superseded pelo ADR-009) |
+| [ADR-006](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-006-self-hosted-runner-cicd.md) | Self-hosted runner para o deploy (superseded pelo ADR-009) |
+| [ADR-007](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-007-banco-compartilhado-schemas-separados.md) | Banco compartilhado com schemas separados por serviço |
+| [ADR-009](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-009-migracao-aws-e-separacao-repositorios.md) | Migração para AWS e separação em repositórios (Fase 3) |
 
 ---
 
@@ -181,6 +182,7 @@ As decisões de design não óbvias estão registradas como Architecture Decisio
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (para rodar tudo com compose)
 - [.NET 10 SDK](https://dotnet.microsoft.com/download) (para desenvolvimento local e testes)
+- Windows PowerShell 5.1+ ou PowerShell 7+ (para rodar os scripts em `scripts/`)
 
 ---
 
@@ -316,7 +318,9 @@ docker ps --filter "name=postgres"
 
 ## APIs — Swagger e Postman
 
-A collection completa do Postman com todos os endpoints está em [`docs/oficina-mecanica.postman_collection.json`](docs/oficina-mecanica.postman_collection.json). Importe no Postman e configure a variável `baseUrl` para `http://localhost:8080`.
+A collection completa do Postman com todos os endpoints está disponível em: https://github.com/LucazDenadai/tech-challenge/blob/main/docs/oficina-mecanica.postman_collection.json
+
+Importe no Postman e configure a variável `baseUrl` para `http://localhost:8080`.
 
 Após subir a aplicação, o Swagger também está disponível:
 
@@ -471,11 +475,19 @@ Três modos de execução:
 
 > Use as portas `30080`/`30081` para o ambiente Kubernetes e `8080`/`8081` para Docker Compose.
 
+O script [`scripts/gerar-carga.ps1`](scripts/gerar-carga.ps1) gera carga contínua e paralela nas APIs (via `ForEach-Object -Parallel`), útil para acionar o HPA de fato e popular os dashboards do Grafana:
+
+```powershell
+.\scripts\gerar-carga.ps1 -DurationSeconds 180 -Parallelism 30
+```
+
+Acompanhe o escalonamento com `kubectl get hpa -n oficina-mecanica -w`.
+
 ---
 
 ## Vídeo demonstrativo
 
-> Em produção — link será adicionado em breve.
+[Demonstração completa — deploy, CI/CD, consumo das APIs e escalabilidade automática](https://youtu.be/Gr7zDqgdNhs)
 
 ---
 

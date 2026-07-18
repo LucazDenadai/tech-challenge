@@ -1,4 +1,4 @@
-# CLAUDE.md — 12-rule template
+# CLAUDE.md — ruleset
 
 These rules apply to every task in this project unless explicitly overridden.
 Bias: caution over speed on non-trivial work. Use judgment on trivial tasks.
@@ -12,51 +12,63 @@ Stop when confused. Name what's unclear.
 ## Rule 2 — Simplicity First
 Minimum code that solves the problem. Nothing speculative.
 No features beyond what was asked. No abstractions for single-use code.
+Less code is always better than more code — prefer deletion over addition.
 Test: would a senior engineer say this is overcomplicated? If yes, simplify.
 
 ## Rule 3 — Surgical Changes
 Touch only what you must. Clean up only your own mess.
 Don't "improve" adjacent code, comments, or formatting.
 Don't refactor what isn't broken. Match existing style.
+No artifacts — don't create files, configs, or helpers that weren't requested.
 
 ## Rule 4 — Goal-Driven Execution
 Define success criteria. Loop until verified.
 Don't follow steps. Define success and iterate.
 Strong success criteria let you loop independently.
 
-## Rule 5 — Use the model only for judgment calls
-Use me for: classification, drafting, summarization, extraction.
-Do NOT use me for: routing, retries, deterministic transforms.
-If code can answer, code answers.
+## Rule 5 — Codebase Health
+No fallback mechanisms — they hide real failures and delay diagnosis.
+Rewrite existing components over adding new ones when scope allows.
+Flag obsolete files. A file that can be deleted should be deleted.
+If code can answer, code answers. Don't use the model for deterministic transforms.
 
-## Rule 6 — Token budgets are not advisory
+## Rule 6 — Token Budgets Are Not Advisory
 Per-task: 4,000 tokens. Per-session: 30,000 tokens.
 If approaching budget, summarize and start fresh.
 Surface the breach. Do not silently overrun.
 
-## Rule 7 — Surface conflicts, don't average them
+## Rule 7 — Surface Conflicts, Don't Average Them
 If two patterns contradict, pick one (more recent / more tested).
 Explain why. Flag the other for cleanup.
 Don't blend conflicting patterns.
 
-## Rule 8 — Read before you write
+## Rule 8 — Read Before You Write
 Before adding code, read exports, immediate callers, shared utilities.
 "Looks orthogonal" is dangerous. If unsure why code is structured a way, ask.
+Avoid race conditions at all costs — they are the most expensive bugs to debug.
+Trace shared state, async boundaries, and event order before touching concurrency.
 
-## Rule 9 — Tests verify intent, not just behavior
+## Rule 9 — Tests Verify Intent, Not Just Behavior
 Tests must encode WHY behavior matters, not just WHAT it does.
 A test that can't fail when business logic changes is wrong.
 
-## Rule 10 — Checkpoint after every significant step
+## Rule 10 — Checkpoint After Every Significant Step
 Summarize what was done, what's verified, what's left.
 Don't continue from a state you can't describe back.
 If you lose track, stop and restate.
 
-## Rule 11 — Match the codebase's conventions, even if you disagree
+## Rule 11 — Match the Codebase's Conventions, Even If You Disagree
 Conformance > taste inside the codebase.
 If you genuinely think a convention is harmful, surface it. Don't fork silently.
 
-## Rule 12 — Fail loud
+## Rule 12 — Fail Loud and Show Your Work
 "Completed" is wrong if anything was skipped silently.
 "Tests pass" is wrong if any were skipped.
 Default to surfacing uncertainty, not hiding it.
+
+### Code output protocol (applies to every response with code)
+- Always output the full component unless explicitly told otherwise.
+- Never say "X remains unchanged" — always show the code.
+- If only one function changes, show only that function — but show it in full.
+- Be explicit about placement: "below the `handleSubmit` function", "above the `export default`".
+- Take your time on non-trivial tasks. Thinking is cheaper than fixing bugs.
