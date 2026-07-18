@@ -1,6 +1,6 @@
 # ADR-005 — Infraestrutura como Código com Terraform (Kind local)
 
-**Status:** Aceito  
+**Status:** Superseded por [ADR-009](ADR-009-migracao-aws-e-separacao-repositorios.md)
 **Data:** 2026-06-10  
 **Autores:** Time Tech Challenge — Fase 3
 

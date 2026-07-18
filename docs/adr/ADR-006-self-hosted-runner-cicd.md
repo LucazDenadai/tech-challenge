@@ -1,6 +1,6 @@
 # ADR-006 — Self-Hosted Runner para Deploy no CI/CD
 
-**Status:** Aceito  
+**Status:** Superseded por [ADR-009](ADR-009-migracao-aws-e-separacao-repositorios.md)
 **Data:** 2026-06-11  
 **Autores:** Time Tech Challenge — Fase 2
 
