@@ -4,7 +4,7 @@ using OficinaMecanica.Atendimento.Application.UseCases.Auth;
 namespace OficinaMecanica.Atendimento.API.Adapters.In.Http;
 
 [ApiController]
-[Route("auth")]
+[Route("atendimento/auth")]
 public class AuthController : ControllerBase
 {
     private readonly AuthUseCase _useCase;

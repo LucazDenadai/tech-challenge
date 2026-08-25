@@ -27,7 +27,7 @@ spec:
                 name: atendimento-secrets
           readinessProbe:
             httpGet:
-              path: /health
+              path: /atendimento/health
               port: 8080
             initialDelaySeconds: 15
             periodSeconds: 5
@@ -35,7 +35,7 @@ spec:
             failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /health
+              path: /atendimento/health
               port: 8080
             initialDelaySeconds: 30
             periodSeconds: 10

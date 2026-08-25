@@ -6,7 +6,7 @@ using OficinaMecanica.Atendimento.Domain.Enums;
 namespace OficinaMecanica.Atendimento.API.Adapters.In.Http;
 
 [ApiController]
-[Route("ordens-servico")]
+[Route("atendimento/ordens-servico")]
 [Authorize]
 public class StatusOSController : ControllerBase
 {

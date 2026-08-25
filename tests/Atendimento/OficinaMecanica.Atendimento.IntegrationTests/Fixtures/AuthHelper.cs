@@ -28,7 +28,7 @@ public static class AuthHelper
 
     public static async Task<string> ObterTokenAsync(HttpClient client)
     {
-        var response = await client.PostAsJsonAsync("/auth/login", new { Email, Senha });
+        var response = await client.PostAsJsonAsync("/atendimento/auth/login", new { Email, Senha });
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadFromJsonAsync<TokenResponse>();
         return body!.Token;

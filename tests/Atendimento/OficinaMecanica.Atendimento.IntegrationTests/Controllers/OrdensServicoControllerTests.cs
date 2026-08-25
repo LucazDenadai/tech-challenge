@@ -66,7 +66,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
             Pecas = Array.Empty<object>()
         };
 
-        var response = await _client.PostAsJsonAsync("/ordens-servico", body);
+        var response = await _client.PostAsJsonAsync("/atendimento/ordens-servico", body);
         response.StatusCode.Should().Be(HttpStatusCode.Created);
 
         var resultado = await response.Content.ReadFromJsonAsync<AbrirOSResponse>();
@@ -75,7 +75,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
 
     private async Task MudarStatusAsync(Guid osId, StatusOrdemServico novoStatus)
     {
-        var response = await _client.PutAsJsonAsync($"/ordens-servico/{osId}/status", new { NovoStatus = (int)novoStatus });
+        var response = await _client.PutAsJsonAsync($"/atendimento/ordens-servico/{osId}/status", new { NovoStatus = (int)novoStatus });
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
@@ -87,7 +87,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         var (osId, _, _) = await AbrirOSAsync();
 
         // Status inicial = Recebida
-        var status = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/ordens-servico/{osId}/status");
+        var status = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/atendimento/ordens-servico/{osId}/status");
         status!.Status.Should().Be(StatusOrdemServico.Recebida);
 
         // Recebida → EmDiagnostico
@@ -97,14 +97,14 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         await MudarStatusAsync(osId, StatusOrdemServico.AguardandoAprovacao);
 
         // AprovarOrcamento → EmExecucao
-        var aprovacao = await _client.PutAsJsonAsync($"/ordens-servico/{osId}/orcamento", new { Aprovado = true });
+        var aprovacao = await _client.PutAsJsonAsync($"/atendimento/ordens-servico/{osId}/orcamento", new { Aprovado = true });
         aprovacao.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // EmExecucao → Finalizada
         await MudarStatusAsync(osId, StatusOrdemServico.Finalizada);
 
         // Confirma status final
-        var final = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/ordens-servico/{osId}/status");
+        var final = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/atendimento/ordens-servico/{osId}/status");
         final!.Status.Should().Be(StatusOrdemServico.Finalizada);
         final.Historico.Should().HaveCount(4);
     }
@@ -130,16 +130,16 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         var (os4Id, _, _) = await AbrirOSAsync();
         await MudarStatusAsync(os4Id, StatusOrdemServico.EmDiagnostico);
         await MudarStatusAsync(os4Id, StatusOrdemServico.AguardandoAprovacao);
-        var _ = await _client.PutAsJsonAsync($"/ordens-servico/{os4Id}/orcamento", new { Aprovado = true });
+        var _ = await _client.PutAsJsonAsync($"/atendimento/ordens-servico/{os4Id}/orcamento", new { Aprovado = true });
 
         // OS5: Finalizada (não deve aparecer)
         var (os5Id, _, _) = await AbrirOSAsync();
         await MudarStatusAsync(os5Id, StatusOrdemServico.EmDiagnostico);
         await MudarStatusAsync(os5Id, StatusOrdemServico.AguardandoAprovacao);
-        await _client.PutAsJsonAsync($"/ordens-servico/{os5Id}/orcamento", new { Aprovado = true });
+        await _client.PutAsJsonAsync($"/atendimento/ordens-servico/{os5Id}/orcamento", new { Aprovado = true });
         await MudarStatusAsync(os5Id, StatusOrdemServico.Finalizada);
 
-        var lista = await _client.GetFromJsonAsync<List<ListarOSItem>>("/ordens-servico");
+        var lista = await _client.GetFromJsonAsync<List<ListarOSItem>>("/atendimento/ordens-servico");
 
         lista.Should().HaveCount(4);
         lista![0].Id.Should().Be(os4Id, "EmExecucao tem prioridade 1");
@@ -156,7 +156,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         var (osId, _, _) = await AbrirOSAsync();
 
         // OS está Recebida — aprovação deve falhar
-        var response = await _client.PutAsJsonAsync($"/ordens-servico/{osId}/orcamento", new { Aprovado = true });
+        var response = await _client.PutAsJsonAsync($"/atendimento/ordens-servico/{osId}/orcamento", new { Aprovado = true });
 
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
@@ -169,7 +169,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         var (osId, _, _) = await AbrirOSAsync();
 
         // Tentar ir direto de Recebida para Finalizada
-        var response = await _client.PutAsJsonAsync($"/ordens-servico/{osId}/status", new { NovoStatus = (int)StatusOrdemServico.Finalizada });
+        var response = await _client.PutAsJsonAsync($"/atendimento/ordens-servico/{osId}/status", new { NovoStatus = (int)StatusOrdemServico.Finalizada });
 
         response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
@@ -181,7 +181,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
     {
         var (osId, clienteId, veiculoId) = await AbrirOSAsync();
 
-        var response = await _client.GetAsync($"/ordens-servico/{osId}");
+        var response = await _client.GetAsync($"/atendimento/ordens-servico/{osId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var detalhe = await response.Content.ReadFromJsonAsync<OSDetalheResponse>();
@@ -195,7 +195,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
     [Fact]
     public async Task ObterPorId_ComIdInexistente_DeveRetornar404()
     {
-        var response = await _client.GetAsync($"/ordens-servico/{Guid.NewGuid()}");
+        var response = await _client.GetAsync($"/atendimento/ordens-servico/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -208,11 +208,11 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         var (osId, _, _) = await AbrirOSAsync();
 
         // Obter número da OS
-        var statusResp = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/ordens-servico/{osId}/status");
+        var statusResp = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/atendimento/ordens-servico/{osId}/status");
         var numero = statusResp!.Numero;
 
         var clienteSemToken = _factory.CreateClient();
-        var response = await clienteSemToken.GetAsync($"/ordens-servico/acompanhar/{numero}");
+        var response = await clienteSemToken.GetAsync($"/atendimento/ordens-servico/acompanhar/{numero}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var acomp = await response.Content.ReadFromJsonAsync<AcompanhamentoResponse>();
@@ -234,7 +234,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         db.Servicos.Add(servico);
         await db.SaveChangesAsync();
 
-        var response = await _client.PostAsJsonAsync($"/ordens-servico/{osId}/servicos",
+        var response = await _client.PostAsJsonAsync($"/atendimento/ordens-servico/{osId}/servicos",
             new { ServicoId = servico.Id });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -253,7 +253,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
 
         // FakeEstoqueAdapter retorna valor 120m para qualquer pecaId
         var pecaId = Guid.NewGuid();
-        var response = await _client.PostAsJsonAsync($"/ordens-servico/{osId}/pecas",
+        var response = await _client.PostAsJsonAsync($"/atendimento/ordens-servico/{osId}/pecas",
             new { PecaId = pecaId, Quantidade = 2 });
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -276,12 +276,12 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         db.Servicos.Add(servico);
         await db.SaveChangesAsync();
 
-        var addResp = await _client.PostAsJsonAsync($"/ordens-servico/{osId}/servicos",
+        var addResp = await _client.PostAsJsonAsync($"/atendimento/ordens-servico/{osId}/servicos",
             new { ServicoId = servico.Id });
         var osComItem = await addResp.Content.ReadFromJsonAsync<OSDetalheResponse>();
         var itemId = osComItem!.Servicos[0].Id;
 
-        var cancelResp = await _client.DeleteAsync($"/ordens-servico/{osId}/itens/{itemId}");
+        var cancelResp = await _client.DeleteAsync($"/atendimento/ordens-servico/{osId}/itens/{itemId}");
 
         cancelResp.StatusCode.Should().Be(HttpStatusCode.OK);
         var detalhe = await cancelResp.Content.ReadFromJsonAsync<OSDetalheResponse>();
@@ -293,7 +293,7 @@ public class OrdensServicoControllerTests : IAsyncLifetime
     [Fact]
     public async Task ObterTempoMedio_DeveRetornar200()
     {
-        var response = await _client.GetAsync("/ordens-servico/tempo-medio");
+        var response = await _client.GetAsync("/atendimento/ordens-servico/tempo-medio");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var resultado = await response.Content.ReadFromJsonAsync<TempoMedioResponse>();
@@ -306,10 +306,10 @@ public class OrdensServicoControllerTests : IAsyncLifetime
     public async Task ObterTempoIndividual_ComNumeroExistente_DeveRetornar200()
     {
         var (osId, _, _) = await AbrirOSAsync();
-        var statusResp = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/ordens-servico/{osId}/status");
+        var statusResp = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/atendimento/ordens-servico/{osId}/status");
         var numero = statusResp!.Numero;
 
-        var response = await _client.GetAsync($"/ordens-servico/{numero}/tempo");
+        var response = await _client.GetAsync($"/atendimento/ordens-servico/{numero}/tempo");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var tempo = await response.Content.ReadFromJsonAsync<TempoIndividualResponse>();

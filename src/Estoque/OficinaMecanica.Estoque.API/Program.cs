@@ -132,7 +132,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/estoque/health");
 app.MapPrometheusScrapingEndpoint();
 app.MapControllers();
 

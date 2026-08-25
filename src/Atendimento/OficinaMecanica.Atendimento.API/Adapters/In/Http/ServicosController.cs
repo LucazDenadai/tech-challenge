@@ -5,7 +5,7 @@ using OficinaMecanica.Atendimento.Application.UseCases.Catalogo;
 namespace OficinaMecanica.Atendimento.API.Adapters.In.Http;
 
 [ApiController]
-[Route("servicos")]
+[Route("atendimento/servicos")]
 [Authorize]
 public class ServicosController : ControllerBase
 {

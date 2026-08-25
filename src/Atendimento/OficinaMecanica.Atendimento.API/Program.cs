@@ -209,7 +209,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapHealthChecks("/health");
+app.MapHealthChecks("/atendimento/health");
 app.MapPrometheusScrapingEndpoint();
 app.MapControllers();
 
