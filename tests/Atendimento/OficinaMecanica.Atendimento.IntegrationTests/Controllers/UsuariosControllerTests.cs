@@ -35,7 +35,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     [Fact]
     public async Task Listar_DeveRetornar200ComAdminSeedado()
     {
-        var response = await _client.GetAsync("/usuarios");
+        var response = await _client.GetAsync("/atendimento/usuarios");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var lista = await response.Content.ReadFromJsonAsync<List<UsuarioResponse>>();
@@ -47,7 +47,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     [Fact]
     public async Task Listar_ComFiltroEmail_DeveRetornarApenasCorrespondentes()
     {
-        await _client.PostAsJsonAsync("/usuarios", new
+        await _client.PostAsJsonAsync("/atendimento/usuarios", new
         {
             Nome = "Joao Filtro",
             Email = "joao.filtro@test.com",
@@ -55,7 +55,7 @@ public class UsuariosControllerTests : IAsyncLifetime
             Perfil = (int)PerfilUsuario.Atendente
         });
 
-        var response = await _client.GetAsync("/usuarios?email=joao.filtro@test.com");
+        var response = await _client.GetAsync("/atendimento/usuarios?email=joao.filtro@test.com");
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var lista = await response.Content.ReadFromJsonAsync<List<UsuarioResponse>>();
         lista.Should().HaveCount(1);
@@ -67,7 +67,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     [Fact]
     public async Task ObterPorId_ComIdExistente_DeveRetornar200()
     {
-        var criar = await _client.PostAsJsonAsync("/usuarios", new
+        var criar = await _client.PostAsJsonAsync("/atendimento/usuarios", new
         {
             Nome = "Ana Obter",
             Email = "ana.obter@test.com",
@@ -76,7 +76,7 @@ public class UsuariosControllerTests : IAsyncLifetime
         });
         var criado = await criar.Content.ReadFromJsonAsync<UsuarioResponse>();
 
-        var response = await _client.GetAsync($"/usuarios/{criado!.Id}");
+        var response = await _client.GetAsync($"/atendimento/usuarios/{criado!.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var usuario = await response.Content.ReadFromJsonAsync<UsuarioResponse>();
@@ -88,7 +88,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     [Fact]
     public async Task ObterPorId_ComIdInexistente_DeveRetornar404()
     {
-        var response = await _client.GetAsync($"/usuarios/{Guid.NewGuid()}");
+        var response = await _client.GetAsync($"/atendimento/usuarios/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -98,7 +98,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     [Fact]
     public async Task Criar_ComDadosValidos_DeveRetornar201()
     {
-        var response = await _client.PostAsJsonAsync("/usuarios", new
+        var response = await _client.PostAsJsonAsync("/atendimento/usuarios", new
         {
             Nome = "Carlos Novo",
             Email = "carlos.novo@test.com",
@@ -125,10 +125,10 @@ public class UsuariosControllerTests : IAsyncLifetime
             Perfil = (int)PerfilUsuario.Atendente
         };
 
-        var primeira = await _client.PostAsJsonAsync("/usuarios", body);
+        var primeira = await _client.PostAsJsonAsync("/atendimento/usuarios", body);
         primeira.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var segunda = await _client.PostAsJsonAsync("/usuarios", body with { Nome = "Duplicado 2" });
+        var segunda = await _client.PostAsJsonAsync("/atendimento/usuarios", body with { Nome = "Duplicado 2" });
         segunda.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
@@ -137,7 +137,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     [Fact]
     public async Task Criar_ComSenhaFraca_DeveRetornar400()
     {
-        var response = await _client.PostAsJsonAsync("/usuarios", new
+        var response = await _client.PostAsJsonAsync("/atendimento/usuarios", new
         {
             Nome = "Senha Fraca",
             Email = "senhafraca@test.com",
@@ -153,7 +153,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     [Fact]
     public async Task Criar_ComEmailInvalido_DeveRetornar400()
     {
-        var response = await _client.PostAsJsonAsync("/usuarios", new
+        var response = await _client.PostAsJsonAsync("/atendimento/usuarios", new
         {
             Nome = "Email Invalido",
             Email = "nao-e-um-email",
@@ -169,7 +169,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     [Fact]
     public async Task Atualizar_ComDadosValidos_DeveRetornar200()
     {
-        var criar = await _client.PostAsJsonAsync("/usuarios", new
+        var criar = await _client.PostAsJsonAsync("/atendimento/usuarios", new
         {
             Nome = "Original",
             Email = "original@test.com",
@@ -178,7 +178,7 @@ public class UsuariosControllerTests : IAsyncLifetime
         });
         var criado = await criar.Content.ReadFromJsonAsync<UsuarioResponse>();
 
-        var response = await _client.PutAsJsonAsync($"/usuarios/{criado!.Id}", new
+        var response = await _client.PutAsJsonAsync($"/atendimento/usuarios/{criado!.Id}", new
         {
             Nome = "Atualizado",
             Email = "atualizado@test.com",
@@ -197,7 +197,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     [Fact]
     public async Task Desativar_DeveRetornar204EMarcarInativo()
     {
-        var criar = await _client.PostAsJsonAsync("/usuarios", new
+        var criar = await _client.PostAsJsonAsync("/atendimento/usuarios", new
         {
             Nome = "Para Desativar",
             Email = "desativar@test.com",
@@ -206,7 +206,7 @@ public class UsuariosControllerTests : IAsyncLifetime
         });
         var criado = await criar.Content.ReadFromJsonAsync<UsuarioResponse>();
 
-        var response = await _client.DeleteAsync($"/usuarios/{criado!.Id}");
+        var response = await _client.DeleteAsync($"/atendimento/usuarios/{criado!.Id}");
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         using var scope = _factory.Services.CreateScope();
@@ -222,7 +222,7 @@ public class UsuariosControllerTests : IAsyncLifetime
     {
         var clienteSemToken = _factory.CreateClient();
 
-        var response = await clienteSemToken.GetAsync("/usuarios");
+        var response = await clienteSemToken.GetAsync("/atendimento/usuarios");
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }

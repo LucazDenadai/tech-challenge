@@ -31,7 +31,7 @@ public class VeiculosControllerTests : IAsyncLifetime
 
     private async Task<Guid> CriarClienteAsync(string cpf, string email)
     {
-        var response = await _client.PostAsJsonAsync("/clientes", new
+        var response = await _client.PostAsJsonAsync("/atendimento/clientes", new
         {
             Nome = "Cliente Veiculo",
             Documento = cpf,
@@ -46,7 +46,7 @@ public class VeiculosControllerTests : IAsyncLifetime
 
     private async Task<VeiculoResponse> CriarVeiculoAsync(Guid clienteId, string placa)
     {
-        var response = await _client.PostAsJsonAsync("/veiculos", new
+        var response = await _client.PostAsJsonAsync("/atendimento/veiculos", new
         {
             ClienteId = clienteId,
             Placa = placa,
@@ -57,7 +57,7 @@ public class VeiculosControllerTests : IAsyncLifetime
         });
         response.EnsureSuccessStatusCode();
         var criado = await response.Content.ReadFromJsonAsync<IdResponse>();
-        var get = await _client.GetFromJsonAsync<VeiculoResponse>($"/veiculos/{criado!.Id}");
+        var get = await _client.GetFromJsonAsync<VeiculoResponse>($"/atendimento/veiculos/{criado!.Id}");
         return get!;
     }
 
@@ -68,7 +68,7 @@ public class VeiculosControllerTests : IAsyncLifetime
     {
         var clienteId = await CriarClienteAsync("52998224725", "criar.v@test.com");
 
-        var response = await _client.PostAsJsonAsync("/veiculos", new
+        var response = await _client.PostAsJsonAsync("/atendimento/veiculos", new
         {
             ClienteId = clienteId,
             Placa = "AAA1B11",
@@ -89,7 +89,7 @@ public class VeiculosControllerTests : IAsyncLifetime
         var clienteId = await CriarClienteAsync("23708614526", "dupla.v@test.com");
         await CriarVeiculoAsync(clienteId, "BBB2C22");
 
-        var response = await _client.PostAsJsonAsync("/veiculos", new
+        var response = await _client.PostAsJsonAsync("/atendimento/veiculos", new
         {
             ClienteId = clienteId,
             Placa = "BBB2C22",
@@ -110,7 +110,7 @@ public class VeiculosControllerTests : IAsyncLifetime
         var clienteId = await CriarClienteAsync("89540362369", "lista.v@test.com");
         await CriarVeiculoAsync(clienteId, "CCC3D33");
 
-        var response = await _client.GetAsync("/veiculos");
+        var response = await _client.GetAsync("/atendimento/veiculos");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var lista = await response.Content.ReadFromJsonAsync<List<VeiculoResponse>>();
@@ -125,7 +125,7 @@ public class VeiculosControllerTests : IAsyncLifetime
         var clienteId = await CriarClienteAsync("31792370075", "getid.v@test.com");
         var veiculo = await CriarVeiculoAsync(clienteId, "DDD4E44");
 
-        var response = await _client.GetAsync($"/veiculos/{veiculo.Id}");
+        var response = await _client.GetAsync($"/atendimento/veiculos/{veiculo.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var resultado = await response.Content.ReadFromJsonAsync<VeiculoResponse>();
@@ -135,7 +135,7 @@ public class VeiculosControllerTests : IAsyncLifetime
     [Fact]
     public async Task ObterPorId_ComIdInexistente_DeveRetornar404()
     {
-        var response = await _client.GetAsync($"/veiculos/{Guid.NewGuid()}");
+        var response = await _client.GetAsync($"/atendimento/veiculos/{Guid.NewGuid()}");
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
@@ -147,7 +147,7 @@ public class VeiculosControllerTests : IAsyncLifetime
         var clienteId = await CriarClienteAsync("03863342690", "porcliente.v@test.com");
         await CriarVeiculoAsync(clienteId, "EEE5F55");
 
-        var response = await _client.GetAsync($"/veiculos/cliente/{clienteId}");
+        var response = await _client.GetAsync($"/atendimento/veiculos/cliente/{clienteId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var lista = await response.Content.ReadFromJsonAsync<List<VeiculoResponse>>();
@@ -163,7 +163,7 @@ public class VeiculosControllerTests : IAsyncLifetime
         var clienteId = await CriarClienteAsync("52998224725", "pordoc.v@test.com");
         await CriarVeiculoAsync(clienteId, "FFF6G66");
 
-        var response = await _client.GetAsync("/veiculos/cliente/documento/52998224725");
+        var response = await _client.GetAsync("/atendimento/veiculos/cliente/documento/52998224725");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var lista = await response.Content.ReadFromJsonAsync<List<VeiculoResponse>>();
@@ -178,7 +178,7 @@ public class VeiculosControllerTests : IAsyncLifetime
         var clienteId = await CriarClienteAsync("23708614526", "put.v@test.com");
         var veiculo = await CriarVeiculoAsync(clienteId, "GGG7H77");
 
-        var response = await _client.PutAsJsonAsync($"/veiculos/{veiculo.Id}", new
+        var response = await _client.PutAsJsonAsync($"/atendimento/veiculos/{veiculo.Id}", new
         {
             Marca = "Chevrolet",
             Modelo = "Onix",
@@ -200,7 +200,7 @@ public class VeiculosControllerTests : IAsyncLifetime
         var clienteId = await CriarClienteAsync("89540362369", "del.v@test.com");
         var veiculo = await CriarVeiculoAsync(clienteId, "HHH8I88");
 
-        var response = await _client.DeleteAsync($"/veiculos/{veiculo.Id}");
+        var response = await _client.DeleteAsync($"/atendimento/veiculos/{veiculo.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }

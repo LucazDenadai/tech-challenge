@@ -5,7 +5,7 @@ using OficinaMecanica.Atendimento.Application.UseCases.Usuario;
 namespace OficinaMecanica.Atendimento.API.Adapters.In.Http;
 
 [ApiController]
-[Route("usuarios")]
+[Route("atendimento/usuarios")]
 [Authorize(Roles = "Admin")]
 public class UsuariosController : ControllerBase
 {

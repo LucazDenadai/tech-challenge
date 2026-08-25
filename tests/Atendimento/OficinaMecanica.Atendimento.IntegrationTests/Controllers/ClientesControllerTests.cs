@@ -42,7 +42,7 @@ public class ClientesControllerTests : IAsyncLifetime
             Endereco = "Rua B, 10"
         };
 
-        var response = await _client.PostAsJsonAsync("/clientes", body);
+        var response = await _client.PostAsJsonAsync("/atendimento/clientes", body);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var resultado = await response.Content.ReadFromJsonAsync<CriarClienteResponse>();
@@ -63,10 +63,10 @@ public class ClientesControllerTests : IAsyncLifetime
             Endereco = "Rua C, 20"
         };
 
-        var primeira = await _client.PostAsJsonAsync("/clientes", body);
+        var primeira = await _client.PostAsJsonAsync("/atendimento/clientes", body);
         primeira.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var segunda = await _client.PostAsJsonAsync("/clientes", body with { Email = "pedro2@test.com" });
+        var segunda = await _client.PostAsJsonAsync("/atendimento/clientes", body with { Email = "pedro2@test.com" });
         segunda.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
     }
 
@@ -84,7 +84,7 @@ public class ClientesControllerTests : IAsyncLifetime
             Endereco = "Rua D, 30"
         };
 
-        var response = await _client.PostAsJsonAsync("/clientes", body);
+        var response = await _client.PostAsJsonAsync("/atendimento/clientes", body);
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
@@ -104,12 +104,12 @@ public class ClientesControllerTests : IAsyncLifetime
             Endereco = "Rua E, 40"
         };
 
-        var criarResponse = await _client.PostAsJsonAsync("/clientes", body);
+        var criarResponse = await _client.PostAsJsonAsync("/atendimento/clientes", body);
         criarResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var criado = await criarResponse.Content.ReadFromJsonAsync<CriarClienteResponse>();
 
         // Desativa
-        var deleteResponse = await _client.DeleteAsync($"/clientes/{criado!.Id}");
+        var deleteResponse = await _client.DeleteAsync($"/atendimento/clientes/{criado!.Id}");
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // Verificação direta no banco: Ativo = false
@@ -124,7 +124,7 @@ public class ClientesControllerTests : IAsyncLifetime
     [Fact]
     public async Task Listar_DeveRetornar200ComListaDeClientes()
     {
-        await _client.PostAsJsonAsync("/clientes", new
+        await _client.PostAsJsonAsync("/atendimento/clientes", new
         {
             Nome = "Lista Test",
             Documento = "52998224725",
@@ -133,7 +133,7 @@ public class ClientesControllerTests : IAsyncLifetime
             Endereco = "Rua A, 1"
         });
 
-        var response = await _client.GetAsync("/clientes");
+        var response = await _client.GetAsync("/atendimento/clientes");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var lista = await response.Content.ReadFromJsonAsync<List<ClienteResponse>>();
@@ -145,7 +145,7 @@ public class ClientesControllerTests : IAsyncLifetime
     [Fact]
     public async Task Listar_ComBusca_DeveRetornarApenasCorrespondentes()
     {
-        await _client.PostAsJsonAsync("/clientes", new
+        await _client.PostAsJsonAsync("/atendimento/clientes", new
         {
             Nome = "Zilda Busca",
             Documento = "23708614526",
@@ -154,7 +154,7 @@ public class ClientesControllerTests : IAsyncLifetime
             Endereco = "Rua B, 2"
         });
 
-        var response = await _client.GetAsync("/clientes?busca=Zilda");
+        var response = await _client.GetAsync("/atendimento/clientes?busca=Zilda");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var lista = await response.Content.ReadFromJsonAsync<List<ClienteResponse>>();
@@ -167,7 +167,7 @@ public class ClientesControllerTests : IAsyncLifetime
     [Fact]
     public async Task ObterPorId_ComIdExistente_DeveRetornar200()
     {
-        var criar = await _client.PostAsJsonAsync("/clientes", new
+        var criar = await _client.PostAsJsonAsync("/atendimento/clientes", new
         {
             Nome = "Obter Por Id",
             Documento = "89540362369",
@@ -177,7 +177,7 @@ public class ClientesControllerTests : IAsyncLifetime
         });
         var criado = await criar.Content.ReadFromJsonAsync<CriarClienteResponse>();
 
-        var response = await _client.GetAsync($"/clientes/{criado!.Id}");
+        var response = await _client.GetAsync($"/atendimento/clientes/{criado!.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var cliente = await response.Content.ReadFromJsonAsync<ClienteResponse>();
@@ -189,7 +189,7 @@ public class ClientesControllerTests : IAsyncLifetime
     [Fact]
     public async Task ObterPorId_ComIdInexistente_DeveRetornar404()
     {
-        var response = await _client.GetAsync($"/clientes/{Guid.NewGuid()}");
+        var response = await _client.GetAsync($"/atendimento/clientes/{Guid.NewGuid()}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -199,7 +199,7 @@ public class ClientesControllerTests : IAsyncLifetime
     [Fact]
     public async Task Atualizar_ComDadosValidos_DeveRetornar200ComClienteAtualizado()
     {
-        var criar = await _client.PostAsJsonAsync("/clientes", new
+        var criar = await _client.PostAsJsonAsync("/atendimento/clientes", new
         {
             Nome = "Original Nome",
             Documento = "31792370075",
@@ -209,7 +209,7 @@ public class ClientesControllerTests : IAsyncLifetime
         });
         var criado = await criar.Content.ReadFromJsonAsync<CriarClienteResponse>();
 
-        var response = await _client.PutAsJsonAsync($"/clientes/{criado!.Id}", new
+        var response = await _client.PutAsJsonAsync($"/atendimento/clientes/{criado!.Id}", new
         {
             Nome = "Nome Atualizado",
             Email = "atualizado@test.com",

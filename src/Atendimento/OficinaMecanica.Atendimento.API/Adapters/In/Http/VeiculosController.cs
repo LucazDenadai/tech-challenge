@@ -5,7 +5,7 @@ using OficinaMecanica.Atendimento.Application.UseCases.Veiculo;
 namespace OficinaMecanica.Atendimento.API.Adapters.In.Http;
 
 [ApiController]
-[Route("veiculos")]
+[Route("atendimento/veiculos")]
 [Authorize]
 public class VeiculosController : ControllerBase
 {
