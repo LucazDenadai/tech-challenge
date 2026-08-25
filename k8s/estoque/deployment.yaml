@@ -14,10 +14,6 @@ spec:
         app: estoque
     spec:
       automountServiceAccountToken: false
-      initContainers:
-        - name: wait-for-postgres
-          image: postgres:16-alpine
-          command: ["sh", "-c", "until pg_isready -h postgres-svc -p 5432; do sleep 2; done"]
       containers:
         - name: estoque
           image: ghcr.io/lucazdenadai/tech-challenge/oficina-estoque:GIT_SHA_PLACEHOLDER
