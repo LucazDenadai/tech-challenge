@@ -200,19 +200,33 @@ public class OrdensServicoControllerTests : IAsyncLifetime
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // ── Teste 7: Acompanhar sem token ────────────────────────────────────────
+    // ── Teste 7: Acompanhar exige JWT de Cliente (CARD-30) ───────────────────
 
     [Fact]
-    public async Task Acompanhar_SemToken_DeveRetornar200()
+    public async Task Acompanhar_SemToken_DeveRetornar401()
     {
         var (osId, _, _) = await AbrirOSAsync();
 
-        // Obter número da OS
         var statusResp = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/atendimento/ordens-servico/{osId}/status");
         var numero = statusResp!.Numero;
 
         var clienteSemToken = _factory.CreateClient();
         var response = await clienteSemToken.GetAsync($"/atendimento/ordens-servico/acompanhar/{numero}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Acompanhar_ComTokenDeCliente_DeveRetornar200()
+    {
+        var (osId, _, _) = await AbrirOSAsync();
+
+        var statusResp = await _client.GetFromJsonAsync<ConsultarStatusOSResponse>($"/atendimento/ordens-servico/{osId}/status");
+        var numero = statusResp!.Numero;
+
+        var clienteComToken = _factory.CreateClient();
+        AuthHelper.AplicarToken(clienteComToken, AuthHelper.GerarTokenCliente());
+        var response = await clienteComToken.GetAsync($"/atendimento/ordens-servico/acompanhar/{numero}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var acomp = await response.Content.ReadFromJsonAsync<AcompanhamentoResponse>();
