@@ -16,9 +16,9 @@ public class AcompanhamentoOSController : ControllerBase
         _acompanharUseCase = acompanharUseCase;
     }
 
-    /// <summary>Acompanhamento público da OS pelo número — sem autenticação.</summary>
+    /// <summary>Acompanhamento da OS pelo número — exige JWT emitido via autenticação por CPF (CARD-29/30).</summary>
     [HttpGet("acompanhar/{numero}")]
-    [AllowAnonymous]
+    [Authorize(Roles = "Cliente")]
     [ProducesResponseType(typeof(AcompanhamentoOSResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Acompanhar(string numero, CancellationToken ct)
