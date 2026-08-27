@@ -164,7 +164,29 @@ As decisões de design não óbvias, RFCs, diagramas e os cards de execução es
 | [ADR-005](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-005-infraestrutura-como-codigo-terraform.md) | Kind local via Terraform (superseded pelo ADR-009) |
 | [ADR-006](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-006-self-hosted-runner-cicd.md) | Self-hosted runner para o deploy (superseded pelo ADR-009) |
 | [ADR-007](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-007-banco-compartilhado-schemas-separados.md) | Banco compartilhado com schemas separados por serviço |
+| [ADR-008](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-008-observabilidade-opentelemetry.html) | Observabilidade com OpenTelemetry |
 | [ADR-009](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-009-migracao-aws-e-separacao-repositorios.md) | Migração para AWS e separação em repositórios (Fase 3) |
+| [ADR-010](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-010-sizing-e-regiao-aws.md) | Sizing, custo e região da infraestrutura AWS (Fase 3) |
+| [ADR-011](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-011-bootstrap-aws-backend-remoto-oidc.md) | Bootstrap AWS: budget, backend remoto Terraform, OIDC (Fase 3) |
+| [ADR-012](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-012-observabilidade-corporativa-datadog.md) | Observabilidade corporativa com Datadog (Fase 3) |
+| [ADR-013](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/adr/ADR-013-autenticacao-authorize-aspnet-nao-api-gateway.md) | Autorização via `[Authorize]` no Atendimento, não no API Gateway (Fase 3) |
+
+### RFCs
+
+| RFC | Decisão |
+|---|---|
+| [RFC-001](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/rfcs/RFC-001-escolha-da-nuvem.md) | Escolha da nuvem (AWS) |
+| [RFC-002](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/rfcs/RFC-002-escolha-do-banco-de-dados.md) | Escolha do banco de dados gerenciado (RDS PostgreSQL) |
+| [RFC-003](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/rfcs/RFC-003-estrategia-de-autenticacao.md) | Estratégia de autenticação (CPF + JWT via Lambda) |
+
+### Diagramas
+
+| Diagrama | Conteúdo |
+|---|---|
+| [Componentes](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/diagramas/diagrama-componentes.md) | Visão de nuvem, APIs, banco e monitoramento (Fase 3) |
+| [Sequência — Autenticação via CPF](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/diagramas/diagrama-sequencia-autenticacao.md) | Fluxo completo: CPF → JWT → consumo de rota protegida |
+| [Sequência — Abertura e Finalização de OS](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/diagramas/diagrama-sequencia-abertura-os.md) | Fluxo completo: abertura → transições de status → baixa de estoque assíncrona |
+| [Entidade-Relacionamento](https://github.com/LucazDenadai/tech-challenge-docs/blob/main/diagramas/diagrama-er.md) | Modelo de dados, schemas `atendimento`/`estoque`, relacionamentos |
 
 ---
 
