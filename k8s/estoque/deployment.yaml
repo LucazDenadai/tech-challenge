@@ -4,7 +4,7 @@ metadata:
   name: estoque
   namespace: oficina-mecanica
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: estoque
